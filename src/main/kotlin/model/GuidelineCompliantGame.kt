@@ -242,6 +242,7 @@ abstract class GuidelineCompliantGame(
             val distance = ghostRow - piece.pieceRow
             piece.pieceRow = ghostRow
             gameEventBus.post(GameEvent.HardDrop(distance))
+            gameTimers.lockTimer = settings.lockDelay
         }
     }
 
