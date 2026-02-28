@@ -1,7 +1,7 @@
 package model
 
 
-//TODO: change this fixed enum to an interface implementation where the devs can either use the base mathRotated(this) pieces or define state rotations with multiple matrices so that 180 rotation are possible
+//TODO change this enum to an interface implementation where the devs can either use the base mathRotated(this) pieces or define state rotations with multiple matrices so that 180 rotation are possible
 enum class Tetromino(val shape: Matrix<Int>) {
     I(Matrix(4, 4,
         0, 0, 0, 0,
