@@ -1,4 +1,4 @@
-package handson
+package demo
 
 import model.AppLog
 import model.GameConfig
@@ -14,7 +14,7 @@ import javax.swing.Timer
 import javax.swing.WindowConstants
 
 fun main() {
-    val frame = JFrame("Tetris")
+    val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
     val scoreRegistry = ScoreRegistry(ModernGuidelineRules(), eventBus)
     val renderer = SwingRenderer(scoreRegistry, 10, 20)

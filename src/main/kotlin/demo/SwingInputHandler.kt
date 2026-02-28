@@ -1,4 +1,4 @@
-package handson
+package demo
 
 import model.Command
 import model.Drop

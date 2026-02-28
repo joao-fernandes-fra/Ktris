@@ -1,4 +1,4 @@
-package handson
+package demo
 
 import model.GameRenderer
 import model.GameSnapshot
