@@ -3,8 +3,7 @@ plugins {
     kotlin("jvm") version "2.0.21"
 }
 
-group = "com.kari.jtris"
-version = "0.0.1-SNAPSHOT"
+group = "com.kari.ktris"
 description = "Ktris - A cross-platform Tetris engine for JVM"
 
 repositories {
