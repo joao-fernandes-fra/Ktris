@@ -1,6 +1,7 @@
 package demo
 
 import model.AppLog
+import model.BaseTetris
 import model.GameConfig
 import model.GameEvent
 import model.GameEventBus
@@ -8,7 +9,6 @@ import model.GameGoal
 import model.ModernGuidelineRules
 import model.MultiBagRandomizer
 import model.ScoreRegistry
-import model.GuidelinesComplianceGame
 import javax.swing.JFrame
 import javax.swing.Timer
 import javax.swing.WindowConstants
@@ -16,8 +16,11 @@ import javax.swing.WindowConstants
 fun main() {
     val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
+
+    // this is the object that would handle a menu, it has default settings, but it's all mutable and should be updated before starting the game
+    val gameConfig = GameConfig(goalType = GameGoal.LINES, goalValue = 40)
     val scoreRegistry = ScoreRegistry(ModernGuidelineRules(), eventBus)
-    val renderer = SwingRenderer(scoreRegistry, 10, 20)
+    val renderer = SwingRenderer(scoreRegistry, 10, 20, eventBus)
     val inputHandler = SwingInputHandler(eventBus)
 
     frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
@@ -26,18 +29,16 @@ fun main() {
     frame.pack()
     frame.isVisible = true
 
-    val fixedStep = 16.0f
-    val game = GuidelinesComplianceGame(
-        GameConfig(goalType = GameGoal.LINES, goalValue = 40, arrDelay = 0f),
+    val game = BaseTetris(
+        gameConfig,
         MultiBagRandomizer(),
         eventBus,
-        null,
-        fixedStep
     )
 
     eventBus.subscribe<GameEvent> {
         AppLog.info(msg = "Game Event: $it")
     }
+
     var lastTime = System.nanoTime()
 
     Timer(16) {

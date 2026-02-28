@@ -8,7 +8,16 @@ enum class GameState { PLAYING, ENTRY_DELAY, GAME_OVER, VICTORY }
 
 enum class DasState { IDLE, DELAY, REPEAT }
 
-class GuidelinesComplianceGame(
+class BaseTetris(
+    settings: GameConfig,
+    bagManager: BagRandomizer,
+    gameEventBus: GameEventBus,
+    commandRecorder: CommandRecorder? = null,
+) : GuidelineCompliantGame(
+    settings, bagManager, gameEventBus, commandRecorder, 0f
+)
+
+abstract class GuidelineCompliantGame(
     private val settings: GameConfig,
     private val bagManager: BagRandomizer,
     private val gameEventBus: GameEventBus,
@@ -17,7 +26,7 @@ class GuidelinesComplianceGame(
 ) : TetrisEngine {
 
     companion object {
-        private const val SRS_KICK_TEST_COUNT = 5
+        private const val SRS_KICK_TEST_COUNT = 6
         private const val SOFT_DROP_PRECISION_EPSILON = 0.001f
     }
 
@@ -35,6 +44,7 @@ class GuidelinesComplianceGame(
     private var timeGoalElapsed: Float = 0f
     private var dasState: DasState = DasState.IDLE
     private var dasTimer: Float = 0f
+    private var totalLinesCleared = 0
 
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
     override val isVictory: Boolean get() = gameState == GameState.VICTORY
@@ -74,13 +84,6 @@ class GuidelinesComplianceGame(
             }
             commandRecorder?.record(event, deltaTime)
         }
-
-        gameEventBus.subscribe<GameEvent.ScoreUpdated> {
-            if (settings.goalType == GameGoal.LINES && it.totalLines >= settings.goalValue) {
-                gameState = GameState.VICTORY
-                gameEventBus.post(GameEvent.GameOver(true, settings.goalType))
-            }
-        }
     }
 
     private fun Movement.direction() = when (this) {
@@ -102,17 +105,11 @@ class GuidelinesComplianceGame(
 
             GameState.PLAYING -> {
                 gameTimers.sessionTimer += deltaTime
-
                 updateGhost()
-
                 checkWinCondition()
-
                 handleDAS()
-
                 handleGravity()
-
                 handleLockDelay()
-
             }
 
             GameState.GAME_OVER, GameState.VICTORY -> {}
@@ -277,6 +274,8 @@ class GuidelinesComplianceGame(
 
     override fun processRotation(rotation: Rotation): Boolean {
         val moving = currentPiece ?: return false
+        if (rotation == Rotation.ROTATE_180 && !settings.is180Enabled) return false
+
         val (candidateShape, rotationState) = moving.projectRotation(rotation)
         val kickTable = RotationKicks.getFor(moving.piece)
         val tests = when (rotation) {
@@ -332,6 +331,7 @@ class GuidelinesComplianceGame(
         }
 
         val linesCleared = clearLines()
+        totalLinesCleared += linesCleared
         if (spinType != TSpinType.NONE) gameEventBus.post(GameEvent.TSpinDetected(spinType))
         gameEventBus.post(GameEvent.PieceLocked(spinType, linesCleared, isBoardEmpty))
         currentPiece = null
@@ -340,6 +340,7 @@ class GuidelinesComplianceGame(
     }
 
     private fun getTSpinType(piece: MovingPiece): TSpinType {
+        if (!settings.isTSpinEnabled) return TSpinType.NONE
         var spinType = TSpinType.NONE
         if (piece.piece == Tetromino.T && wasRotated) {
             val centerRow = piece.pieceRow + 1
@@ -430,6 +431,13 @@ class GuidelinesComplianceGame(
             GameGoal.TIME -> {
                 timeGoalElapsed += deltaTime
                 if (timeGoalElapsed >= settings.goalValue * 1000f) {
+                    gameState = GameState.VICTORY
+                    gameEventBus.post(GameEvent.GameOver(true, settings.goalType))
+                }
+            }
+
+            GameGoal.LINES -> {
+                if (this.totalLinesCleared >= settings.goalValue) {
                     gameState = GameState.VICTORY
                     gameEventBus.post(GameEvent.GameOver(true, settings.goalType))
                 }

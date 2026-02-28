@@ -8,11 +8,10 @@ data class GameConfig(
     // --- Board Dimensions ---
     val boardRows: Int = 20,
     val boardCols: Int = 10,
-    val hiddenRows: Int = 2,
 
-    // --- Handling (The "Feel") ---
-    val dasDelay: Float = 120f,
-    val arrDelay: Float = 0f,
+    // --- Handling ("The Feel") ---
+    val dasDelay: Float = 166f,
+    val arrDelay: Float = 33f,
     val entryDelay: Float = 500f,
     val lockDelay: Float = 500f,
     val softDropDelay: Float = 50f,
@@ -27,6 +26,7 @@ data class GameConfig(
     val isHoldEnabled: Boolean = true,
     val isGhostEnabled: Boolean = true,
     val isTSpinEnabled: Boolean = true,
+    val is180Enabled: Boolean = false,  // 180 rotation logic is not quite ready, currently the app just handle math rotated pieces using the Matrix and breaks the game, it is disabled by default
     val previewSize: Int = 5,
     val bagMultiplier: Int = 1,
 
