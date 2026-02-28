@@ -333,7 +333,6 @@ abstract class GuidelineCompliantGame(
         val linesCleared = clearLines()
         totalLinesCleared += linesCleared
         if (spinType != TSpinType.NONE) gameEventBus.post(GameEvent.TSpinDetected(spinType))
-        gameEventBus.post(GameEvent.PieceLocked(spinType, linesCleared, isBoardEmpty))
         currentPiece = null
         gameState = GameState.ENTRY_DELAY
         gameTimers.areTimer = 0.0f
@@ -368,7 +367,7 @@ abstract class GuidelineCompliantGame(
             }
         }
         if (linesCleared > 0) {
-            gameEventBus.post(GameEvent.LineCleared(linesCleared, isTetris = linesCleared >= 4))
+            gameEventBus.post(GameEvent.LineCleared(linesCleared, isTetris = linesCleared >= 4, isBoardEmpty))
             checkWinCondition()
         }
         return linesCleared
