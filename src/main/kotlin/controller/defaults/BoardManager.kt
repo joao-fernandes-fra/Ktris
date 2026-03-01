@@ -2,6 +2,7 @@ package controller.defaults
 
 import controller.BoardController
 import model.Matrix
+import model.MovingPiece
 import model.defaults.DefaultMovingPiece
 
 
@@ -63,7 +64,7 @@ class BoardManager(rows: Int, cols: Int) : BoardController {
         }
     }
 
-    override fun placePiece(piece: DefaultMovingPiece<*>) {
+    override fun placePiece(piece: MovingPiece<*>) {
         val shape = piece.shape
         for (r in 0 until shape.rows) {
             for (c in 0 until shape.cols) {

@@ -8,6 +8,7 @@ import model.GameEvent
 import model.GameEventBus
 import model.GameTimers
 import model.Matrix
+import model.MovingPiece
 import model.defaults.DefaultMovingPiece
 import model.Piece
 import model.Rotation
@@ -23,30 +24,14 @@ class DefaultPieceController<T : Piece>(
         private const val SOFT_DROP_PRECISION_EPSILON = 0.001f
     }
 
-    var heldPiece: T? = null
-    var currentPiece: DefaultMovingPiece<T>? = null
-    var ghostRow: Int = 0
-    var wasRotated = false
+    override var heldPiece: T? = null
+    override var currentPiece: MovingPiece<T>? = null
+    override var ghostRow: Int = 0
+    override var wasRotated = false
 
     private var dasState: DasState = DasState.IDLE
     private var lockResets: Int = 0
     private var canHold = true
-
-    override fun getHeldPiece(): T? {
-        return heldPiece
-    }
-
-    override fun getCurrentPiece(): DefaultMovingPiece<T>? {
-        return currentPiece
-    }
-
-    override fun getGhostRow(): Int {
-        return ghostRow
-    }
-
-    override fun wasRotated(): Boolean {
-        return wasRotated
-    }
 
     override fun handleDAS(delta: Float, currentDirection: Int?) {
         val dir = currentDirection ?: return
@@ -228,7 +213,7 @@ class DefaultPieceController<T : Piece>(
         }
     }
 
-    private fun canMove(piece: DefaultMovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
+    private fun canMove(piece: MovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
         return !checkCollision(board, piece.shape, row + dRow, piece.pieceCol + dCol)
     }
 

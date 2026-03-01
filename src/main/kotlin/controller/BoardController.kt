@@ -1,6 +1,7 @@
 package controller
 
 import model.Matrix
+import model.MovingPiece
 import model.defaults.DefaultMovingPiece
 
 interface BoardController {
@@ -11,5 +12,5 @@ interface BoardController {
     fun clearFullLines(): Int
     fun getFullLines(): List<Int>
     fun addGarbage(lines: Int, garbageBlockId: Int)
-    fun placePiece(piece: DefaultMovingPiece<*>)
+    fun placePiece(piece: MovingPiece<*>)
 }

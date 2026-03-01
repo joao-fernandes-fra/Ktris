@@ -3,7 +3,6 @@ package controller.defaults
 import controller.InputHandler
 import controller.PieceController
 import model.BagRandomizer
-import controller.defaults.DefaultTetrisEngine
 import model.GameConfig
 import model.GameEventBus
 import model.GameTimers
@@ -15,17 +14,17 @@ class BaseTetris<T : Piece>(
     bagManager: BagRandomizer<T>,
     gameTimers: GameTimers = GameTimers(),
     timeManager: TimeManager = TimeManager(settings),
-    gameEventBus: GameEventBus,
+    eventBus: GameEventBus,
     boardManager: BoardManager = BoardManager(settings.boardRows, settings.boardCols),
     pieceController: PieceController<T> = DefaultPieceController(
         boardManager.board,
         settings,
         gameTimers,
-        gameEventBus
+        eventBus
     ),
 ) : DefaultTetrisEngine<T>(
-    settings, bagManager, gameEventBus, gameTimers, timeManager, boardManager, pieceController, 0f
+    settings, bagManager, eventBus, gameTimers, timeManager, boardManager, pieceController, 0f
 ) {
     private val inputHandler: InputHandler =
-        GameInputHandler(this, pieceController, timeManager, bagManager, null, eventBus = gameEventBus)
+        GameInputHandler(this, pieceController, timeManager, bagManager, null, eventBus = eventBus)
 }

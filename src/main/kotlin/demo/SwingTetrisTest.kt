@@ -32,19 +32,19 @@ fun main() {
     frame.isVisible = true
 
     val game = BaseTetris(
-        gameConfig,
-        MultiBagRandomizer(Tetromino.values),
-        eventBus,
+        settings = gameConfig,
+        bagManager = MultiBagRandomizer(Tetromino.values),
+        eventBus = eventBus
     )
 
     var lastTime = System.nanoTime()
 
     Timer(16) {
         val currentTime = System.nanoTime()
-        val dt = (currentTime - lastTime) / 1_000_000f
+        val deltaTime = (currentTime - lastTime) / 1_000_000f
         lastTime = currentTime
 
-        val frameTime = if (dt > 100f) 100f else dt
+        val frameTime = if (deltaTime > 100f) 100f else deltaTime
 
         game.deltaTime = frameTime
         game.update()

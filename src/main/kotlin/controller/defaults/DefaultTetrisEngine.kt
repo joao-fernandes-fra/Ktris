@@ -15,6 +15,7 @@ import model.GameSnapshot
 import model.GameState
 import model.GameTimers
 import model.Movement
+import model.MovingPiece
 import model.defaults.DefaultMovingPiece
 import model.Piece
 import model.PieceState
@@ -113,7 +114,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     override fun gameStateSnapshot(): GameSnapshot<T> {
         return GameSnapshot(
             boardManager.board,
-            currentPiece = pieceController.getCurrentPiece()?.let {
+            currentPiece = pieceController.currentPiece?.let {
                 PieceState(
                     it.shape,
                     it.pieceRow,
@@ -121,13 +122,13 @@ abstract class DefaultTetrisEngine<T : Piece>(
                     it.piece
                 )
             },
-            ghostPiece = if (settings.isGhostEnabled) pieceController.getCurrentPiece()?.let {
+            ghostPiece = if (settings.isGhostEnabled) pieceController.currentPiece?.let {
                 PieceState(
-                    it.shape, pieceController.getGhostRow(), it.pieceCol, it.piece
+                    it.shape, pieceController.ghostRow, it.pieceCol, it.piece
                 )
             } else null,
             nextPieces = bagManager.getPreview(settings.previewSize),
-            holdPiece = pieceController.getHeldPiece())
+            holdPiece = pieceController.heldPiece)
     }
 
 
@@ -166,7 +167,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     private fun lockAndProcess() {
-        val piece = pieceController.getCurrentPiece() ?: return
+        val piece = pieceController.currentPiece ?: return
         val spinType = getSpinType(piece)
 
         boardManager.placePiece(piece)
@@ -188,8 +189,8 @@ abstract class DefaultTetrisEngine<T : Piece>(
         gameTimers.areTimer = 0.0f
     }
 
-    private fun getSpinType(pieceState: DefaultMovingPiece<T>): SpinType {
-        if (!settings.isSpinEnabled || !pieceController.wasRotated()) return SpinType.NONE
+    private fun getSpinType(pieceState: MovingPiece<T>): SpinType {
+        if (!settings.isSpinEnabled || !pieceController.wasRotated) return SpinType.NONE
         return pieceState.piece.getSpinType(
             boardManager.board,
             pieceState.pieceRow,
