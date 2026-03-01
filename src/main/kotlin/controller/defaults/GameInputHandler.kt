@@ -4,7 +4,6 @@ import controller.CommandRecorder
 import controller.InputHandler
 import controller.PieceController
 import model.BagRandomizer
-import controller.defaults.DefaultTetrisEngine
 import model.GameEventBus
 import model.InputEvent
 import model.Piece

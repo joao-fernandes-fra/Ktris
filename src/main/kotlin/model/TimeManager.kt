@@ -9,8 +9,15 @@ class TimeManager(private val settings: GameConfig) {
     private var modeDuration: Float = 0f
 
     fun freezeTime(duration: Float) {
+        AppLog.info { "Freezing time: $duration" }
         mode = TimeMode.FROZEN
         modeDuration = duration
+    }
+
+    fun resetState() {
+        mode = TimeMode.NORMAL
+        onFreezeEnded?.invoke()
+        AppLog.info { "Returning to normal state: $mode" }
     }
 
     fun slowDownTime(duration: Float) {
@@ -24,13 +31,12 @@ class TimeManager(private val settings: GameConfig) {
         if (mode == TimeMode.SLOWED) {
             return deltaTime * settings.slowDownMultiplier
         }
-        
+
         modeDuration -= deltaTime
         if (modeDuration <= 0) {
-            mode = TimeMode.NORMAL
-            onFreezeEnded?.invoke()
+            resetState()
         }
-        
+
         return 0f
     }
 }

@@ -6,10 +6,15 @@ import model.GameEventBus
 import model.InputEvent
 import model.Movement
 import model.Rotation
+import model.TimeManager
+import model.TimeMode
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 
-class SwingInputHandler(private val eventBus: GameEventBus) : KeyAdapter() {
+class SwingInputHandler(
+    private val eventBus: GameEventBus,
+    private val timeManager: TimeManager
+) : KeyAdapter() {
     override fun keyPressed(e: KeyEvent?) {
         when (e?.keyCode) {
             KeyEvent.VK_SPACE -> postEvent(InputEvent.DropInput(Drop.HARD_DROP))
@@ -20,6 +25,13 @@ class SwingInputHandler(private val eventBus: GameEventBus) : KeyAdapter() {
             KeyEvent.VK_DOWN -> postEvent(InputEvent.DropInput(Drop.SOFT_DROP))
             KeyEvent.VK_LEFT -> postEvent(InputEvent.DirectionMoveStart(Movement.MOVE_LEFT))
             KeyEvent.VK_RIGHT -> postEvent(InputEvent.DirectionMoveStart(Movement.MOVE_RIGHT))
+            KeyEvent.VK_S -> {
+                if (timeManager.mode == TimeMode.FROZEN) {
+                    timeManager.resetState()
+                } else {
+                    timeManager.freezeTime(Float.MAX_VALUE)
+                }
+            }
         }
     }
 

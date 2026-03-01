@@ -16,14 +16,13 @@ import model.GameState
 import model.GameTimers
 import model.Movement
 import model.MovingPiece
-import model.defaults.DefaultMovingPiece
 import model.Piece
 import model.PieceState
 import model.Rotation
 import model.SpinType
 import model.TimeManager
 import model.TimeMode
-import model.ZoneLineBuffer
+import kotlin.math.floor
 
 abstract class DefaultTetrisEngine<T : Piece>(
     private val settings: GameConfig,
@@ -39,6 +38,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     private var gameState = GameState.ENTRY_DELAY
     private var currentLevel: Int = 1
     private var timeGoalElapsed: Float = 0f
+    private var freezeLineClears: Int = 0
 
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
     override val isVictory: Boolean get() = gameState == GameState.VICTORY
@@ -46,9 +46,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
     private val activeDirections = mutableListOf<Int>()
     private val currentDirection: Int? get() = activeDirections.lastOrNull()
     private var rotationLock = false
-    private var zoneLineBuffer = ZoneLineBuffer { lineCleared ->
-        gameEventBus.post(GameEvent.LineCleared(SpinType.NONE, lineCleared, boardManager.isBoardEmpty))
-    }
 
     init {
         setupTimeSystem()
@@ -56,7 +53,16 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     private fun setupTimeSystem() {
-        timeManager.onFreezeEnded = { zoneLineBuffer.flush() }
+        timeManager.onFreezeEnded = {
+            val freezeLineClears = 0
+            val linesCleared = boardManager.clearFullLines()
+
+            if (linesCleared > 0) {
+                gameEventBus.post(GameEvent.LineCleared(SpinType.NONE, linesCleared, boardManager.isBoardEmpty))
+            }
+
+            AppLog.info { "Freeze ended. Cleared $linesCleared lines immediately." }
+        }
     }
 
     private fun setupEventListeners() {
@@ -177,7 +183,9 @@ abstract class DefaultTetrisEngine<T : Piece>(
         gameEventBus.post(GameEvent.PieceLocked(linesCount > 0))
 
         if (timeManager.mode == TimeMode.FROZEN) {
-            zoneLineBuffer.recordClear(linesCount)
+            AppLog.info { "Time Frozen" }
+            freezeLineClears = floor((freezeLineClears - linesCount).toDouble()).toInt()
+            if (freezeLineClears > 0) gameEventBus.post(GameEvent.FreezeLineClear(linesCount, spinType ))
         } else {
             if (linesCount > 0) gameEventBus.post(GameEvent.LineCleared(spinType, linesCount, boardManager.isBoardEmpty))
             boardManager.clearFullLines()
