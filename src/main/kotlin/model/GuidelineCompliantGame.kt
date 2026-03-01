@@ -295,11 +295,6 @@ abstract class GuidelineCompliantGame(
             val testCol = moving.pieceCol + offsetX
             val testRow = moving.pieceRow - offsetY
             val isCollision = checkCollision(board, candidateShape, testRow, testCol)
-
-            // Log EVERY attempt
-            println("[DEBUG] Testing Kick $index at ($testRow, $testCol): ${if (isCollision) "COLLISION" else "VALID"}")
-
-
             if (!isCollision) {
                 moving.rotateShape(candidateShape, testRow, testCol, rotation)
                 gameTimers.lockTimer = 0.0f
