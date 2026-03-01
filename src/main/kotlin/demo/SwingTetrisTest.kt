@@ -15,7 +15,7 @@ import javax.swing.Timer
 import javax.swing.WindowConstants
 
 fun main() {
-    AppLog.minLevel = AppLog.Level.DEBUG
+    AppLog.minLevel = AppLog.Level.INFO
     val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
 
