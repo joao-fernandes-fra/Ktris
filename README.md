@@ -52,7 +52,7 @@ The project includes a simple Swing-based demo that provides a graphical user in
     ./gradlew runDemo
 * on **Windows** 
     ```bash
-    gradlew.bat runDemo
+    .\gradlew.bat runDemo
 
 A Swing window will open with a playable Tetris game. Use the keyboard controls to move and rotate the pieces.
 ### Demo Controls
