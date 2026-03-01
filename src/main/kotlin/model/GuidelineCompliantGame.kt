@@ -1,29 +1,27 @@
 package model
 
 import util.CollisionUtils.checkCollision
-import util.TSpinDetector
-import util.TSpinType
 
 enum class GameState { PLAYING, ENTRY_DELAY, GAME_OVER, VICTORY }
 
 enum class DasState { IDLE, DELAY, REPEAT }
 
-class BaseTetris(
+class BaseTetris<T : Piece>(
     settings: GameConfig,
-    bagManager: BagRandomizer,
+    bagManager: BagRandomizer<T>,
     gameEventBus: GameEventBus,
     commandRecorder: CommandRecorder? = null,
-) : GuidelineCompliantGame(
+) : GuidelineCompliantGame<T>(
     settings, bagManager, gameEventBus, commandRecorder, 0f
 )
 
-abstract class GuidelineCompliantGame(
+abstract class GuidelineCompliantGame<T : Piece>(
     private val settings: GameConfig,
-    private val bagManager: BagRandomizer,
+    private val bagManager: BagRandomizer<T>,
     private val gameEventBus: GameEventBus,
     private val commandRecorder: CommandRecorder? = null,
     override var deltaTime: Float
-) : TetrisEngine {
+) : TetrisEngine<T> {
 
     companion object {
         private const val SOFT_DROP_PRECISION_EPSILON = 0.001f
@@ -32,9 +30,9 @@ abstract class GuidelineCompliantGame(
     private val gameTimers: GameTimers = GameTimers()
     private val board: Matrix<Int> = Matrix(settings.boardRows, settings.boardCols, 0)
 
-    private var currentPiece: MovingPiece? = null
+    private var currentPiece: MovingPiece<T>? = null
     private var ghostRow: Int = 0
-    private var heldPiece: Tetromino? = null
+    private var heldPiece: T? = null
     private var canHold: Boolean = true
     private var wasRotated: Boolean = false
     private var gameState = GameState.ENTRY_DELAY
@@ -120,7 +118,7 @@ abstract class GuidelineCompliantGame(
         }
     }
 
-    override fun spawnPiece(nextPiece: Tetromino) {
+    override fun spawnPiece(nextPiece: T) {
         if (isGameOver) return
 
         AppLog.debug { "Spawning piece: $nextPiece" }
@@ -197,7 +195,7 @@ abstract class GuidelineCompliantGame(
         canHold = false
     }
 
-    override fun gameStateSnapshot(): GameSnapshot {
+    override fun gameStateSnapshot(): GameSnapshot<T> {
         return GameSnapshot(
             board,
             currentPiece = currentPiece?.let { PieceState(it.shape, it.pieceRow, it.pieceCol, it.piece) },
@@ -283,12 +281,7 @@ abstract class GuidelineCompliantGame(
         if (rotation == Rotation.ROTATE_180 && !settings.is180Enabled) return false
 
         val (candidateShape, _) = moving.projectRotation(rotation)
-        val kickTable = RotationKicks.getFor(moving.piece)
-        val tests = when (rotation) {
-            Rotation.ROTATE_CW -> kickTable.cw[moving.rotationState]
-            Rotation.ROTATE_CCW -> kickTable.ccw[moving.rotationState]
-            Rotation.ROTATE_180 -> kickTable._180[moving.rotationState]
-        }
+        val tests = moving.piece.getKickTable(rotation, moving.rotationState)
 
         for (index in tests.indices) {
             val (offsetX, offsetY) = tests[index]
@@ -325,7 +318,7 @@ abstract class GuidelineCompliantGame(
 
     private fun lockAndProcess() {
         val piece = currentPiece ?: return
-        val spinType = getTSpinType(piece)
+        val spinType = getSpinType(piece)
 
         val shape = piece.shape
         for (r in 0 until shape.rows) {
@@ -342,21 +335,19 @@ abstract class GuidelineCompliantGame(
         gameState = GameState.ENTRY_DELAY
         gameTimers.areTimer = 0.0f
         AppLog.debug { "Piece locked. Cleared $linesCleared lines. Spin: $spinType" }
-        if (spinType != TSpinType.NONE) gameEventBus.post(GameEvent.TSpinDetected(spinType))
+        if (spinType != SpinType.NONE) gameEventBus.post(GameEvent.SpinDetected(spinType))
         if (linesCleared > 0) gameEventBus.post(GameEvent.LineCleared(spinType, linesCleared, isBoardEmpty))
         gameEventBus.post(GameEvent.PieceLocked(linesCleared > 0))
     }
 
-    private fun getTSpinType(piece: MovingPiece): TSpinType {
-        if (!settings.isTSpinEnabled) return TSpinType.NONE
-        var spinType = TSpinType.NONE
-        if (piece.piece == Tetromino.T && wasRotated) {
-            val centerRow = piece.pieceRow + 1
-            val centerCol = piece.pieceCol + 1
-
-            spinType = TSpinDetector.checkTSpin(board, centerRow, centerCol, piece.rotationState)
-        }
-        return spinType
+    private fun getSpinType(pieceState: MovingPiece<T>): SpinType {
+        if (!settings.isSpinEnabled || !wasRotated) return SpinType.NONE
+        return pieceState.piece.getSpinType(
+            board,
+            pieceState.pieceRow,
+            pieceState.pieceCol,
+            pieceState.rotationState
+        )
     }
 
     private fun clearLines(): Int {
@@ -420,7 +411,7 @@ abstract class GuidelineCompliantGame(
         }
     }
 
-    private fun canMove(piece: MovingPiece, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
+    private fun canMove(piece: MovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
         return !checkCollision(board, piece.shape, row + dRow, piece.pieceCol + dCol)
     }
 

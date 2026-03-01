@@ -1,5 +1,5 @@
 package model
 
-interface GameRenderer {
-    fun render(state: GameSnapshot)
+interface GameRenderer<T : Piece> {
+    fun render(state: GameSnapshot<T>)
 }

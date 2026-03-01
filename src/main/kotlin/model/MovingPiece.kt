@@ -1,12 +1,11 @@
 package model
 
-import util.RotationUtils
 
 typealias Shape = Matrix<Int>
 typealias RotationState = Pair<Shape, Int>
 
-data class MovingPiece(
-    var piece: Tetromino,
+data class MovingPiece<T : Piece>(
+    var piece: T,
     var pieceRow: Int = 0,
     var pieceCol: Int = 0,
     var rotationState: Int = 0,
@@ -18,8 +17,8 @@ data class MovingPiece(
     }
 
     fun projectRotation(rotation: Rotation): RotationState {
-        if (piece == Tetromino.I && rotation == Rotation.ROTATE_180) return shape to rotationState
-        return RotationUtils.getRotatedCopy(this.shape, rotation) to calculateNextState(rotation)
+        val rotationState = calculateNextState(rotation)
+        return piece.getRotationsState(rotationState) to rotationState
     }
 
 

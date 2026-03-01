@@ -1,6 +1,6 @@
 package model
 
-interface TetrisEngine {
+interface TetrisEngine<T : Piece> {
 
     val isGameOver: Boolean
 
@@ -10,7 +10,7 @@ interface TetrisEngine {
 
     fun update()
 
-    fun spawnPiece(nextPiece: Tetromino)
+    fun spawnPiece(nextPiece: T)
 
     fun levelUp(): Int
 
@@ -24,6 +24,6 @@ interface TetrisEngine {
 
     fun processDrop(drop: Drop)
 
-    fun gameStateSnapshot(): GameSnapshot
+    fun gameStateSnapshot(): GameSnapshot<T>
 
 }

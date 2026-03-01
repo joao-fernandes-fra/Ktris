@@ -1,6 +1,6 @@
 package model
 
-enum class RotationKicks(
+enum class SRSKicks(
     val cw: List<List<Pair<Int, Int>>>,
     val ccw: List<List<Pair<Int, Int>>>,
     val _180: List<List<Pair<Int, Int>>>,
@@ -48,10 +48,4 @@ enum class RotationKicks(
             listOf(0 to 0, -1 to 0, -2 to 0, 1 to 0, 2 to 0)    // 3->1
         )
     );
-
-    companion object {
-        fun getFor(type: Tetromino): RotationKicks {
-            return if (type == Tetromino.I) I_PIECE else STANDARD
-        }
-    }
 }

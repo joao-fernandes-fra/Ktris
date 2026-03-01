@@ -25,7 +25,7 @@ data class GameConfig(
     // --- Mechanics ---
     val isHoldEnabled: Boolean = true,
     val isGhostEnabled: Boolean = true,
-    val isTSpinEnabled: Boolean = true,
+    val isSpinEnabled: Boolean = true,
     val is180Enabled: Boolean = false,  // 180 rotation logic is not quite ready, currently the app just handle math rotated pieces using the Matrix and breaks the game, it is disabled by default
     val previewSize: Int = 5,
     val bagMultiplier: Int = 1,
