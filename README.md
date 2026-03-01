@@ -37,7 +37,7 @@ Interaction is handled by feeding commands to the GameEventBus and querying the 
 *   **Git:** To clone the repository.
 
 ### Running the Demo
-The project includes a simple Swing-based demo that provides a graphical user interface to interact with the Tetris engine.
+The project includes a simple Swing-based demo that provides a graphical user interface to interact with the Tetris engine. This demo also includes a very basic Freeze time mechanic similar to that seen on Tetris Effect
 
 1.  **Clone the repository:**
     ```bash
@@ -59,6 +59,7 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 *   **Rotate Cockwise:** X 
 *   **Rotate CounterClockwise:** Z 
 *   **Hold Piece:** C 
+*   **Freeze/Unfreeze:** S
 *   **Hard Drop:** Space 
 *   **Soft Drop:** ↓ Arrow Key 
 *   **Move Left:** ← Arrow Key 
@@ -67,6 +68,7 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 ## 📸 Screenshots & Demo
 ![Swing Demo Screenshot](src/main/resources/assets/demo-screenshot.png)
 ![Gameplay GIF](src/main/resources/assets/gameplay.gif)
+![Freeze Demo GIF](src/main/resources/assets/freeze-demo.gif)
 
 ## 🛠️ Building and Editing
 This project is built with **Gradle** (using the Kotlin DSL). The main code is located in `src/main/kotlin/`.
