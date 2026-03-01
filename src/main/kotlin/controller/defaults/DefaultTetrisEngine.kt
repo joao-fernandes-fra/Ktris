@@ -54,7 +54,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     private fun setupTimeSystem() {
         timeManager.onFreezeEnded = {
-            val freezeLineClears = 0
+            freezeLineClears = 0
             val linesCleared = boardManager.clearFullLines()
 
             if (linesCleared > 0) {
