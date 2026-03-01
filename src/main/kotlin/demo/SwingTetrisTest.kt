@@ -14,6 +14,7 @@ import javax.swing.Timer
 import javax.swing.WindowConstants
 
 fun main() {
+    AppLog.minLevel = AppLog.Level.DEBUG
     val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
 
@@ -34,10 +35,6 @@ fun main() {
         MultiBagRandomizer(),
         eventBus,
     )
-
-    eventBus.subscribe<GameEvent> {
-        AppLog.info(msg = "Game Event: $it")
-    }
 
     var lastTime = System.nanoTime()
 

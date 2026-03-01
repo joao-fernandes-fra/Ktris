@@ -26,7 +26,6 @@ abstract class GuidelineCompliantGame(
 ) : TetrisEngine {
 
     companion object {
-        private const val SRS_KICK_TEST_COUNT = 6
         private const val SOFT_DROP_PRECISION_EPSILON = 0.001f
     }
 
@@ -52,6 +51,7 @@ abstract class GuidelineCompliantGame(
 
     private val activeDirections = mutableListOf<Int>()
     private val currentDirection: Int? get() = activeDirections.lastOrNull()
+    private var rotationLock = false
 
     init {
         gameEventBus.subscribe<GameEvent.LevelUp> {
@@ -60,7 +60,6 @@ abstract class GuidelineCompliantGame(
 
         gameEventBus.subscribe<InputEvent> { event ->
             if (isGameOver || isVictory) return@subscribe
-            AppLog.debug { "InputEvent received: $event" }
             when (event) {
                 is InputEvent.DirectionMoveStart -> {
                     val dir = event.movement.direction()
@@ -80,7 +79,12 @@ abstract class GuidelineCompliantGame(
 
                 is InputEvent.DropInput -> processDrop(event.dropType)
                 is InputEvent.CommandInput -> holdPiece()
-                is InputEvent.RotationInput -> processRotation(event.rotation)
+                is InputEvent.RotationInputStart -> {
+                    processRotation(event.rotation)
+                    rotationLock = true
+                }
+
+                is InputEvent.RotationInputRelease -> rotationLock = false
             }
             commandRecorder?.record(event, deltaTime)
         }
@@ -119,11 +123,12 @@ abstract class GuidelineCompliantGame(
     override fun spawnPiece(nextPiece: Tetromino) {
         if (isGameOver) return
 
+        AppLog.debug { "Spawning piece: $nextPiece" }
         val newPiece = MovingPiece(
             piece = nextPiece, pieceCol = (board.cols / 2) - (nextPiece.shape.cols / 2)
         )
 
-        if (checkCollision(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol, 0)) {
+        if (checkCollision(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
             gameState = GameState.GAME_OVER
             gameEventBus.post(GameEvent.GameOver(false, settings.goalType))
             return
@@ -187,6 +192,7 @@ abstract class GuidelineCompliantGame(
             heldPiece = pieceToHold
             spawnPiece(next)
         }
+        AppLog.info { "Piece held: $heldPiece" }
         gameEventBus.post(GameEvent.PieceHeld(heldPiece!!))
         canHold = false
     }
@@ -241,8 +247,8 @@ abstract class GuidelineCompliantGame(
         currentPiece?.let { piece ->
             val distance = ghostRow - piece.pieceRow
             piece.pieceRow = ghostRow
-            gameEventBus.post(GameEvent.HardDrop(distance))
             gameTimers.lockTimer = settings.lockDelay
+            gameEventBus.post(GameEvent.HardDrop(distance))
         }
     }
 
@@ -276,20 +282,25 @@ abstract class GuidelineCompliantGame(
         val moving = currentPiece ?: return false
         if (rotation == Rotation.ROTATE_180 && !settings.is180Enabled) return false
 
-        val (candidateShape, rotationState) = moving.projectRotation(rotation)
+        val (candidateShape, _) = moving.projectRotation(rotation)
         val kickTable = RotationKicks.getFor(moving.piece)
         val tests = when (rotation) {
-            Rotation.ROTATE_CW -> kickTable.cw[rotationState]
-            Rotation.ROTATE_CCW -> kickTable.ccw[rotationState]
-            Rotation.ROTATE_180 -> kickTable._180[rotationState]
+            Rotation.ROTATE_CW -> kickTable.cw[moving.rotationState]
+            Rotation.ROTATE_CCW -> kickTable.ccw[moving.rotationState]
+            Rotation.ROTATE_180 -> kickTable._180[moving.rotationState]
         }
 
-        for (i in 0 until SRS_KICK_TEST_COUNT) {
-            val (offsetX, offsetY) = tests[i]
+        for (index in tests.indices) {
+            val (offsetX, offsetY) = tests[index]
             val testCol = moving.pieceCol + offsetX
             val testRow = moving.pieceRow - offsetY
+            val isCollision = checkCollision(board, candidateShape, testRow, testCol)
 
-            if (!checkCollision(board, candidateShape, testRow, testCol, 0)) {
+            // Log EVERY attempt
+            println("[DEBUG] Testing Kick $index at ($testRow, $testCol): ${if (isCollision) "COLLISION" else "VALID"}")
+
+
+            if (!isCollision) {
                 moving.rotateShape(candidateShape, testRow, testCol, rotation)
                 gameTimers.lockTimer = 0.0f
                 resetLockTimer()
@@ -331,12 +342,14 @@ abstract class GuidelineCompliantGame(
         }
 
         val linesCleared = clearLines()
-        if (spinType != TSpinType.NONE) gameEventBus.post(GameEvent.TSpinDetected(spinType))
-        gameEventBus.post(GameEvent.PieceLocked(spinType, linesCleared, isBoardEmpty))
         totalLinesCleared += linesCleared
         currentPiece = null
         gameState = GameState.ENTRY_DELAY
         gameTimers.areTimer = 0.0f
+        AppLog.debug { "Piece locked. Cleared $linesCleared lines. Spin: $spinType" }
+        if (spinType != TSpinType.NONE) gameEventBus.post(GameEvent.TSpinDetected(spinType))
+        if (linesCleared > 0) gameEventBus.post(GameEvent.LineCleared(spinType, linesCleared, isBoardEmpty))
+        gameEventBus.post(GameEvent.PieceLocked(linesCleared > 0))
     }
 
     private fun getTSpinType(piece: MovingPiece): TSpinType {
@@ -368,7 +381,6 @@ abstract class GuidelineCompliantGame(
             }
         }
         if (linesCleared > 0) {
-            gameEventBus.post(GameEvent.LineCleared(linesCleared, isTetris = linesCleared >= 4))
             checkWinCondition()
         }
         return linesCleared
@@ -414,7 +426,7 @@ abstract class GuidelineCompliantGame(
     }
 
     private fun canMove(piece: MovingPiece, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
-        return !checkCollision(board, piece.shape, row + dRow, piece.pieceCol + dCol, 0)
+        return !checkCollision(board, piece.shape, row + dRow, piece.pieceCol + dCol)
     }
 
     private fun movePiece(row: Int, col: Int): Boolean {
@@ -431,6 +443,7 @@ abstract class GuidelineCompliantGame(
             GameGoal.TIME -> {
                 timeGoalElapsed += deltaTime
                 if (timeGoalElapsed >= settings.goalValue * 1000f) {
+                    AppLog.info { "Goal reached! Terminating Game." }
                     gameState = GameState.VICTORY
                     gameEventBus.post(GameEvent.GameOver(true, settings.goalType))
                 }
@@ -438,6 +451,7 @@ abstract class GuidelineCompliantGame(
 
             GameGoal.LINES -> {
                 if (this.totalLinesCleared >= settings.goalValue) {
+                    AppLog.info { "Goal reached! Terminating Game." }
                     gameState = GameState.VICTORY
                     gameEventBus.post(GameEvent.GameOver(true, settings.goalType))
                 }

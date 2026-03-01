@@ -1,5 +1,8 @@
 # Ktris
 
+[![](https://jitpack.io/v/joao-fernandes-fra/Ktris.svg)](https://jitpack.io/#joao-fernandes-fra/Ktris)
+
+
 **Ktris** is a modular, headless Tetris engine written in Kotlin. It provides the core game logic, state management, and ruleset without enforcing a specific rendering or input implementation. This design allows it to be easily embedded into any Kotlin project, whether it's a desktop GUI application, a web app, or a server-side process.
 
 ## ✨ Features
@@ -8,6 +11,24 @@
 *   **📦 Clean State Management:** Simple interfaces for querying the game state and feeding inputs.
 *   **🖥️ Platform Agnostic:** Use it with Java Swing/JavaFX, Compose Multiplatform, LibGDX, or even a terminal application.
 *   **✅ Built-in Demo:** A simple, runnable Swing-based demo to see the engine in action.
+
+## 📦 Installation
+To include Ktris in your project, add the JitPack repository to your build.gradle.kts file:
+
+```kotlin
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
+dependencies {
+    implementation("com.github.joao-fernandes-fra:Ktris:LATEST_TAG")
+}
+```
+
+## 💻 Usage
+Since **Ktris** is headless, the library manages the game rules, but you are responsible for the game loop, user input, and rendering. 
+Interaction is handled by feeding commands to the GameEventBus and querying the current GameState.
+
 
 ## 🚀 Getting Started
 

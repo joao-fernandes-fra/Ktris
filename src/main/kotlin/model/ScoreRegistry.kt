@@ -1,16 +1,16 @@
 package model
 
 
-enum class MoveType {
-    NONE, SINGLE, DOUBLE, TRIPLE, TETRIS,
-    T_SPIN_MINI_SINGLE, T_SPIN_MINI_DOUBLE,
-    T_SPIN_SINGLE, T_SPIN_DOUBLE, T_SPIN_TRIPLE
+enum class MoveType(val isSpecial: Boolean = false) {
+    NONE, SINGLE, DOUBLE, TRIPLE, TETRIS(true),
+    T_SPIN_MINI_SINGLE(true), T_SPIN_MINI_DOUBLE(true),
+    T_SPIN_SINGLE(true), T_SPIN_DOUBLE(true), T_SPIN_TRIPLE(true)
 }
 
 class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEventBus: GameEventBus) {
 
     init {
-        gameEventBus.subscribe<GameEvent.PieceLocked> { event ->
+        gameEventBus.subscribe<GameEvent.LineCleared> { event ->
             recordAction(ClearAction.mapAction(event.spinType), event.linesCleared, event.isPerfectClear)
         }
 
@@ -34,13 +34,14 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
     var b2bCount: Int = -1; private set
 
     private fun recordAction(action: ClearAction, lines: Int, isPerfectClear: Boolean) {
+        AppLog.debug { "Recording action $action" }
         val moveType = ruleBook.getMoveType(action, lines)
         var basePoints = ruleBook.getBasePoints(action, lines)
 
         if (ruleBook.isDifficult(action, lines)) {
             b2bCount++
-            gameEventBus.post(GameEvent.BackToBackTrigger(b2bCount))
             if (b2bCount > 0) {
+                gameEventBus.post(GameEvent.BackToBackTrigger(b2bCount))
                 basePoints *= 1.5
             }
         } else if (lines > 0) {
@@ -48,6 +49,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
         }
 
         if (lines > 0) combo++ else combo = -1
+
         val comboBonus = if (combo > 0) {
             gameEventBus.post(GameEvent.ComboTriggered(combo))
             (ruleBook.comboFactor * combo * level)
@@ -58,6 +60,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
         val pointsAwarded = (basePoints * level) + comboBonus + pcBonus
         totalPoints += pointsAwarded
         totalLinesCleared += lines
+        AppLog.info { "Score Updated: $totalPoints (Total Lines: $totalLinesCleared) " + if (moveType.isSpecial) "(SpecialMove: $moveType)" else "" }
         gameEventBus.post(GameEvent.ScoreUpdated(totalLinesCleared, totalPoints, pointsAwarded, moveType))
     }
 

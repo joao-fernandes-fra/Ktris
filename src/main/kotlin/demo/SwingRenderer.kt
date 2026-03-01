@@ -28,8 +28,10 @@ class SwingRenderer(
         background = Color.BLACK
 
         eventBus.subscribe<GameEvent.LineCleared> {
-            flashAlpha = 1.0f
-            lastClearTime = System.currentTimeMillis()
+            if (it.linesCleared > 0) {
+                flashAlpha = 1.0f
+                lastClearTime = System.currentTimeMillis()
+            }
         }
     }
 

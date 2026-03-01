@@ -36,19 +36,16 @@ enum class RotationKicks(
             listOf(0 to 0, 1 to 0, -2 to 0, 1 to -2, -2 to 1)   // 3->0
         ),
         ccw = listOf(
-            listOf(0 to 0, -1 to 0, 2 to 0, -1 to 2, 2 to -1),  // 0->3
+            listOf(0 to 0, 1 to 0, -2 to 0, 1 to -2, -2 to 1),  // 0->3
             listOf(0 to 0, 2 to 0, -1 to 0, 2 to 1, -1 to -2),  // 3->2
-            listOf(0 to 0, 1 to 0, -2 to 0, 1 to -2, -2 to 1),  // 2->1
+            listOf(0 to 0, -1 to 0, 2 to 0, -1 to 2, 2 to -1),  // 2->1
             listOf(0 to 0, -2 to 0, 1 to 0, -2 to -1, 1 to 2)   // 1->0
         ),
         _180 = listOf(
-            listOf(0 to 0, 0 to 1, 0 to 2, 0 to -1, 0 to -2), // 0->2
-
-            listOf(0 to 0, 1 to 0, 2 to 0, -1 to 0, -2 to 0), // 1->3
-
-            listOf(0 to 0, 0 to -1, 0 to -2, 0 to 1, 0 to 2), // 2->0 (Symmetric to 0->2)
-
-            listOf(0 to 0, -1 to 0, -2 to 0, 1 to 0, 2 to 0) // 3->1 (Symmetric to 1->3)
+            listOf(0 to 0, 0 to 1, 0 to 2, 0 to -1, 0 to -2),    // 0->2
+            listOf(0 to 0, 1 to 0, 2 to 0, -1 to 0, -2 to 0),   // 1->3
+            listOf(0 to 0, 0 to -1, 0 to -2, 0 to 1, 0 to 2),   // 2->0
+            listOf(0 to 0, -1 to 0, -2 to 0, 1 to 0, 2 to 0)    // 3->1
         )
     );
 

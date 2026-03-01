@@ -15,8 +15,7 @@ class GameEventBus {
     }
 
     fun <T : Any> post(event: T) {
-        subscribers[event::class]?.forEach { it(event) }
-
+        AppLog.debug(tag = "GAME_EVENT_BUS") { "Posting: $event" }
         subscribers.forEach { (kClass, callbackList) ->
             if (kClass.isInstance(event)) {
                 callbackList.forEach { it(event) }
@@ -25,15 +24,6 @@ class GameEventBus {
     }
 
     inline fun <reified T : Any> unsubscribe() {
-        val targetClass = T::class.java
-
-        val iterator = subscribers.keys.iterator()
-        while (iterator.hasNext()) {
-            val registeredClass = iterator.next().java
-
-            if (targetClass.isAssignableFrom(registeredClass)) {
-                iterator.remove()
-            }
-        }
+        subscribers.remove(T::class)
     }
 }

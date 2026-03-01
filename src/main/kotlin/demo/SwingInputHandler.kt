@@ -13,9 +13,9 @@ class SwingInputHandler(private val eventBus: GameEventBus) : KeyAdapter() {
     override fun keyPressed(e: KeyEvent?) {
         when (e?.keyCode) {
             KeyEvent.VK_SPACE -> postEvent(InputEvent.DropInput(Drop.HARD_DROP))
-            KeyEvent.VK_Z -> postEvent(InputEvent.RotationInput(Rotation.ROTATE_CCW))
-            KeyEvent.VK_X -> postEvent(InputEvent.RotationInput(Rotation.ROTATE_CW))
-            KeyEvent.VK_UP -> postEvent(InputEvent.RotationInput(Rotation.ROTATE_180))
+            KeyEvent.VK_Z -> postEvent(InputEvent.RotationInputStart(Rotation.ROTATE_CCW))
+            KeyEvent.VK_X -> postEvent(InputEvent.RotationInputStart(Rotation.ROTATE_CW))
+            KeyEvent.VK_UP -> postEvent(InputEvent.RotationInputStart(Rotation.ROTATE_180))
             KeyEvent.VK_C -> postEvent(InputEvent.CommandInput(Command.HOLD))
             KeyEvent.VK_DOWN -> postEvent(InputEvent.DropInput(Drop.SOFT_DROP))
             KeyEvent.VK_LEFT -> postEvent(InputEvent.DirectionMoveStart(Movement.MOVE_LEFT))
@@ -27,6 +27,8 @@ class SwingInputHandler(private val eventBus: GameEventBus) : KeyAdapter() {
         when (e?.keyCode) {
             KeyEvent.VK_LEFT -> postEvent(InputEvent.DirectionMoveEnd(Movement.MOVE_LEFT))
             KeyEvent.VK_RIGHT -> postEvent(InputEvent.DirectionMoveEnd(Movement.MOVE_RIGHT))
+            KeyEvent.VK_Z -> postEvent(InputEvent.RotationInputRelease(Rotation.ROTATE_CCW))
+            KeyEvent.VK_X -> postEvent(InputEvent.RotationInputRelease(Rotation.ROTATE_CW))
         }
     }
 
