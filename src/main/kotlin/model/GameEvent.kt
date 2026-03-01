@@ -1,5 +1,7 @@
 package model
 
+import controller.MoveType
+
 
 sealed class GameEvent {
     data class GameOver(val victory: Boolean, val goal: GameGoal) : GameEvent()

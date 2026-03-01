@@ -1,14 +1,14 @@
 package demo
 
 import model.AppLog
-import model.BaseTetris
-import model.Tetromino
+import controller.defaults.BaseTetris
+import model.defaults.Tetromino
 import model.GameConfig
 import model.GameEventBus
 import model.GameGoal
-import model.ProceduralPiece
-import model.ModernGuidelineRules
-import model.MultiBagRandomizer
+import model.defaults.ProceduralPiece
+import controller.defaults.ModernGuidelineRules
+import model.defaults.MultiBagRandomizer
 import model.ScoreRegistry
 import javax.swing.JFrame
 import javax.swing.Timer

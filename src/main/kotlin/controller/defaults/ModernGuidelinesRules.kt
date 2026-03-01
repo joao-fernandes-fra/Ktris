@@ -1,4 +1,9 @@
-package model
+package controller.defaults
+
+import model.Drop
+import controller.MoveType
+import controller.PieceAction
+import controller.ScoringRuleBook
 
 enum class TetrisMoveType(
     override val isSpecial: Boolean = false,

@@ -1,4 +1,6 @@
-package model
+package model.defaults
+
+import model.Matrix
 
 
 object Tetromino {

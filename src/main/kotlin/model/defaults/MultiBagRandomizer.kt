@@ -1,10 +1,7 @@
-package model
+package model.defaults
 
-
-interface BagRandomizer<T : Piece> {
-    fun getNextPiece(): T
-    fun getPreview(count: Int): List<T>
-}
+import model.BagRandomizer
+import model.Piece
 
 class MultiBagRandomizer<T : Piece>(
     private val availablePieces: List<T>,

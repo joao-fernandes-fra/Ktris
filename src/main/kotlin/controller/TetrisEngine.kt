@@ -1,4 +1,11 @@
-package model
+package controller
+
+import model.Command
+import model.Drop
+import model.GameSnapshot
+import model.Movement
+import model.Piece
+import model.Rotation
 
 interface TetrisEngine<T : Piece> {
 
@@ -10,20 +17,20 @@ interface TetrisEngine<T : Piece> {
 
     fun update()
 
-    fun spawnPiece(nextPiece: T)
-
     fun levelUp(): Int
 
     fun processGarbage(lines: Int, garbageBlockId: Int)
 
     fun processCommand(command: Command)
 
-    fun processRotation(rotation: Rotation): Boolean
+    fun onRotation(rotation: Rotation): Boolean
 
-    fun processMove(movement: Movement): Boolean
+    fun onMovement(movement: Movement): Boolean
 
     fun processDrop(drop: Drop)
 
     fun gameStateSnapshot(): GameSnapshot<T>
 
+    fun onRotationRelease(rotation: Rotation)
+    fun onMovementRelease(movement: Movement)
 }

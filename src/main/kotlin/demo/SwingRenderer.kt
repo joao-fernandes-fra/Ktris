@@ -2,7 +2,7 @@ package demo
 
 import model.GameEvent
 import model.GameEventBus
-import model.GameRenderer
+import controller.GameRenderer
 import model.GameSnapshot
 import model.Piece
 import model.PieceState

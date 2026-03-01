@@ -1,4 +1,9 @@
-package model
+package model.defaults
+
+import model.Matrix
+import model.Piece
+import model.Rotation
+import model.SpinType
 
 open class ProceduralPiece(
     override val id: Int,

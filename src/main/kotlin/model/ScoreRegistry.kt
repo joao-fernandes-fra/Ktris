@@ -1,5 +1,8 @@
 package model
 
+import controller.PieceAction
+import controller.ScoringRuleBook
+
 
 class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEventBus: GameEventBus) {
 

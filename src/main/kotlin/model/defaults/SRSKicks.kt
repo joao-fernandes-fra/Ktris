@@ -1,4 +1,4 @@
-package model
+package model.defaults
 
 enum class SRSKicks(
     val cw: List<List<Pair<Int, Int>>>,

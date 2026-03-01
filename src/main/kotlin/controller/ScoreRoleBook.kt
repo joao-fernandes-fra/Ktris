@@ -1,4 +1,7 @@
-package model
+package controller
+
+import model.Drop
+import model.SpinType
 
 
 enum class PieceAction {
