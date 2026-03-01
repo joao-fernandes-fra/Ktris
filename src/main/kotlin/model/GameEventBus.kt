@@ -15,7 +15,6 @@ class GameEventBus {
     }
 
     fun <T : Any> post(event: T) {
-        AppLog.debug(tag = "GAME_EVENT_BUS") { "Posting: $event" }
         subscribers.forEach { (kClass, callbackList) ->
             if (kClass.isInstance(event)) {
                 callbackList.forEach { it(event) }

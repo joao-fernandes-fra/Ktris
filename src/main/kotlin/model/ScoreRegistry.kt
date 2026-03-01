@@ -1,17 +1,11 @@
 package model
 
 
-enum class MoveType(val isSpecial: Boolean = false) {
-    NONE, SINGLE, DOUBLE, TRIPLE, TETRIS(true),
-    T_SPIN_MINI_SINGLE(true), T_SPIN_MINI_DOUBLE(true),
-    T_SPIN_SINGLE(true), T_SPIN_DOUBLE(true), T_SPIN_TRIPLE(true)
-}
-
 class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEventBus: GameEventBus) {
 
     init {
         gameEventBus.subscribe<GameEvent.LineCleared> { event ->
-            recordAction(ClearAction.mapAction(event.spinType), event.linesCleared, event.isPerfectClear)
+            recordAction(PieceAction.mapAction(event.spinType), event.linesCleared, event.isPerfectClear)
         }
 
         gameEventBus.subscribe<GameEvent.HardDrop> { event ->
@@ -33,7 +27,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
     var combo: Int = -1; private set
     var b2bCount: Int = -1; private set
 
-    private fun recordAction(action: ClearAction, lines: Int, isPerfectClear: Boolean) {
+    private fun recordAction(action: PieceAction, lines: Int, isPerfectClear: Boolean) {
         AppLog.debug { "Recording action $action" }
         val moveType = ruleBook.getMoveType(action, lines)
         var basePoints = ruleBook.getBasePoints(action, lines)

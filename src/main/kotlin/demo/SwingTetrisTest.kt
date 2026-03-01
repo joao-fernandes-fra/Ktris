@@ -2,10 +2,11 @@ package demo
 
 import model.AppLog
 import model.BaseTetris
+import model.Tetromino
 import model.GameConfig
-import model.GameEvent
 import model.GameEventBus
 import model.GameGoal
+import model.ProceduralPiece
 import model.ModernGuidelineRules
 import model.MultiBagRandomizer
 import model.ScoreRegistry
@@ -21,7 +22,7 @@ fun main() {
     // this is the object that would handle a menu, it has default settings, but it's all mutable and should be updated before starting the game
     val gameConfig = GameConfig(goalType = GameGoal.LINES, goalValue = 40)
     val scoreRegistry = ScoreRegistry(ModernGuidelineRules(), eventBus)
-    val renderer = SwingRenderer(scoreRegistry, 10, 20, eventBus)
+    val renderer = SwingRenderer<ProceduralPiece>(scoreRegistry, 10, 20, eventBus)
     val inputHandler = SwingInputHandler(eventBus)
 
     frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
@@ -32,7 +33,7 @@ fun main() {
 
     val game = BaseTetris(
         gameConfig,
-        MultiBagRandomizer(),
+        MultiBagRandomizer(Tetromino.values),
         eventBus,
     )
 

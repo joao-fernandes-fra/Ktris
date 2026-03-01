@@ -4,20 +4,21 @@ import model.GameEvent
 import model.GameEventBus
 import model.GameRenderer
 import model.GameSnapshot
+import model.Piece
 import model.PieceState
 import model.ScoreRegistry
 import model.toPieceState
 import java.awt.*
 import javax.swing.JPanel
 
-class SwingRenderer(
+class SwingRenderer<T: Piece>(
     private val scoreRegistry: ScoreRegistry,
     private val boardWidth: Int,
     private val boardHeight: Int,
     eventBus: GameEventBus
-) : JPanel(), GameRenderer {
+) : JPanel(), GameRenderer<T> {
 
-    private var lastSnapshot: GameSnapshot? = null
+    private var lastSnapshot: GameSnapshot<T>? = null
     private val blockSize = 30
     private var flashAlpha: Float = 0f
     private val flashDuration = 200L // 200ms duration
@@ -46,7 +47,7 @@ class SwingRenderer(
         else -> Color.LIGHT_GRAY
     }
 
-    override fun render(state: GameSnapshot) {
+    override fun render(state: GameSnapshot<T>) {
         this.lastSnapshot = state
         repaint()
     }
@@ -98,8 +99,8 @@ class SwingRenderer(
         g2.drawString("Lines: ${scoreRegistry.totalLinesCleared}", 100, boardHeight * blockSize - 10)
     }
 
-    private fun drawPiece(g2: Graphics2D, piece: PieceState, offsetX: Int, offsetY: Int, opacity: Int = 100) {
-        val baseColor = getTetrominoColor(piece.type.ordinal + 1)
+    private fun drawPiece(g2: Graphics2D, piece: PieceState<T>, offsetX: Int, offsetY: Int, opacity: Int = 100) {
+        val baseColor = getTetrominoColor(piece.type.id)
 
         val alpha = (opacity * 255 / 100).coerceIn(0, 255)
         val color = baseColor.withAlpha(alpha)
