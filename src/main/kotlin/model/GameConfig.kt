@@ -28,6 +28,7 @@ data class GameConfig(
     val isHoldEnabled: Boolean = true,
     val isGhostEnabled: Boolean = true,
     val isSpinEnabled: Boolean = true,
+    val shouldCollapseOnFreeze: Boolean = true, // on freeze mode define whether it should collapse the lines to the bottom or keep them in place
     val is180Enabled: Boolean = false,  // 180 rotation logic is not quite ready, currently the app just handle math rotated pieces using the Matrix and breaks the game, it is disabled by default
     val previewSize: Int = 5,
     val bagMultiplier: Int = 1,

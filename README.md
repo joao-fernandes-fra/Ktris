@@ -52,7 +52,10 @@ The project includes a simple Swing-based demo that provides a graphical user in
     ./gradlew runDemo
 * on **Windows** 
     ```bash
-    gradlew.bat run
+    .\gradlew.bat runDemo
+* You can also enter a cheese mode by passing `--args="cheese"` int the arguments
+    ```bash
+    ./gradlew runDemo --args="cheese"
 
 A Swing window will open with a playable Tetris game. Use the keyboard controls to move and rotate the pieces.
 ### Demo Controls
@@ -67,8 +70,10 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 
 ## 📸 Screenshots & Demo
 ![Swing Demo Screenshot](src/main/resources/assets/demo-screenshot.png)
+![Cheese Demo Screenshot](src/main/resources/assets/cheese.png)
 ![Gameplay GIF](src/main/resources/assets/gameplay.gif)
 ![Freeze Demo GIF](src/main/resources/assets/freeze-demo.gif)
+
 
 ## 🛠️ Building and Editing
 This project is built with **Gradle** (using the Kotlin DSL). The main code is located in `src/main/kotlin/`.

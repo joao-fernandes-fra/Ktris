@@ -23,6 +23,7 @@ import model.SpinType
 import model.TimeMode
 import kotlin.math.absoluteValue
 
+
 abstract class DefaultTetrisEngine<T : Piece>(
     private val settings: GameConfig,
     private val bagManager: BagRandomizer<T>,
@@ -34,6 +35,10 @@ abstract class DefaultTetrisEngine<T : Piece>(
     override var deltaTime: Float
 ) : TetrisEngine<T> {
 
+    companion object {
+        private const val GARBAGE_BLOCK_ID = -99
+    }
+
     private var gameState = GameState.ENTRY_DELAY
     private var currentLevel: Int = 1
     private var timeGoalElapsed: Float = 0f
@@ -41,7 +46,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
     override val isGoalMet: Boolean get() = gameState == GameState.GOAL_MET
-
+    override val sessionTimeSeconds: Float get() = gameTimers.sessionTimer / 1000F
     private val activeDirections = mutableListOf<Int>()
     private val currentDirection: Int? get() = activeDirections.lastOrNull()
     private var rotationLock = false
@@ -66,6 +71,9 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     private fun setupEventListeners() {
         gameEventBus.subscribe<GameEvent.LevelUp> { levelUp() }
+        gameEventBus.subscribe<GameEvent.GarbageSent> {
+            processGarbage(it.lines, GARBAGE_BLOCK_ID)
+        }
     }
 
     private fun Movement.direction() = when (this) {
@@ -80,6 +88,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
         when (gameState) {
             GameState.ENTRY_DELAY -> {
+                gameTimers.sessionTimer += deltaTime
                 gameTimers.areTimer += deltaTime
                 if (gameTimers.areTimer >= settings.entryDelay) {
                     gameTimers.areTimer = 0.0f
@@ -110,6 +119,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override fun processGarbage(lines: Int, garbageBlockId: Int) {
         boardManager.addGarbage(lines, garbageBlockId)
+        AppLog.info { "Garbage processed: $lines" }
         gameEventBus.post(GameEvent.GarbageReceived(lines))
     }
 
@@ -186,7 +196,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
         if (timeManager.mode == TimeMode.FROZEN) {
             freezeLineClears = (freezeLineClears - linesCount).absoluteValue
-            boardManager.collapseFullLines()
+            if (settings.shouldCollapseOnFreeze) boardManager.collapseFullLines()
             if (freezeLineClears > 0) gameEventBus.post(GameEvent.FreezeLineClear(linesCount, spinType))
         } else {
             if (linesCount > 0) gameEventBus.post(

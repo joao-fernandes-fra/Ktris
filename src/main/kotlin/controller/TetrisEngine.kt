@@ -15,6 +15,8 @@ interface TetrisEngine<T : Piece> {
 
     var deltaTime: Float
 
+    val sessionTimeSeconds: Float
+
     fun update()
 
     fun levelUp(): Int

@@ -6,6 +6,7 @@ import controller.defaults.ScoreRegistry
 import controller.defaults.TimeManager
 import model.AppLog
 import model.GameConfig
+import model.GameEvent
 import model.GameEventBus
 import model.GameGoal
 import model.defaults.MultiBagRandomizer
@@ -14,13 +15,14 @@ import model.defaults.Tetromino
 import javax.swing.JFrame
 import javax.swing.Timer
 import javax.swing.WindowConstants
+import kotlin.random.Random
 
-fun main() {
+fun main(args: Array<String>) {
     AppLog.minLevel = AppLog.Level.INFO
     val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
     // this is the object that would handle a menu, it has default settings, but it's all mutable and should be updated before starting the game
-    val gameConfig = GameConfig(goalType = GameGoal.LINES, goalValue = 20)
+    val gameConfig = GameConfig(goalType = GameGoal.TIME, goalValue = 2 * 60)
     val timeManager = TimeManager(gameConfig)
     val game = BaseTetris(
         settings = gameConfig,
@@ -29,8 +31,19 @@ fun main() {
         timeManager = timeManager,
     )
 
+    if (args.contains("cheese")){
+        generateRandomParts(total = 10, minPart = 1, maxPart = 4)
+            .forEach {
+                eventBus.post(GameEvent.GarbageSent(it))
+            }
+
+        eventBus.subscribe<GameEvent.LineCleared> {
+            eventBus.post(GameEvent.GarbageSent(it.linesCleared * it.spinType.ordinal + 1))
+        }
+    }
+    
     val scoreRegistry = ScoreRegistry(ModernGuidelineRules(), eventBus)
-    val renderer = SwingRenderer<ProceduralPiece>(scoreRegistry, 10, 20, eventBus)
+    val renderer = SwingRenderer<ProceduralPiece>(scoreRegistry, game, eventBus)
     val inputHandler = SwingInputHandler(eventBus, timeManager)
 
     frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
@@ -54,4 +67,20 @@ fun main() {
 
         renderer.render(game.gameStateSnapshot())
     }.start()
+}
+
+private fun generateRandomParts(total: Int, minPart: Int, maxPart: Int): List<Int> {
+    val parts = mutableListOf<Int>()
+    var remaining = total
+
+    while (remaining > 0) {
+        val upperLimit = minOf(remaining, maxPart)
+
+        val part = if (remaining < minPart) remaining else Random.nextInt(minPart, upperLimit + 1)
+
+        parts.add(part)
+        remaining -= part
+    }
+
+    return parts
 }
