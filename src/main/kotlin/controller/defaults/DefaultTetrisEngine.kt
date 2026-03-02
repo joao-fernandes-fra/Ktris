@@ -151,7 +151,9 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
 
     override fun onRotation(rotation: Rotation): Boolean {
+        if (rotationLock) return false
         val successfulRotation = pieceController.rotate(rotation)
+        AppLog.debug { "Processing Rotation [$rotation]: $successfulRotation" }
         rotationLock = successfulRotation
         return successfulRotation
     }
@@ -199,7 +201,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
             if (settings.shouldCollapseOnFreeze) boardManager.collapseFullLines()
             if (freezeLineClears > 0) gameEventBus.post(GameEvent.FreezeLineClear(linesCount, spinType))
         } else {
-            if (linesCount > 0) gameEventBus.post(
+            gameEventBus.post(
                 GameEvent.LineCleared(
                     spinType,
                     linesCount,

@@ -1,9 +1,9 @@
 package controller.defaults
 
 import controller.MoveType
-import controller.PieceAction
 import controller.ScoringRuleBook
 import model.Drop
+import model.SpinType
 
 enum class TetrisMoveType(
     override val isSpecial: Boolean = false,
@@ -62,27 +62,27 @@ class ModernGuidelineRules : ScoringRuleBook {
         3 to POINTS_T_SPIN_TRIPLE
     )
 
-    override fun getBasePoints(action: PieceAction, lines: Int) = when (action) {
-        PieceAction.REGULAR -> lineClearTable[lines] ?: 0.0
-        PieceAction.SPIN -> tSpinTable[lines] ?: 0.0
+    override fun getBasePoints(action: SpinType, lines: Int) = when (action) {
+        SpinType.NONE -> lineClearTable[lines] ?: 0.0
+        SpinType.FULL -> tSpinTable[lines] ?: 0.0
         else -> 0.0
     }
 
-    override fun isDifficult(action: PieceAction, lines: Int) =
-        action == PieceAction.SPIN || lines == 4
+    override fun isDifficult(action: SpinType, lines: Int) =
+        action == SpinType.FULL || lines == 4
 
-    override fun getMoveType(action: PieceAction, lines: Int): MoveType = when (action) {
-        PieceAction.REGULAR -> when (lines) {
+    override fun getMoveType(action: SpinType, lines: Int): MoveType = when (action) {
+        SpinType.NONE -> when (lines) {
             1 -> TetrisMoveType.SINGLE; 2 -> TetrisMoveType.DOUBLE; 3 -> TetrisMoveType.TRIPLE; 4 -> TetrisMoveType.TETRIS
             else -> TetrisMoveType.NONE
         }
 
-        PieceAction.SPIN -> when (lines) {
+        SpinType.FULL -> when (lines) {
             1 -> TetrisMoveType.T_SPIN_SINGLE; 2 -> TetrisMoveType.T_SPIN_DOUBLE; 3 -> TetrisMoveType.T_SPIN_TRIPLE
             else -> TetrisMoveType.NONE
         }
 
-        PieceAction.MINI_SPIN -> when (lines) {
+        SpinType.MINI -> when (lines) {
             1 -> TetrisMoveType.T_SPIN_MINI_SINGLE; 2 -> TetrisMoveType.T_SPIN_MINI_DOUBLE
             else -> TetrisMoveType.NONE
         }

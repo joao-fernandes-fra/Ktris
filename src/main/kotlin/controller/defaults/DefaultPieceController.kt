@@ -13,6 +13,7 @@ import model.Piece
 import model.Rotation
 import model.defaults.DefaultMovingPiece
 import util.CollisionUtils.checkCollisionWithBoard
+import kotlin.math.abs
 
 class DefaultPieceController<T : Piece>(
     private val board: Board,
@@ -86,7 +87,7 @@ class DefaultPieceController<T : Piece>(
 
 
     override fun spawn(piece: T): MovingPiece<T>? {
-        AppLog.debug { "Spawning piece: $piece" }
+        AppLog.debug { "Spawning piece: ${piece.name}" }
         val newPiece = DefaultMovingPiece(
             piece = piece,
             pieceCol = (board.cols / 2) - (piece.shape.cols / 2),
@@ -160,21 +161,43 @@ class DefaultPieceController<T : Piece>(
         val (candidateShape, _) = moving.projectRotation(rotation)
         val tests = moving.piece.getKickTable(rotation, moving.rotationState)
 
-        for (index in tests.indices) {
-            val (offsetX, offsetY) = tests[index]
-            val testCol = moving.pieceCol + offsetX
-            val testRow = moving.pieceRow - offsetY
-            val isCollision = checkCollisionWithBoard(board, candidateShape, testRow, testCol)
+        val (rCenter, cCenter) = moving.piece.getRotationCenter()
+        val originRow = moving.pieceRow + rCenter
+        val originCol = moving.pieceCol + cCenter
+
+        data class Candidate(val topLeftRow: Int, val topLeftCol: Int, val offsetX: Int, val offsetY: Int)
+
+        val validCandidates = mutableListOf<Candidate>()
+
+        for ((offsetX, offsetY) in tests) {
+            val testOriginCol = originCol + offsetX
+            val testOriginRow = originRow + offsetY
+
+            val topLeftCol = testOriginCol - cCenter
+            val topLeftRow = testOriginRow - rCenter
+
+            val isCollision = checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)
+            AppLog.debug { "Kick test offset=($offsetX,$offsetY) test=($topLeftCol,$topLeftRow) collision=$isCollision" }
             if (!isCollision) {
-                moving.rotateShape(candidateShape, testRow, testCol, rotation)
-                gameTimers.lockTimer = 0.0f
-                resetLockTimer()
-                wasRotated = true
-                gameEventBus.post(GameEvent.PieceRotated(moving.piece, moving.rotationState))
-                return true
+                validCandidates.add(Candidate(topLeftRow, topLeftCol, offsetX, offsetY))
             }
         }
-        return false
+
+        if (validCandidates.isEmpty()) return false
+
+        val chosen = validCandidates.minWithOrNull(
+            compareBy<Candidate> { -it.topLeftRow }
+                .thenBy { abs(it.topLeftCol - moving.pieceCol) }
+                .thenBy { abs(it.topLeftRow - moving.pieceRow) + abs(it.topLeftCol - moving.pieceCol) }
+        ) ?: validCandidates.first()
+
+
+        moving.rotateShape(candidateShape, chosen.topLeftRow, chosen.topLeftCol, rotation)
+        gameTimers.lockTimer = 0.0f
+        resetLockTimer()
+        wasRotated = true
+        gameEventBus.post(GameEvent.PieceRotated(moving.piece, moving.rotationState))
+        return true
     }
 
     override fun holdPiece(getNextPiece: () -> T) {
@@ -189,7 +212,7 @@ class DefaultPieceController<T : Piece>(
             heldPiece = pieceToHold
             spawn(next)
         }
-        AppLog.info { "Piece held: $heldPiece" }
+        AppLog.info { "Piece held: ${heldPiece?.name}" }
         gameEventBus.post(GameEvent.PieceHeld(heldPiece!!))
         canHold = false
     }

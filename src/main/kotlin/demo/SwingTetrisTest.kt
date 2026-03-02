@@ -31,17 +31,10 @@ fun main(args: Array<String>) {
         timeManager = timeManager,
     )
 
-    if (args.contains("cheese")){
-        generateRandomParts(total = 10, minPart = 1, maxPart = 4)
-            .forEach {
-                eventBus.post(GameEvent.GarbageSent(it))
-            }
-
-        eventBus.subscribe<GameEvent.LineCleared> {
-            eventBus.post(GameEvent.GarbageSent(it.linesCleared * it.spinType.ordinal + 1))
-        }
+    if (args.contains("cheese")) {
+        setupCheeseGame(eventBus)
     }
-    
+
     val scoreRegistry = ScoreRegistry(ModernGuidelineRules(), eventBus)
     val renderer = SwingRenderer<ProceduralPiece>(scoreRegistry, game, eventBus)
     val inputHandler = SwingInputHandler(eventBus, timeManager)
@@ -69,18 +62,24 @@ fun main(args: Array<String>) {
     }.start()
 }
 
-private fun generateRandomParts(total: Int, minPart: Int, maxPart: Int): List<Int> {
+private fun setupCheeseGame(eventBus: GameEventBus) {
     val parts = mutableListOf<Int>()
-    var remaining = total
-
+    var remaining = 10
+    val minPart = 1
     while (remaining > 0) {
-        val upperLimit = minOf(remaining, maxPart)
+        val upperLimit = minOf(remaining, 4)
 
-        val part = if (remaining < minPart) remaining else Random.nextInt(minPart, upperLimit + 1)
+        val part = Random.nextInt(minPart, upperLimit + 1)
 
         parts.add(part)
         remaining -= part
     }
 
-    return parts
+    parts.forEach {
+        eventBus.post(GameEvent.GarbageSent(it))
+    }
+
+    eventBus.subscribe<GameEvent.LineCleared> {
+        eventBus.post(GameEvent.GarbageSent(it.linesCleared * it.spinType.ordinal + 1))
+    }
 }

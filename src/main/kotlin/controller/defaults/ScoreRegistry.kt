@@ -1,11 +1,11 @@
 package controller.defaults
 
-import controller.PieceAction
 import controller.ScoringRuleBook
 import model.AppLog
 import model.Drop
 import model.GameEvent
 import model.GameEventBus
+import model.SpinType
 
 class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEventBus: GameEventBus) {
 
@@ -15,7 +15,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
 
     private fun setupEventListener() {
         gameEventBus.subscribe<GameEvent.LineCleared> { event ->
-            recordAction(PieceAction.mapAction(event.spinType), event.linesCleared, event.isPerfectClear)
+            recordAction(event.spinType, event.linesCleared, event.isPerfectClear)
         }
 
         gameEventBus.subscribe<GameEvent.HardDrop> { event ->
@@ -33,7 +33,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
     var combo: Int = -1; private set
     var b2bCount: Int = -1; private set
 
-    private fun recordAction(action: PieceAction, lines: Int, isPerfectClear: Boolean) {
+    private fun recordAction(action: SpinType, lines: Int, isPerfectClear: Boolean) {
         AppLog.debug { "Recording action $action" }
         val moveType = ruleBook.getMoveType(action, lines)
         var basePoints = ruleBook.getBasePoints(action, lines)
@@ -44,7 +44,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
                 gameEventBus.post(GameEvent.BackToBackTrigger(b2bCount))
                 basePoints *= 1.5
             }
-        } else if (lines > 0) {
+        } else {
             b2bCount = -1
         }
 
@@ -62,7 +62,16 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
         totalLinesCleared += lines
         handleLevelUp()
         AppLog.info { "Score Updated: $totalPoints (Total Lines: $totalLinesCleared) " + if (moveType.isSpecial) "(SpecialMove: $moveType)" else "" }
-        gameEventBus.post(GameEvent.ScoreUpdated(totalLinesCleared, totalPoints, pointsAwarded, moveType, combo, b2bCount))
+        gameEventBus.post(
+            GameEvent.ScoreUpdated(
+                totalLinesCleared,
+                totalPoints,
+                pointsAwarded,
+                moveType,
+                combo,
+                b2bCount
+            )
+        )
     }
 
     private fun handleLevelUp() {

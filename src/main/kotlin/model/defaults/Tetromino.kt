@@ -5,16 +5,15 @@ import model.Matrix
 
 object Tetromino {
 
-    val I = ProceduralPiece(
+    val I = ProceduralIPiece(
         1,
         Matrix(
             4, 4,
             0, 0, 0, 0,
-            0, 0, 0, 0,
             1, 1, 1, 1,
+            0, 0, 0, 0,
             0, 0, 0, 0
-        ), SRSKicks.I_PIECE
-    )
+        ), "I")
 
     val O = ProceduralPiece(
         2,
@@ -22,7 +21,8 @@ object Tetromino {
             2, 2,
             2, 2,
             2, 2
-        )
+        ),
+        "O"
     )
 
     val T = ProceduralTPiece(
@@ -32,7 +32,8 @@ object Tetromino {
             0, 3, 0,
             3, 3, 3,
             0, 0, 0
-        )
+        ),
+        "T"
     )
 
     val S = ProceduralPiece(
@@ -42,7 +43,8 @@ object Tetromino {
             0, 4, 4,
             4, 4, 0,
             0, 0, 0
-        )
+        ),
+        "S"
     )
 
     val Z = ProceduralPiece(
@@ -52,7 +54,8 @@ object Tetromino {
             5, 5, 0,
             0, 5, 5,
             0, 0, 0
-        )
+        ),
+        "Z"
     )
 
     val J = ProceduralPiece(
@@ -62,7 +65,8 @@ object Tetromino {
             6, 0, 0,
             6, 6, 6,
             0, 0, 0
-        )
+        ),
+        "J"
     )
 
     val L = ProceduralPiece(
@@ -72,7 +76,8 @@ object Tetromino {
             0, 0, 7,
             7, 7, 7,
             0, 0, 0
-        )
+        ),
+        "L"
     )
 
     val values = listOf(I, O, T, S, Z, J, L)

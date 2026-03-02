@@ -24,6 +24,8 @@ object CollisionUtils {
 
                 if (targetRow < -board.bufferHeight) return true
 
+                if (targetRow < 0) continue
+
                 val cellValue = board[targetRow, targetCol]
                 if (cellValue != null && cellValue != 0) return true
             }

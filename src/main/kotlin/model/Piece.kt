@@ -12,6 +12,10 @@ interface Piece {
 
     val shape: Matrix<Int>
 
+    val name: String
+
+    fun getRotationCenter(): Pair<Int, Int>
+
     fun getRotationsState(rotationState: Int): Matrix<Int>
 
     fun getKickTable(rotation: Rotation, rotationState: Int): List<Pair<Int, Int>>

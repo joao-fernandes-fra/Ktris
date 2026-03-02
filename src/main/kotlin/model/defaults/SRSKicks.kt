@@ -47,5 +47,5 @@ enum class SRSKicks(
             listOf(0 to 0, 0 to -1, 0 to -2, 0 to 1, 0 to 2),   // 2->0
             listOf(0 to 0, -1 to 0, -2 to 0, 1 to 0, 2 to 0)    // 3->1
         )
-    );
+    )
 }

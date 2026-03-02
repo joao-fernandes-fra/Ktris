@@ -9,8 +9,12 @@ import model.SpinType
 open class ProceduralPiece(
     override val id: Int,
     override val shape: Matrix<Int>,
-    protected val kicks: SRSKicks = SRSKicks.STANDARD
+    override val name: String,
+    protected val kicks: SRSKicks = SRSKicks.STANDARD,
 ) : Piece {
+    override fun getRotationCenter(): Pair<Int, Int> {
+        return Pair((shape.rows - 1) / 2, (shape.cols - 1) / 2)
+    }
 
     override fun getRotationsState(rotationState: Int): Matrix<Int> {
         val turns = Math.floorMod(rotationState, 4)
@@ -31,7 +35,11 @@ open class ProceduralPiece(
     }
 }
 
-class ProceduralTPiece(id: Int, shape: Matrix<Int>) : ProceduralPiece(id, shape) {
+class ProceduralIPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name, SRSKicks.I_PIECE) {
+    override fun getRotationCenter(): Pair<Int, Int> {return Pair(1, 1)}
+}
+
+class ProceduralTPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name) {
     override fun getSpinType(board: Board, row: Int, col: Int, rotationState: Int): SpinType {
         val centerX = row + 1
         val centerY = col + 1
