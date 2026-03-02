@@ -7,7 +7,7 @@ import model.AppLog
 import model.BagRandomizer
 import model.Command
 import model.Drop
-import model.GameConfig
+import model.GameSettings
 import model.GameEvent
 import model.GameEventBus
 import model.GameGoal
@@ -25,7 +25,7 @@ import kotlin.math.absoluteValue
 
 
 abstract class DefaultTetrisEngine<T : Piece>(
-    private val settings: GameConfig,
+    private val settings: GameSettings,
     private val bagManager: BagRandomizer<T>,
     private val gameEventBus: GameEventBus,
     private val gameTimers: GameTimers,

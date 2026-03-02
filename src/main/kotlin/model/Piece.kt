@@ -16,5 +16,5 @@ interface Piece {
 
     fun getKickTable(rotation: Rotation, rotationState: Int): List<Pair<Int, Int>>
 
-    fun getSpinType(board: Matrix<Int>, row: Int, col: Int, rotationState: Int): SpinType = SpinType.NONE
+    fun getSpinType(board: Board, row: Int, col: Int, rotationState: Int): SpinType = SpinType.NONE
 }

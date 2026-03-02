@@ -3,18 +3,18 @@ package controller.defaults
 import controller.InputHandler
 import controller.PieceController
 import model.BagRandomizer
-import model.GameConfig
+import model.GameSettings
 import model.GameEventBus
 import model.GameTimers
 import model.Piece
 
 class BaseTetris<T : Piece>(
-    settings: GameConfig,
+    settings: GameSettings,
     bagManager: BagRandomizer<T>,
     gameTimers: GameTimers = GameTimers(),
     timeManager: TimeManager = TimeManager(settings),
     eventBus: GameEventBus,
-    boardManager: BoardManager = BoardManager(settings.boardRows, settings.boardCols),
+    boardManager: BoardManager = BoardManager(settings.boardRows, settings.boardCols, settings.bufferHeight),
     pieceController: PieceController<T> = DefaultPieceController(
         boardManager.board,
         settings,

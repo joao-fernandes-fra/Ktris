@@ -1,7 +1,7 @@
 package model
 
 data class GameSnapshot<T : Piece>(
-    val board: Matrix<Int>,
+    val board: Board,
     val currentPiece: PieceState<T>?,
     val ghostPiece: PieceState<T>?,
     val nextPieces: List<T?>,

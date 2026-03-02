@@ -2,21 +2,21 @@ package controller.defaults
 
 import controller.PieceController
 import model.AppLog
+import model.Board
 import model.DasState
-import model.GameConfig
+import model.GameSettings
 import model.GameEvent
 import model.GameEventBus
 import model.GameTimers
-import model.Matrix
 import model.MovingPiece
 import model.Piece
 import model.Rotation
 import model.defaults.DefaultMovingPiece
-import util.CollisionUtils.checkCollision
+import util.CollisionUtils.checkCollisionWithBoard
 
 class DefaultPieceController<T : Piece>(
-    private val board: Matrix<Int>,
-    private val settings: GameConfig,
+    private val board: Board,
+    private val settings: GameSettings,
     private val gameTimers: GameTimers,
     private val gameEventBus: GameEventBus
 ) : PieceController<T> {
@@ -88,10 +88,12 @@ class DefaultPieceController<T : Piece>(
     override fun spawn(piece: T): MovingPiece<T>? {
         AppLog.debug { "Spawning piece: $piece" }
         val newPiece = DefaultMovingPiece(
-            piece = piece, pieceCol = (board.cols / 2) - (piece.shape.cols / 2)
+            piece = piece,
+            pieceCol = (board.cols / 2) - (piece.shape.cols / 2),
+            pieceRow = 0
         )
 
-        if (checkCollision(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
+        if (checkCollisionWithBoard(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
             gameEventBus.post(GameEvent.GameOver(false, settings.goalType))
             return null
         }
@@ -162,7 +164,7 @@ class DefaultPieceController<T : Piece>(
             val (offsetX, offsetY) = tests[index]
             val testCol = moving.pieceCol + offsetX
             val testRow = moving.pieceRow - offsetY
-            val isCollision = checkCollision(board, candidateShape, testRow, testCol)
+            val isCollision = checkCollisionWithBoard(board, candidateShape, testRow, testCol)
             if (!isCollision) {
                 moving.rotateShape(candidateShape, testRow, testCol, rotation)
                 gameTimers.lockTimer = 0.0f
@@ -215,7 +217,7 @@ class DefaultPieceController<T : Piece>(
     }
 
     private fun canMove(piece: MovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
-        return !checkCollision(board, piece.shape, row + dRow, piece.pieceCol + dCol)
+        return !checkCollisionWithBoard(board, piece.shape, row + dRow, piece.pieceCol + dCol)
     }
 
     private fun updateGhost() {

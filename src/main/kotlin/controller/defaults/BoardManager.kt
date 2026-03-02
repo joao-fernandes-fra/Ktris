@@ -1,19 +1,20 @@
 package controller.defaults
 
 import controller.BoardController
+import model.Board
 import model.Matrix
 import model.MovingPiece
 
 
-class BoardManager(rows: Int, cols: Int) : BoardController {
+class BoardManager(rows: Int, cols: Int, bufferHeight: Int) : BoardController {
     companion object {
         private const val EMPTY_BLOCK_VALUE = 0
         private const val PENDING_BLOCK_ID = -1
     }
 
-    override val board = Matrix(rows, cols, EMPTY_BLOCK_VALUE)
+    override val board: Board = Board(rows, cols, bufferHeight, EMPTY_BLOCK_VALUE)
     override var linesCleared: Int = 0
-    override val isBoardEmpty = board.isEmpty(EMPTY_BLOCK_VALUE)
+    override val isBoardEmpty = board.isEmpty
 
     override fun isOccupied(row: Int, col: Int): Boolean = board[row, col] != EMPTY_BLOCK_VALUE
 

@@ -13,7 +13,13 @@ sealed class GameEvent {
     data class PieceLocked( val linesCleared: Boolean) : GameEvent()
     data class LineCleared(val spinType: SpinType, val linesCleared: Int, val isPerfectClear: Boolean) : GameEvent()
     data class FreezeLineClear(val linesCleared: Int, val spinType: SpinType, ) : GameEvent()
-    data class ScoreUpdated(val totalLines: Int, val currentPoints: Double, val pointsEarned: Double, val moveType: MoveType) : GameEvent()
+    data class ScoreUpdated(val totalLines: Int,
+                            val currentPoints: Double,
+                            val pointsEarned: Double,
+                            val moveType: MoveType,
+                            val comboCount: Int,
+                            val backToBackCount: Int
+    ) : GameEvent()
     data class SpinDetected(val type: SpinType) : GameEvent()
     data class LevelUp(val newLevel: Int) : GameEvent()
     data class ComboTriggered(val comboCount: Int) : GameEvent()

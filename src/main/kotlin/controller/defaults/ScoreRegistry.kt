@@ -62,7 +62,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
         totalLinesCleared += lines
         handleLevelUp()
         AppLog.info { "Score Updated: $totalPoints (Total Lines: $totalLinesCleared) " + if (moveType.isSpecial) "(SpecialMove: $moveType)" else "" }
-        gameEventBus.post(GameEvent.ScoreUpdated(totalLinesCleared, totalPoints, pointsAwarded, moveType))
+        gameEventBus.post(GameEvent.ScoreUpdated(totalLinesCleared, totalPoints, pointsAwarded, moveType, combo, b2bCount))
     }
 
     private fun handleLevelUp() {

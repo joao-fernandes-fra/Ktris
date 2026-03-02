@@ -5,7 +5,7 @@ import controller.defaults.ModernGuidelineRules
 import controller.defaults.ScoreRegistry
 import controller.defaults.TimeManager
 import model.AppLog
-import model.GameConfig
+import model.GameSettings
 import model.GameEvent
 import model.GameEventBus
 import model.GameGoal
@@ -22,10 +22,10 @@ fun main(args: Array<String>) {
     val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
     // this is the object that would handle a menu, it has default settings, but it's all mutable and should be updated before starting the game
-    val gameConfig = GameConfig(goalType = GameGoal.TIME, goalValue = 2 * 60)
-    val timeManager = TimeManager(gameConfig)
+    val gameSettings = GameSettings(goalType = GameGoal.TIME, goalValue = 2 * 60)
+    val timeManager = TimeManager(gameSettings)
     val game = BaseTetris(
-        settings = gameConfig,
+        settings = gameSettings,
         bagManager = MultiBagRandomizer(Tetromino.values),
         eventBus = eventBus,
         timeManager = timeManager,

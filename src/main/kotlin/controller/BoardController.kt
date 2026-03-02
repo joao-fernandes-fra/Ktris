@@ -1,10 +1,11 @@
 package controller
 
+import model.Board
 import model.Matrix
 import model.MovingPiece
 
 interface BoardController {
-    val board: Matrix<Int>
+    val board: Board
     var linesCleared: Int
     val isBoardEmpty: Boolean
     fun isOccupied(row: Int, col: Int): Boolean

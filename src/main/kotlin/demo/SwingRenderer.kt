@@ -51,10 +51,12 @@ class SwingRenderer<T : Piece>(
         }
 
         eventBus.subscribe<GameEvent.ScoreUpdated> { event ->
-            if (event.moveType.isSpecial){
-                activeMessage = event.moveType.displayName
-                messageAlpha = 1.0f
-                messageStartTime = System.currentTimeMillis()
+            if (event.moveType.isSpecial) {
+                setMessage(event.moveType.displayName)
+            } else if (event.comboCount > 0) {
+                setMessage("COMBO x${event.comboCount}")
+            } else if (event.backToBackCount > 0){
+                setMessage("BACK TO BACK x${event.comboCount}")
             }
         }
 
@@ -63,6 +65,12 @@ class SwingRenderer<T : Piece>(
             messageAlpha = 1.0f
             messageStartTime = System.currentTimeMillis()
         }
+    }
+
+    private fun setMessage(message: String) {
+        activeMessage = message
+        messageAlpha = 1.0f
+        messageStartTime = System.currentTimeMillis()
     }
 
     private fun getTetrominoColor(id: Int): Color = when (id) {
@@ -101,14 +109,19 @@ class SwingRenderer<T : Piece>(
         drawHUD(g2)
 
         val boardOffsetX = 5 * blockSize
+        val boardOffsetY = snapshot.board.bufferHeight * blockSize
+
+        val xLeft = boardOffsetX - 2
+        val xRight = boardOffsetX + (snapshot.board.cols * blockSize) + 2
+        val yTop = boardOffsetY - 2
+        val yBottom = boardOffsetY + (snapshot.board.rows * blockSize) + 2
+
         g2.color = Color.WHITE
         g2.stroke = BasicStroke(2f)
-        g2.drawRect(
-            boardOffsetX - 2,
-            -2,
-            (snapshot.board.cols * blockSize) + 4,
-            (snapshot.board.rows * blockSize) + 4
-        )
+
+        g2.drawLine(xLeft, yTop, xLeft, yBottom)
+        g2.drawLine(xRight, yTop, xRight, yBottom)
+        g2.drawLine(xLeft, yBottom, xRight, yBottom)
 
         for (row in 0 until snapshot.board.rows) {
             for (col in 0 until snapshot.board.cols) {
