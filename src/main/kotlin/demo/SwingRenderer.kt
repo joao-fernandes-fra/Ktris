@@ -18,6 +18,9 @@ import java.awt.Graphics2D
 import javax.swing.JPanel
 import kotlin.math.sin
 
+/**
+ * Renderer built with the assistance of AI [Gemini for this particular iteration]
+ */
 class SwingRenderer<T : Piece>(
     private val scoreRegistry: ScoreRegistry,
     private val tetrisEngine: TetrisEngine<*>,
