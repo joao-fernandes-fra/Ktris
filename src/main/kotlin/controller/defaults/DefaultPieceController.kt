@@ -9,9 +9,9 @@ import model.GameEventBus
 import model.GameTimers
 import model.Matrix
 import model.MovingPiece
-import model.defaults.DefaultMovingPiece
 import model.Piece
 import model.Rotation
+import model.defaults.DefaultMovingPiece
 import util.CollisionUtils.checkCollision
 
 class DefaultPieceController<T : Piece>(
@@ -85,7 +85,7 @@ class DefaultPieceController<T : Piece>(
     }
 
 
-    override fun spawn(piece: T) {
+    override fun spawn(piece: T): MovingPiece<T>? {
         AppLog.debug { "Spawning piece: $piece" }
         val newPiece = DefaultMovingPiece(
             piece = piece, pieceCol = (board.cols / 2) - (piece.shape.cols / 2)
@@ -93,7 +93,7 @@ class DefaultPieceController<T : Piece>(
 
         if (checkCollision(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
             gameEventBus.post(GameEvent.GameOver(false, settings.goalType))
-            return
+            return null
         }
 
         currentPiece = newPiece
@@ -104,6 +104,7 @@ class DefaultPieceController<T : Piece>(
 
         updateGhost()
         gameEventBus.post(GameEvent.NewPiece(newPiece.piece))
+        return newPiece
     }
 
     override fun hardDrop() {

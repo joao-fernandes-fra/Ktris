@@ -1,4 +1,8 @@
-package model
+package controller.defaults
+
+import model.AppLog
+import model.GameConfig
+import model.TimeMode
 
 class TimeManager(private val settings: GameConfig) {
     var mode: TimeMode = TimeMode.NORMAL

@@ -7,7 +7,6 @@ import model.BagRandomizer
 import model.GameEventBus
 import model.InputEvent
 import model.Piece
-import model.TimeManager
 
 class GameInputHandler<T : Piece>(
     private val engine: DefaultTetrisEngine<T>,
@@ -25,7 +24,7 @@ class GameInputHandler<T : Piece>(
     }
 
     override fun handleInput(input: InputEvent) {
-        if (engine.isGameOver || engine.isVictory) return
+        if (engine.isGameOver || engine.isGoalMet) return
 
         when (input) {
             is InputEvent.DirectionMoveStart -> engine.onMovement(input.movement)

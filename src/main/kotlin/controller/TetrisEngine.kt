@@ -11,7 +11,7 @@ interface TetrisEngine<T : Piece> {
 
     val isGameOver: Boolean
 
-    val isVictory: Boolean
+    val isGoalMet: Boolean
 
     var deltaTime: Float
 

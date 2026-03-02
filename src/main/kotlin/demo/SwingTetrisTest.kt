@@ -1,16 +1,16 @@
 package demo
 
-import model.AppLog
 import controller.defaults.BaseTetris
-import model.defaults.Tetromino
+import controller.defaults.ModernGuidelineRules
+import controller.defaults.ScoreRegistry
+import controller.defaults.TimeManager
+import model.AppLog
 import model.GameConfig
 import model.GameEventBus
 import model.GameGoal
-import model.defaults.ProceduralPiece
-import controller.defaults.ModernGuidelineRules
 import model.defaults.MultiBagRandomizer
-import model.ScoreRegistry
-import model.TimeManager
+import model.defaults.ProceduralPiece
+import model.defaults.Tetromino
 import javax.swing.JFrame
 import javax.swing.Timer
 import javax.swing.WindowConstants
@@ -20,7 +20,7 @@ fun main() {
     val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
     // this is the object that would handle a menu, it has default settings, but it's all mutable and should be updated before starting the game
-    val gameConfig = GameConfig(goalType = GameGoal.LINES, goalValue = 40)
+    val gameConfig = GameConfig(goalType = GameGoal.LINES, goalValue = 20)
     val timeManager = TimeManager(gameConfig)
     val game = BaseTetris(
         settings = gameConfig,

@@ -1,12 +1,12 @@
 package demo
 
+import controller.defaults.TimeManager
 import model.Command
 import model.Drop
 import model.GameEventBus
 import model.InputEvent
 import model.Movement
 import model.Rotation
-import model.TimeManager
 import model.TimeMode
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent

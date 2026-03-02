@@ -1,9 +1,9 @@
 package controller.defaults
 
-import model.Drop
 import controller.MoveType
 import controller.PieceAction
 import controller.ScoringRuleBook
+import model.Drop
 
 enum class TetrisMoveType(
     override val isSpecial: Boolean = false,
@@ -83,7 +83,7 @@ class ModernGuidelineRules : ScoringRuleBook {
         }
 
         PieceAction.MINI_SPIN -> when (lines) {
-            1 -> TetrisMoveType.T_SPIN_MINI_SINGLE; 2 -> TetrisMoveType.T_SPIN_MINI_DOUBLE;
+            1 -> TetrisMoveType.T_SPIN_MINI_SINGLE; 2 -> TetrisMoveType.T_SPIN_MINI_DOUBLE
             else -> TetrisMoveType.NONE
         }
     }

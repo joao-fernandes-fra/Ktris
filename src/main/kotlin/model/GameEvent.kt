@@ -4,7 +4,7 @@ import controller.MoveType
 
 
 sealed class GameEvent {
-    data class GameOver(val victory: Boolean, val goal: GameGoal) : GameEvent()
+    data class GameOver(val goalMet: Boolean, val goal: GameGoal) : GameEvent()
     data class NewPiece(val piece: Piece) : GameEvent()
     data class PieceHeld(val piece: Piece) : GameEvent()
     data class PieceRotated(val piece: Piece, val rotationState: Int) : GameEvent()

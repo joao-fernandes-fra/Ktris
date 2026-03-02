@@ -7,7 +7,6 @@ import model.GameConfig
 import model.GameEventBus
 import model.GameTimers
 import model.Piece
-import model.TimeManager
 
 class BaseTetris<T : Piece>(
     settings: GameConfig,

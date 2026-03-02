@@ -2,7 +2,6 @@ package controller
 
 import model.Matrix
 import model.MovingPiece
-import model.defaults.DefaultMovingPiece
 
 interface BoardController {
     val board: Matrix<Int>
@@ -13,4 +12,5 @@ interface BoardController {
     fun getFullLines(): List<Int>
     fun addGarbage(lines: Int, garbageBlockId: Int)
     fun placePiece(piece: MovingPiece<*>)
+    fun collapseFullLines()
 }

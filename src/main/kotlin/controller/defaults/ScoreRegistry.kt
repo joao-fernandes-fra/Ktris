@@ -1,12 +1,19 @@
-package model
+package controller.defaults
 
 import controller.PieceAction
 import controller.ScoringRuleBook
-
+import model.AppLog
+import model.Drop
+import model.GameEvent
+import model.GameEventBus
 
 class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEventBus: GameEventBus) {
 
     init {
+        setupEventListener()
+    }
+
+    private fun setupEventListener() {
         gameEventBus.subscribe<GameEvent.LineCleared> { event ->
             recordAction(PieceAction.mapAction(event.spinType), event.linesCleared, event.isPerfectClear)
         }
@@ -17,10 +24,6 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
 
         gameEventBus.subscribe<GameEvent.SoftDrop> { event ->
             recordDrop(Drop.SOFT_DROP, event.distance)
-        }
-
-        gameEventBus.subscribe<GameEvent.LevelUp> { event ->
-            level = event.newLevel
         }
     }
 
@@ -57,8 +60,17 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
         val pointsAwarded = (basePoints * level) + comboBonus + pcBonus
         totalPoints += pointsAwarded
         totalLinesCleared += lines
+        handleLevelUp()
         AppLog.info { "Score Updated: $totalPoints (Total Lines: $totalLinesCleared) " + if (moveType.isSpecial) "(SpecialMove: $moveType)" else "" }
         gameEventBus.post(GameEvent.ScoreUpdated(totalLinesCleared, totalPoints, pointsAwarded, moveType))
+    }
+
+    private fun handleLevelUp() {
+        val newLevel = totalLinesCleared.div(10)
+        if (newLevel > level) {
+            gameEventBus.post(GameEvent.LevelUp(newLevel))
+        }
+        level = newLevel
     }
 
     private fun recordDrop(type: Drop, distance: Int) {

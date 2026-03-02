@@ -71,19 +71,20 @@ data class Matrix<T>(
         return newMatrix
     }
 
-    fun onEachItem(action: (row: Int, col: Int) -> Unit) {
-        for (row in rows - 1 downTo 0) {
-            for (col in cols - 1 downTo 0) {
-                action(row, col)
-            }
-        }
-    }
-
     fun isEmpty(emptyValue: T? = null): Boolean {
         for (r in 0..<rows)
             for (c in 0..<cols)
                 if (emptyValue != this[r, c])
                     return false
         return true
+    }
+
+    fun getRow(row: Int): List<T> {
+        val result = ArrayList<T>()
+        for (c in 0..<cols) {
+            val value = this[row, c] ?: return result
+            result.add(value)
+        }
+        return result
     }
 }
