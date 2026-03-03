@@ -1,5 +1,6 @@
 package demo
 
+import controller.TetrisEngine
 import controller.defaults.BaseTetris
 import controller.defaults.ModernGuidelineRules
 import controller.defaults.ScoreRegistry
@@ -17,6 +18,8 @@ import javax.swing.Timer
 import javax.swing.WindowConstants
 import kotlin.random.Random
 
+private const val GARBAGE_BLOCK_ID = -99
+
 fun main(args: Array<String>) {
     AppLog.minLevel = AppLog.Level.DEBUG
     val frame = JFrame("Ktris")
@@ -32,7 +35,7 @@ fun main(args: Array<String>) {
     )
 
     if (args.contains("cheese")) {
-        setupCheeseGame(eventBus)
+        setupCheeseGame(eventBus, game)
     }
 
     val scoreRegistry = ScoreRegistry(ModernGuidelineRules(), eventBus)
@@ -62,7 +65,7 @@ fun main(args: Array<String>) {
     }.start()
 }
 
-private fun setupCheeseGame(eventBus: GameEventBus) {
+private fun setupCheeseGame(eventBus: GameEventBus, game: TetrisEngine<*>) {
     val parts = mutableListOf<Int>()
     var remaining = 10
     val minPart = 1
@@ -75,11 +78,16 @@ private fun setupCheeseGame(eventBus: GameEventBus) {
         remaining -= part
     }
 
-    parts.forEach {
-        eventBus.post(GameEvent.GarbageSent(it))
+    eventBus.subscribe<GameEvent.GarbageSent> {
+        game.processGarbage(it.lines, GARBAGE_BLOCK_ID)
     }
 
     eventBus.subscribe<GameEvent.LineCleared> {
-        eventBus.post(GameEvent.GarbageSent(it.linesCleared * it.spinType.ordinal + 1))
+        if (it.linesCleared > 0)
+            eventBus.post(GameEvent.GarbageSent(it.linesCleared * it.spinType.ordinal + 1))
+    }
+
+    parts.forEach {
+        eventBus.post(GameEvent.GarbageSent(it))
     }
 }

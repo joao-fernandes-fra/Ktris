@@ -35,10 +35,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
     override var deltaTime: Float
 ) : TetrisEngine<T> {
 
-    companion object {
-        private const val GARBAGE_BLOCK_ID = -99
-    }
-
     private var gameState = GameState.ENTRY_DELAY
     private var currentLevel: Int = 1
     private var timeGoalElapsed: Float = 0f
@@ -71,9 +67,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     private fun setupEventListeners() {
         gameEventBus.subscribe<GameEvent.LevelUp> { levelUp() }
-        gameEventBus.subscribe<GameEvent.GarbageSent> {
-            processGarbage(it.lines, GARBAGE_BLOCK_ID)
-        }
     }
 
     private fun Movement.direction() = when (this) {
@@ -153,7 +146,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     override fun onRotation(rotation: Rotation): Boolean {
         if (rotationLock) return false
         val successfulRotation = pieceController.rotate(rotation)
-        AppLog.debug { "Processing Rotation [$rotation]: $successfulRotation" }
+        AppLog.debug { "Processing Rotation [$rotation] for piece [${pieceController.currentPiece?.piece?.name}]: $successfulRotation" }
         rotationLock = successfulRotation
         return successfulRotation
     }
