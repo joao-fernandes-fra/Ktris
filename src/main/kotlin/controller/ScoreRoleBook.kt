@@ -4,20 +4,6 @@ import model.Drop
 import model.SpinType
 
 
-enum class PieceAction {
-    SPIN, MINI_SPIN, REGULAR;
-
-    companion object {
-        fun mapAction(spinType: SpinType): PieceAction {
-            return when (spinType) {
-                SpinType.FULL -> SPIN
-                SpinType.MINI -> MINI_SPIN
-                SpinType.NONE -> REGULAR
-            }
-        }
-    }
-}
-
 interface MoveType {
     val isSpecial: Boolean
     val id: String
@@ -25,11 +11,11 @@ interface MoveType {
 }
 
 interface ScoringRuleBook {
-    fun getBasePoints(action: PieceAction, lines: Int): Double
+    fun getBasePoints(action: SpinType, lines: Int): Double
 
-    fun getMoveType(action: PieceAction, lines: Int): MoveType
+    fun getMoveType(action: SpinType, lines: Int): MoveType
 
-    fun isDifficult(action: PieceAction, lines: Int): Boolean
+    fun isDifficult(action: SpinType, lines: Int): Boolean
 
     val perfectClearBonus: Double
     val comboFactor: Double

@@ -1,5 +1,6 @@
 package model.defaults
 
+import model.Board
 import model.Matrix
 import model.Piece
 import model.Rotation
@@ -8,8 +9,12 @@ import model.SpinType
 open class ProceduralPiece(
     override val id: Int,
     override val shape: Matrix<Int>,
-    protected val kicks: SRSKicks = SRSKicks.STANDARD
+    override val name: String,
+    protected val kicks: SRSKicks = SRSKicks.STANDARD,
 ) : Piece {
+    override fun getRotationCenter(): Pair<Int, Int> {
+        return Pair(1, 1)
+    }
 
     override fun getRotationsState(rotationState: Int): Matrix<Int> {
         val turns = Math.floorMod(rotationState, 4)
@@ -30,10 +35,15 @@ open class ProceduralPiece(
     }
 }
 
-class ProceduralTPiece(id: Int, shape: Matrix<Int>) : ProceduralPiece(id, shape) {
-    override fun getSpinType(board: Matrix<Int>, row: Int, col: Int, rotationState: Int): SpinType {
-        val centerX = row + 1
-        val centerY = col + 1
+class ProceduralIPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name, SRSKicks.I_PIECE) {
+    override fun getRotationCenter(): Pair<Int, Int> {
+        return Pair(1, 2)
+    }
+}
+
+class ProceduralTPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name) {
+    override fun getSpinType(board: Board, row: Int, col: Int, rotationState: Int): SpinType {
+        val (centerX, centerY) = getRotationCenter()
 
         val corners = listOf(
             centerX - 1 to centerY - 1, // Top-Left
@@ -67,7 +77,7 @@ class ProceduralTPiece(id: Int, shape: Matrix<Int>) : ProceduralPiece(id, shape)
         }
     }
 
-    private fun Matrix<Int>.isOccupied(row: Int, col: Int, emptyValue: Int = 0): Boolean {
+    private fun Board.isOccupied(row: Int, col: Int, emptyValue: Int = 0): Boolean {
         if (row !in 0..<rows || col < 0 || col >= cols) return true
         return this[row, col] != emptyValue
     }

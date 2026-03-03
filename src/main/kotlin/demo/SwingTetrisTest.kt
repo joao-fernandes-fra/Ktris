@@ -5,10 +5,10 @@ import controller.defaults.ModernGuidelineRules
 import controller.defaults.ScoreRegistry
 import controller.defaults.TimeManager
 import model.AppLog
-import model.GameConfig
 import model.GameEvent
 import model.GameEventBus
 import model.GameGoal
+import model.GameSettings
 import model.defaults.MultiBagRandomizer
 import model.defaults.ProceduralPiece
 import model.defaults.Tetromino
@@ -18,30 +18,23 @@ import javax.swing.WindowConstants
 import kotlin.random.Random
 
 fun main(args: Array<String>) {
-    AppLog.minLevel = AppLog.Level.INFO
+    AppLog.minLevel = AppLog.Level.DEBUG
     val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
     // this is the object that would handle a menu, it has default settings, but it's all mutable and should be updated before starting the game
-    val gameConfig = GameConfig(goalType = GameGoal.TIME, goalValue = 2 * 60)
-    val timeManager = TimeManager(gameConfig)
+    val gameSettings = GameSettings(goalType = GameGoal.TIME, goalValue = 2 * 60)
+    val timeManager = TimeManager(gameSettings)
     val game = BaseTetris(
-        settings = gameConfig,
+        settings = gameSettings,
         bagManager = MultiBagRandomizer(Tetromino.values),
         eventBus = eventBus,
         timeManager = timeManager,
     )
 
-    if (args.contains("cheese")){
-        generateRandomParts(total = 10, minPart = 1, maxPart = 4)
-            .forEach {
-                eventBus.post(GameEvent.GarbageSent(it))
-            }
-
-        eventBus.subscribe<GameEvent.LineCleared> {
-            eventBus.post(GameEvent.GarbageSent(it.linesCleared * it.spinType.ordinal + 1))
-        }
+    if (args.contains("cheese")) {
+        setupCheeseGame(eventBus)
     }
-    
+
     val scoreRegistry = ScoreRegistry(ModernGuidelineRules(), eventBus)
     val renderer = SwingRenderer<ProceduralPiece>(scoreRegistry, game, eventBus)
     val inputHandler = SwingInputHandler(eventBus, timeManager)
@@ -69,18 +62,24 @@ fun main(args: Array<String>) {
     }.start()
 }
 
-private fun generateRandomParts(total: Int, minPart: Int, maxPart: Int): List<Int> {
+private fun setupCheeseGame(eventBus: GameEventBus) {
     val parts = mutableListOf<Int>()
-    var remaining = total
-
+    var remaining = 10
+    val minPart = 1
     while (remaining > 0) {
-        val upperLimit = minOf(remaining, maxPart)
+        val upperLimit = minOf(remaining, 4)
 
-        val part = if (remaining < minPart) remaining else Random.nextInt(minPart, upperLimit + 1)
+        val part = Random.nextInt(minPart, upperLimit + 1)
 
         parts.add(part)
         remaining -= part
     }
 
-    return parts
+    parts.forEach {
+        eventBus.post(GameEvent.GarbageSent(it))
+    }
+
+    eventBus.subscribe<GameEvent.LineCleared> {
+        eventBus.post(GameEvent.GarbageSent(it.linesCleared * it.spinType.ordinal + 1))
+    }
 }

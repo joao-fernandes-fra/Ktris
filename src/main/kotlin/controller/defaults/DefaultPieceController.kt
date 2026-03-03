@@ -2,21 +2,21 @@ package controller.defaults
 
 import controller.PieceController
 import model.AppLog
+import model.Board
 import model.DasState
-import model.GameConfig
 import model.GameEvent
 import model.GameEventBus
+import model.GameSettings
 import model.GameTimers
-import model.Matrix
 import model.MovingPiece
 import model.Piece
 import model.Rotation
 import model.defaults.DefaultMovingPiece
-import util.CollisionUtils.checkCollision
+import util.CollisionUtils.checkCollisionWithBoard
 
 class DefaultPieceController<T : Piece>(
-    private val board: Matrix<Int>,
-    private val settings: GameConfig,
+    private val board: Board,
+    private val settings: GameSettings,
     private val gameTimers: GameTimers,
     private val gameEventBus: GameEventBus
 ) : PieceController<T> {
@@ -86,12 +86,13 @@ class DefaultPieceController<T : Piece>(
 
 
     override fun spawn(piece: T): MovingPiece<T>? {
-        AppLog.debug { "Spawning piece: $piece" }
+        AppLog.debug { "Spawning piece: ${piece.name}" }
         val newPiece = DefaultMovingPiece(
-            piece = piece, pieceCol = (board.cols / 2) - (piece.shape.cols / 2)
+            piece = piece,
+            pieceCol = (board.cols / 2) - (piece.shape.cols / 2),
         )
 
-        if (checkCollision(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
+        if (checkCollisionWithBoard(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
             gameEventBus.post(GameEvent.GameOver(false, settings.goalType))
             return null
         }
@@ -152,28 +153,37 @@ class DefaultPieceController<T : Piece>(
     }
 
     override fun rotate(rotation: Rotation): Boolean {
-        val moving = currentPiece ?: return false
+        val piece = currentPiece ?: return false
         if (rotation == Rotation.ROTATE_180 && !settings.is180Enabled) return false
 
-        val (candidateShape, _) = moving.projectRotation(rotation)
-        val tests = moving.piece.getKickTable(rotation, moving.rotationState)
+        val (candidateShape, newRotationState) = piece.projectRotation(rotation)
+        val kickOffsets = piece.piece.getKickTable(rotation, newRotationState)
+        val (centerRowOffset, centerColOffset) = piece.piece.getRotationCenter()
+        val currentCenterRow = piece.pieceRow + centerRowOffset
+        val currentCenterCol = piece.pieceCol + centerColOffset
+        for ((deltaCol, deltaRow) in kickOffsets) {
+            val newCenterRow = currentCenterRow + deltaRow
+            val newCenterCol = currentCenterCol + deltaCol
+            val (topLeftRow, topLeftCol) = getTopLeftFromCenter(newCenterRow, newCenterCol, piece.piece)
+            val hasCollision = checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)
 
-        for (index in tests.indices) {
-            val (offsetX, offsetY) = tests[index]
-            val testCol = moving.pieceCol + offsetX
-            val testRow = moving.pieceRow - offsetY
-            val isCollision = checkCollision(board, candidateShape, testRow, testCol)
-            if (!isCollision) {
-                moving.rotateShape(candidateShape, testRow, testCol, rotation)
+            if (!hasCollision) {
+                piece.rotateShape(candidateShape, topLeftRow, topLeftCol, rotation)
                 gameTimers.lockTimer = 0.0f
                 resetLockTimer()
                 wasRotated = true
-                gameEventBus.post(GameEvent.PieceRotated(moving.piece, moving.rotationState))
+                gameEventBus.post(GameEvent.PieceRotated(piece.piece, piece.rotationState))
                 return true
             }
         }
         return false
     }
+
+    private fun getTopLeftFromCenter(centerRow: Int, centerCol: Int, piece: Piece): Pair<Int, Int> {
+        val (rowOffset, colOffset) = piece.getRotationCenter()
+        return Pair(centerRow - rowOffset, centerCol - colOffset)
+    }
+
 
     override fun holdPiece(getNextPiece: () -> T) {
         if (!settings.isHoldEnabled || !canHold || currentPiece == null) return
@@ -187,7 +197,7 @@ class DefaultPieceController<T : Piece>(
             heldPiece = pieceToHold
             spawn(next)
         }
-        AppLog.info { "Piece held: $heldPiece" }
+        AppLog.info { "Piece held: ${heldPiece?.name}" }
         gameEventBus.post(GameEvent.PieceHeld(heldPiece!!))
         canHold = false
     }
@@ -215,7 +225,7 @@ class DefaultPieceController<T : Piece>(
     }
 
     private fun canMove(piece: MovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
-        return !checkCollision(board, piece.shape, row + dRow, piece.pieceCol + dCol)
+        return !checkCollisionWithBoard(board, piece.shape, row + dRow, piece.pieceCol + dCol)
     }
 
     private fun updateGhost() {

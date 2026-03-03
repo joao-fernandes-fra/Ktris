@@ -1,33 +1,35 @@
 package util
 
+import model.Board
 import model.Matrix
 
 object CollisionUtils {
-    fun checkCollision(
-        container: Matrix<Int>,
-        candidate: Matrix<Int>,
+    fun checkCollisionWithBoard(
+        board: Board,
+        piece: Matrix<Int>,
         startRow: Int,
         startCol: Int,
     ): Boolean {
-        for (row in 0 until candidate.rows) {
-            for (col in 0 until candidate.cols) {
-                val pieceCell = candidate[row, col]
+        for (row in 0 until piece.rows) {
+            for (col in 0 until piece.cols) {
+                val pieceCell = piece[row, col]
                 if (pieceCell == null || pieceCell == 0) continue
 
                 val targetRow = startRow + row
                 val targetCol = startCol + col
 
-                if (targetCol !in 0 until container.cols) return true
+                if (targetCol !in 0 until board.cols) return true
 
-                if (targetRow >= container.rows) return true
+                if (targetRow >= board.rows) return true
 
-                if (targetRow >= 0) {
-                    val cellValue = container[targetRow, targetCol]
-                    if (cellValue != null && cellValue != 0) return true
-                }
+                if (targetRow < -board.bufferSize) return true
+
+                if (targetRow < 0) continue
+
+                val cellValue = board[targetRow, targetCol]
+                if (cellValue != null && cellValue != 0) return true
             }
         }
         return false
     }
-
 }

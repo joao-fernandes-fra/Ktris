@@ -37,7 +37,11 @@ Interaction is handled by feeding commands to the GameEventBus and querying the 
 *   **Git:** To clone the repository.
 
 ### Running the Demo
-The project includes a simple Swing-based demo that provides a graphical user interface to interact with the Tetris engine. This demo also includes a very basic Freeze time mechanic similar to that seen on Tetris Effect
+The project includes a simple Swing-based demo that provides a graphical user interface to interact with the Tetris engine showcasing the following features 
+* This basic demo is built to the Tetris [guidelines](https://tetris.wiki/Tetris_Guideline) to the best of my abilities, report if u find any issues with the code
+* Freeze time handling including the ability to collapse cleared rows
+* Garbage processing capability, rendering the engine "multiplayer ready"
+* Configurable bufferZone for the board
 
 1.  **Clone the repository:**
     ```bash
@@ -59,7 +63,7 @@ The project includes a simple Swing-based demo that provides a graphical user in
 
 A Swing window will open with a playable Tetris game. Use the keyboard controls to move and rotate the pieces.
 ### Demo Controls
-*   **Rotate Cockwise:** X 
+*   **Rotate Clockwise:** X 
 *   **Rotate CounterClockwise:** Z 
 *   **Hold Piece:** C 
 *   **Freeze/Unfreeze:** S
@@ -69,9 +73,11 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 *   **Move Right:** → Arrow Key 
 
 ## 📸 Screenshots & Demo
-![Swing Demo Screenshot](src/main/resources/assets/demo-screenshot.png)
-![Cheese Demo Screenshot](src/main/resources/assets/cheese.png)
-![Gameplay GIF](src/main/resources/assets/gameplay.gif)
+![Swing Demo Screenshot](src/main/resources/assets/gameplay-demo.png)
+![Gameplay GIF](src/main/resources/assets/gameplay-demo.gif)
+### Showcase engine ability to handle garbage lines ###
+![Cheese Demo Screenshot](src/main/resources/assets/cheese-demo.png)
+### Showcase engine ability to handle time freezes and board collapses ###
 ![Freeze Demo GIF](src/main/resources/assets/freeze-demo.gif)
 
 

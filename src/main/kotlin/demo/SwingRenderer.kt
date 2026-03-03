@@ -8,6 +8,7 @@ import model.GameEventBus
 import model.GameSnapshot
 import model.Piece
 import model.PieceState
+import model.defaults.Tetromino
 import model.toPieceState
 import java.awt.BasicStroke
 import java.awt.Color
@@ -16,6 +17,7 @@ import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
 import javax.swing.JPanel
+import kotlin.math.min
 import kotlin.math.sin
 
 class SwingRenderer<T : Piece>(
@@ -26,222 +28,372 @@ class SwingRenderer<T : Piece>(
 
     companion object {
         private const val SCREEN_HEIGHT = 720
+        private const val SCREEN_ASPECT_RATIO = 16f / 9f
+
+        private const val FLASH_DURATION_MS = 200L
+        private const val MESSAGE_DURATION_MS = 1500L
+
+        private const val GHOST_PIECE_OPACITY = 30
+        private const val FULL_OPACITY = 100
+
+        private const val BOARD_OFFSET_COLS = 5
+        private const val HOLD_PIECE_OFFSET = 0
+        private const val NEXT_PIECES_OFFSET_COLS = 6
+        private const val NEXT_PIECES_VERTICAL_SPACING = 4
+
+        private const val HUD_WIDTH = 150
+        private const val HUD_HEIGHT = 150
+        private const val HUD_X_OFFSET = 10
+        private const val HUD_LINE_HEIGHT = 25
+        private const val HUD_FONT_SIZE = 18
+
+        private const val BOARD_BORDER_WIDTH = 2
+        private const val BLOCK_PADDING = 2
+        private const val GLOW_BLOCK_PADDING = 6
+
+        private const val BACKGROUND_ALPHA = 128
+        private const val GLOW_ALPHA_BASE = 100
+        private const val GLOW_INNER_ALPHA = 200
     }
 
     private var lastSnapshot: GameSnapshot<T>? = null
     private var blockSize = 30
-    private var flashAlpha: Float = 0f
-    private val flashDuration = 200L
+
+    private var flashAlpha = 0f
     private var lastClearTime = 0L
 
     private var activeMessage: String? = null
-    private var messageAlpha: Float = 0f
-    private var messageDuration = 1500L
+    private var messageAlpha = 0f
     private var messageStartTime = 0L
 
     init {
-        preferredSize = Dimension(SCREEN_HEIGHT * 16 / 9, SCREEN_HEIGHT)
+        val screenWidth = (SCREEN_HEIGHT * SCREEN_ASPECT_RATIO).toInt()
+        preferredSize = Dimension(screenWidth, SCREEN_HEIGHT)
         background = Color.BLACK
 
-        eventBus.subscribe<GameEvent.LineCleared> {
-            if (it.linesCleared > 0) {
-                flashAlpha = 1.0f
-                lastClearTime = System.currentTimeMillis()
+        subscribeToGameEvents(eventBus)
+    }
+
+    private fun subscribeToGameEvents(eventBus: GameEventBus) {
+        eventBus.subscribe<GameEvent.LineCleared> { event ->
+            if (event.linesCleared > 0) {
+                triggerFlashEffect()
             }
         }
 
         eventBus.subscribe<GameEvent.ScoreUpdated> { event ->
-            if (event.moveType.isSpecial){
-                activeMessage = event.moveType.displayName
-                messageAlpha = 1.0f
-                messageStartTime = System.currentTimeMillis()
+            if (event.moveType.isSpecial) {
+                if (event.backToBackCount > 0){
+                    showTemporaryMessage("BACK TO BACK ${event.moveType.displayName.uppercase()}")
+                } else showTemporaryMessage(event.moveType.displayName)
             }
         }
 
-        eventBus.subscribe<GameEvent.GarbageSent> { event ->
-            activeMessage = "GARBAGE INCOMING!"
-            messageAlpha = 1.0f
-            messageStartTime = System.currentTimeMillis()
+        eventBus.subscribe<GameEvent.ComboTriggered> { event ->
+            showTemporaryMessage("COMBO x${event.comboCount}")
+        }
+
+        eventBus.subscribe<GameEvent.GarbageSent> {
+            showTemporaryMessage("GARBAGE INCOMING!")
         }
     }
 
-    private fun getTetrominoColor(id: Int): Color = when (id) {
-        1 -> Color.CYAN
-        2 -> Color.YELLOW
-        3 -> Color.MAGENTA
-        4 -> Color.GREEN
-        5 -> Color.RED
-        6 -> Color.BLUE
-        7 -> Color.ORANGE
-        else -> Color.LIGHT_GRAY
-    }
-
     override fun render(state: GameSnapshot<T>) {
-        this.lastSnapshot = state
+        lastSnapshot = state
         repaint()
     }
 
     override fun paintComponent(g: Graphics) {
         super.paintComponent(g)
-        val g2 = g as Graphics2D
+        val graphics = g as Graphics2D
         val snapshot = lastSnapshot ?: return
 
+        calculateBlockSize(snapshot)
+        drawFlashEffect(graphics)
+        drawGameBoard(graphics, snapshot)
+        drawMessages(graphics, snapshot)
+    }
+
+    private fun calculateBlockSize(snapshot: GameSnapshot<T>) {
         val padding = 12
-        val availableWidth = width / (snapshot.board.cols + padding)
-        val availableHeight = height / snapshot.board.rows
-        blockSize = minOf(availableWidth, availableHeight)
+        val maxWidth = width / (snapshot.board.cols + padding)
+        val maxHeight = height / snapshot.board.rows
+        blockSize = min(maxWidth, maxHeight)
+    }
 
-        val elapsed = System.currentTimeMillis() - lastClearTime
-        if (elapsed < flashDuration) {
-            flashAlpha = 1.0f - (elapsed.toFloat() / flashDuration)
+    private fun triggerFlashEffect() {
+        flashAlpha = 1.0f
+        lastClearTime = System.currentTimeMillis()
+    }
 
-            g2.color = Color(255, 255, 255, (flashAlpha * 128).toInt())
-            g2.fillRect(0, 0, width, height)
+    private fun showTemporaryMessage(message: String) {
+        activeMessage = message
+        messageAlpha = 1.0f
+        messageStartTime = System.currentTimeMillis()
+    }
+
+    private fun drawFlashEffect(graphics: Graphics2D) {
+        val elapsedTime = System.currentTimeMillis() - lastClearTime
+
+        if (elapsedTime < FLASH_DURATION_MS) {
+            flashAlpha = 1.0f - (elapsedTime.toFloat() / FLASH_DURATION_MS)
+
+            val alphaValue = (flashAlpha * BACKGROUND_ALPHA).toInt()
+            graphics.color = Color(255, 255, 255, alphaValue)
+            graphics.fillRect(0, 0, width, height)
         }
-        drawHUD(g2)
+    }
 
-        val boardOffsetX = 5 * blockSize
-        g2.color = Color.WHITE
-        g2.stroke = BasicStroke(2f)
-        g2.drawRect(
-            boardOffsetX - 2,
-            -2,
-            (snapshot.board.cols * blockSize) + 4,
-            (snapshot.board.rows * blockSize) + 4
-        )
+    private fun drawGameBoard(graphics: Graphics2D, snapshot: GameSnapshot<T>) {
+        val boardOffsetX = BOARD_OFFSET_COLS * blockSize
+        val borderYOffset = snapshot.board.bufferSize * blockSize
+        drawHUD(graphics)
+        drawBoardBorder(graphics, snapshot, boardOffsetX, borderYOffset)
+        drawBoardBlocks(graphics, snapshot, boardOffsetX, 0)
+        drawGhostPiece(graphics, snapshot, boardOffsetX, 0)
+        drawCurrentPiece(graphics, snapshot, boardOffsetX, 0)
+        drawHoldPiece(graphics, snapshot)
+        drawNextPieces(graphics, snapshot)
+    }
 
+    private fun drawBoardBorder(
+        graphics: Graphics2D,
+        snapshot: GameSnapshot<T>,
+        offsetX: Int,
+        offsetY: Int
+    ) {
+        val leftX = offsetX - BOARD_BORDER_WIDTH
+        val rightX = offsetX + (snapshot.board.cols * blockSize) + BOARD_BORDER_WIDTH
+        val topY = offsetY - BOARD_BORDER_WIDTH
+        val bottomY = offsetY + (snapshot.board.visibleRows * blockSize) + BOARD_BORDER_WIDTH
+
+        graphics.color = Color.WHITE
+        graphics.stroke = BasicStroke(BOARD_BORDER_WIDTH.toFloat())
+
+        graphics.drawLine(leftX, topY, leftX, bottomY)
+        graphics.drawLine(rightX, topY, rightX, bottomY)
+        graphics.drawLine(leftX, bottomY, rightX, bottomY)
+    }
+
+    private fun drawBoardBlocks(
+        graphics: Graphics2D,
+        snapshot: GameSnapshot<T>,
+        offsetX: Int,
+        offsetY: Int
+    ) {
         for (row in 0 until snapshot.board.rows) {
             for (col in 0 until snapshot.board.cols) {
-                val boardBlockId = snapshot.board[row, col]
-                val baseColor = getTetrominoColor(boardBlockId ?: 0)
-                if (boardBlockId == -1) {
-                    drawGlowingBlock(g2, row, col, boardOffsetX, 0)
-                } else if (boardBlockId != 0) {
-                    drawBlock(g2, row, col, baseColor, boardOffsetX, 0)
+                val blockId = snapshot.board[row, col]
+
+                when {
+                    blockId == -1 -> {
+                        drawGlowingBlock(graphics, row, col, offsetX, offsetY)
+                    }
+
+                    blockId != 0 -> {
+                        val color = getTetrominoColor(blockId ?: 0)
+                        drawBlock(graphics, row, col, color, offsetX, offsetY)
+                    }
                 }
             }
         }
+    }
 
-        snapshot.ghostPiece?.let { drawPiece(g2, it, boardOffsetX, 0, 30) }
+    private fun drawCurrentPiece(
+        graphics: Graphics2D,
+        snapshot: GameSnapshot<T>,
+        offsetX: Int,
+        offsetY: Int
+    ) {
+        snapshot.currentPiece?.let { piece ->
+            drawPiece(graphics, piece, offsetX, offsetY, FULL_OPACITY)
+        }
+    }
 
-        snapshot.currentPiece?.let { drawPiece(g2, it, boardOffsetX, 0) }
+    private fun drawGhostPiece(
+        graphics: Graphics2D,
+        snapshot: GameSnapshot<T>,
+        offsetX: Int,
+        offsetY: Int
+    ) {
+        snapshot.ghostPiece?.let { piece ->
+            drawPiece(graphics, piece, offsetX, offsetY, GHOST_PIECE_OPACITY)
+        }
+    }
 
-        snapshot.holdPiece?.let { drawPiece(g2, it.toPieceState(), 0, 0) }
+    private fun drawHoldPiece(graphics: Graphics2D, snapshot: GameSnapshot<T>) {
+        snapshot.holdPiece?.let { piece ->
+            drawPiece(graphics, piece.toPieceState(), HOLD_PIECE_OFFSET, HOLD_PIECE_OFFSET, FULL_OPACITY)
+        }
+    }
 
+    private fun drawNextPieces(graphics: Graphics2D, snapshot: GameSnapshot<T>) {
         snapshot.nextPieces.forEachIndexed { index, piece ->
-            drawPiece(g2, piece!!.toPieceState(), (snapshot.board.cols + 6) * blockSize, index * 4 * blockSize)
+            piece?.let {
+                val offsetX = (snapshot.board.cols + NEXT_PIECES_OFFSET_COLS) * blockSize
+                val offsetY = index * NEXT_PIECES_VERTICAL_SPACING * blockSize
+                drawPiece(graphics, it.toPieceState(), offsetX, offsetY, FULL_OPACITY)
+            }
         }
-
-        if (activeMessage != null && activeMessage?.isNotEmpty() == true) {
-            drawMoveNotification(g2)
-        }
-
     }
 
-    private fun drawPiece(g2: Graphics2D, piece: PieceState<T>, offsetX: Int, offsetY: Int, opacity: Int = 100) {
+    private fun drawPiece(
+        graphics: Graphics2D,
+        piece: PieceState<T>,
+        offsetX: Int,
+        offsetY: Int,
+        opacity: Int
+    ) {
         val baseColor = getTetrominoColor(piece.type.id)
+        val alphaValue = (opacity * 255 / FULL_OPACITY).coerceIn(0, 255)
+        val color = baseColor.withAlpha(alphaValue)
 
-        val alpha = (opacity * 255 / 100).coerceIn(0, 255)
-        val color = baseColor.withAlpha(alpha)
-
-        for (r in 0 until piece.shape.rows) {
-            for (c in 0 until piece.shape.cols) {
-                if (piece.shape[r, c] != 0) {
-                    drawBlock(g2, piece.row + r, piece.col + c, color, offsetX, offsetY)
+        for (row in 0 until piece.shape.rows) {
+            for (col in 0 until piece.shape.cols) {
+                if (piece.shape[row, col] != 0) {
+                    drawBlock(
+                        graphics,
+                        piece.row + row,
+                        piece.col + col,
+                        color,
+                        offsetX,
+                        offsetY
+                    )
                 }
             }
         }
     }
 
-    private fun drawBlock(g2: Graphics2D, r: Int, c: Int, color: Color, offsetX: Int, offsetY: Int) {
-        g2.color = color
-        g2.fillRect(offsetX + c * blockSize, offsetY + r * blockSize, blockSize - 2, blockSize - 2)
+    private fun drawBlock(
+        graphics: Graphics2D,
+        row: Int,
+        col: Int,
+        color: Color,
+        offsetX: Int,
+        offsetY: Int
+    ) {
+        val x = offsetX + col * blockSize
+        val y = offsetY + row * blockSize
+        val blockWidth = blockSize - BLOCK_PADDING
+        val blockHeight = blockSize - BLOCK_PADDING
+
+        graphics.color = color
+        graphics.fillRect(x, y, blockWidth, blockHeight)
     }
 
-    private fun drawGlowingBlock(g2: Graphics2D, r: Int, c: Int, offsetX: Int, offsetY: Int) {
-        val x = offsetX + c * blockSize
-        val y = offsetY + r * blockSize
+    private fun drawGlowingBlock(
+        graphics: Graphics2D,
+        row: Int,
+        col: Int,
+        offsetX: Int,
+        offsetY: Int
+    ) {
+        val x = offsetX + col * blockSize
+        val y = offsetY + row * blockSize
 
-        val pulse = (sin(System.currentTimeMillis() / 150.0) * 0.25 + 0.55).toFloat()
+        val pulseFactor = (sin(System.currentTimeMillis() / 150.0) * 0.25 + 0.55).toFloat()
+        val glowAlpha = (pulseFactor * GLOW_ALPHA_BASE).toInt()
 
-        g2.color = Color(255, 255, 255, (pulse * 100).toInt())
-        g2.fillRect(x - 2, y - 2, blockSize + 2, blockSize + 2)
+        graphics.color = Color(255, 255, 255, glowAlpha)
+        graphics.fillRect(
+            x - BLOCK_PADDING, y - BLOCK_PADDING,
+            blockSize + BLOCK_PADDING * 2, blockSize + BLOCK_PADDING * 2
+        )
 
-        g2.color = Color.WHITE
-        g2.fillRect(x, y, blockSize - 2, blockSize - 2)
+        graphics.color = Color.WHITE
+        graphics.fillRect(x, y, blockSize - BLOCK_PADDING, blockSize - BLOCK_PADDING)
 
-        g2.stroke = BasicStroke(1f)
-        g2.color = Color(255, 255, 255, 200)
-        g2.drawRect(x + 2, y + 2, blockSize - 6, blockSize - 6)
+        graphics.stroke = BasicStroke(1f)
+        graphics.color = Color(255, 255, 255, GLOW_INNER_ALPHA)
+        graphics.drawRect(
+            x + BLOCK_PADDING / 2, y + BLOCK_PADDING / 2,
+            blockSize - GLOW_BLOCK_PADDING, blockSize - GLOW_BLOCK_PADDING
+        )
     }
 
-    private fun Color.withAlpha(alpha: Int): Color {
-        return Color(this.red, this.green, this.blue, alpha)
+    private fun drawHUD(graphics: Graphics2D) {
+        val hudX = HUD_X_OFFSET
+        val hudY = BOARD_OFFSET_COLS * blockSize
+
+        graphics.color = Color(0, 0, 0, 150)
+        graphics.fillRect(hudX, hudY, HUD_WIDTH, HUD_HEIGHT)
+
+        graphics.color = Color.WHITE
+        graphics.font = Font("Monospaced", Font.BOLD, HUD_FONT_SIZE)
+
+        var currentY = hudY + 30
+
+        drawHUDLine(graphics, "SCORE", hudX + 10, currentY)
+        currentY += HUD_LINE_HEIGHT
+        drawHUDLine(graphics, scoreRegistry.totalPoints.toInt().toString(), hudX + 10, currentY)
+
+        currentY += HUD_LINE_HEIGHT
+        drawHUDLine(graphics, "LINES", hudX + 10, currentY)
+        currentY += HUD_LINE_HEIGHT
+        drawHUDLine(graphics, scoreRegistry.totalLinesCleared.toString(), hudX + 10, currentY)
+
+        currentY += HUD_LINE_HEIGHT
+        drawHUDLine(graphics, "TIME", hudX + 10, currentY)
+        currentY += HUD_LINE_HEIGHT
+        drawHUDLine(graphics, formatTime(tetrisEngine.sessionTimeSeconds), hudX + 10, currentY)
     }
 
-    private fun drawMoveNotification(g2: Graphics2D) {
-        val snapshot = lastSnapshot ?: return
-        val message = activeMessage ?: return
-        val elapsed = System.currentTimeMillis() - messageStartTime
+    private fun drawHUDLine(graphics: Graphics2D, text: String, x: Int, y: Int) {
+        graphics.drawString(text, x, y)
+    }
 
-        if (elapsed < messageDuration) {
-            messageAlpha = 1.0f - (elapsed.toFloat() / messageDuration)
+    private fun drawMessages(graphics: Graphics2D, snapshot: GameSnapshot<T>) {
+        if (activeMessage.isNullOrEmpty()) return
 
-            g2.font = Font("Sanserif", Font.BOLD, (blockSize * 0.8f).toInt())
-            val metrics = g2.fontMetrics
+        val elapsedTime = System.currentTimeMillis() - messageStartTime
 
-            val boardPixelWidth = snapshot.board.cols * blockSize
-            val boardPixelHeight = snapshot.board.rows * blockSize
-            val boardOffsetX = 5 * blockSize
-
-            val centerX = boardOffsetX + (boardPixelWidth / 2)
-            val centerY = boardPixelHeight / 2
-
-            val x = centerX - (metrics.stringWidth(message) / 2)
-            val y = centerY + (metrics.height / 4)
-
-            g2.color = Color(255, 255, 255, (messageAlpha * 255).toInt())
-            g2.drawString(message, x, y)
+        if (elapsedTime < MESSAGE_DURATION_MS) {
+            messageAlpha = 1.0f - (elapsedTime.toFloat() / MESSAGE_DURATION_MS)
+            drawCenteredMessage(graphics, snapshot, activeMessage!!)
         } else {
             activeMessage = null
         }
     }
 
-    private fun drawHUD(g2: Graphics2D) {
-        val hudX = 10
-        val hudY = 5 * blockSize
-        val lineHeight = 25
+    private fun drawCenteredMessage(graphics: Graphics2D, snapshot: GameSnapshot<T>, message: String) {
+        val fontSize = (blockSize * 0.8f).toInt()
+        graphics.font = Font("SansSerif", Font.BOLD, fontSize)
 
-        g2.font = Font("Monospaced", Font.BOLD, 18)
+        val metrics = graphics.fontMetrics
+        val boardPixelWidth = snapshot.board.cols * blockSize
+        val boardPixelHeight = snapshot.board.rows * blockSize
+        val boardOffsetX = BOARD_OFFSET_COLS * blockSize
 
-        g2.color = Color(0, 0, 0, 150)
-        g2.fillRect(hudX, hudY, 150, 150)
+        val centerX = boardOffsetX + (boardPixelWidth / 2)
+        val centerY = boardPixelHeight / 2
 
-        g2.color = Color.WHITE
+        val textX = centerX - (metrics.stringWidth(message) / 2)
+        val textY = centerY + (metrics.height / 4)
 
-        var currentY = hudY + 30
-
-        g2.drawString("SCORE", hudX + 10, currentY)
-        currentY += lineHeight
-        g2.drawString(scoreRegistry.totalPoints.toInt().toString(), hudX + 10, currentY)
-
-        currentY += lineHeight
-
-        g2.drawString("LINES", hudX + 10, currentY)
-        currentY += lineHeight
-        g2.drawString(scoreRegistry.totalLinesCleared.toString(), hudX + 10, currentY)
-
-        currentY += lineHeight
-
-        g2.drawString("TIME", hudX + 10, currentY)
-        currentY += lineHeight
-        g2.drawString(formatTime(tetrisEngine.sessionTimeSeconds), hudX + 10, currentY)
+        val alphaValue = (messageAlpha * 255).toInt()
+        graphics.color = Color(255, 255, 255, alphaValue)
+        graphics.drawString(message, textX, textY)
     }
 
-    fun formatTime(seconds: Float): String {
+    private fun getTetrominoColor(id: Int): Color = when (id) {
+        Tetromino.I.id -> Color.CYAN
+        Tetromino.O.id -> Color.YELLOW
+        Tetromino.T.id -> Color.MAGENTA
+        Tetromino.S.id -> Color.GREEN
+        Tetromino.Z.id -> Color.RED
+        Tetromino.J.id -> Color.BLUE
+        Tetromino.L.id -> Color.ORANGE
+        else -> Color.LIGHT_GRAY
+    }
+
+    private fun Color.withAlpha(alpha: Int): Color {
+        return Color(red, green, blue, alpha.coerceIn(0, 255))
+    }
+
+    private fun formatTime(seconds: Float): String {
         val totalSeconds = seconds.toInt()
         val minutes = (totalSeconds / 60) % 60
-        val seconds = totalSeconds % 60
-        return "%02d:%02d".format(minutes, seconds)
+        val remainingSeconds = totalSeconds % 60
+        return "%02d:%02d".format(minutes, remainingSeconds)
     }
 }

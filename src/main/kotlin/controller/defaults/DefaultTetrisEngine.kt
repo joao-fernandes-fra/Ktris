@@ -7,10 +7,10 @@ import model.AppLog
 import model.BagRandomizer
 import model.Command
 import model.Drop
-import model.GameConfig
 import model.GameEvent
 import model.GameEventBus
 import model.GameGoal
+import model.GameSettings
 import model.GameSnapshot
 import model.GameState
 import model.GameTimers
@@ -25,7 +25,7 @@ import kotlin.math.absoluteValue
 
 
 abstract class DefaultTetrisEngine<T : Piece>(
-    private val settings: GameConfig,
+    private val settings: GameSettings,
     private val bagManager: BagRandomizer<T>,
     private val gameEventBus: GameEventBus,
     private val gameTimers: GameTimers,
@@ -151,7 +151,9 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
 
     override fun onRotation(rotation: Rotation): Boolean {
+        if (rotationLock) return false
         val successfulRotation = pieceController.rotate(rotation)
+        AppLog.debug { "Processing Rotation [$rotation]: $successfulRotation" }
         rotationLock = successfulRotation
         return successfulRotation
     }
@@ -199,7 +201,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
             if (settings.shouldCollapseOnFreeze) boardManager.collapseFullLines()
             if (freezeLineClears > 0) gameEventBus.post(GameEvent.FreezeLineClear(linesCount, spinType))
         } else {
-            if (linesCount > 0) gameEventBus.post(
+            gameEventBus.post(
                 GameEvent.LineCleared(
                     spinType,
                     linesCount,
