@@ -18,7 +18,7 @@ import javax.swing.WindowConstants
 import kotlin.random.Random
 
 fun main(args: Array<String>) {
-    AppLog.minLevel = AppLog.Level.INFO
+    AppLog.minLevel = AppLog.Level.DEBUG
     val frame = JFrame("Ktris")
     val eventBus = GameEventBus()
     // this is the object that would handle a menu, it has default settings, but it's all mutable and should be updated before starting the game

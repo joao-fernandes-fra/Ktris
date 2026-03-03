@@ -90,7 +90,6 @@ class DefaultPieceController<T : Piece>(
         val newPiece = DefaultMovingPiece(
             piece = piece,
             pieceCol = (board.cols / 2) - (piece.shape.cols / 2),
-            pieceRow = -board.bufferSize
         )
 
         if (checkCollisionWithBoard(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
@@ -154,46 +153,35 @@ class DefaultPieceController<T : Piece>(
     }
 
     override fun rotate(rotation: Rotation): Boolean {
-        val moving = currentPiece ?: return false
+        val piece = currentPiece ?: return false
         if (rotation == Rotation.ROTATE_180 && !settings.is180Enabled) return false
 
-        val (candidateShape, _) = moving.projectRotation(rotation)
-        val tests = moving.piece.getKickTable(rotation, moving.rotationState)
+        val (candidateShape, newRotationState) = piece.projectRotation(rotation)
+        val kickOffsets = piece.piece.getKickTable(rotation, newRotationState)
+        val (centerRowOffset, centerColOffset) = piece.piece.getRotationCenter()
+        val currentCenterRow = piece.pieceRow + centerRowOffset
+        val currentCenterCol = piece.pieceCol + centerColOffset
+        for ((deltaCol, deltaRow) in kickOffsets) {
+            val newCenterRow = currentCenterRow + deltaRow
+            val newCenterCol = currentCenterCol + deltaCol
+            val (topLeftRow, topLeftCol) = getTopLeftFromCenter(newCenterRow, newCenterCol, piece.piece)
+            val hasCollision = checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)
 
-        val (centerRow, centerCol) = moving.piece.getRotationCenter()
-        val originRow = moving.pieceRow + centerRow
-        val originCol = moving.pieceCol + centerCol
-
-        data class Candidate(val row: Int, val col: Int, val offsetX: Int, val offsetY: Int)
-
-        val validCandidates = mutableListOf<Candidate>()
-
-        for ((dx, dy) in tests) {
-            val testOriginRow = originRow + dy
-            val testOriginCol = originCol + dx
-
-            val topLeftRow = testOriginRow - centerRow
-            val topLeftCol = testOriginCol - centerCol
-
-            val isCollision = checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)
-            if (!isCollision) {
-                validCandidates.add(Candidate(topLeftRow, topLeftCol, dx, dy))
+            if (!hasCollision) {
+                piece.rotateShape(candidateShape, topLeftRow, topLeftCol, rotation)
+                gameTimers.lockTimer = 0.0f
+                resetLockTimer()
+                wasRotated = true
+                gameEventBus.post(GameEvent.PieceRotated(piece.piece, piece.rotationState))
+                return true
             }
         }
+        return false
+    }
 
-        if (validCandidates.isEmpty()) return false
-
-        val chosen = validCandidates.minWithOrNull(
-            compareBy<Candidate> { -it.row }
-                .thenBy { kotlin.math.abs(it.col - moving.pieceCol) }
-        ) ?: validCandidates.first()
-
-        moving.rotateShape(candidateShape, chosen.row, chosen.col, rotation)
-        gameTimers.lockTimer = 0.0f
-        resetLockTimer()
-        wasRotated = true
-        gameEventBus.post(GameEvent.PieceRotated(moving.piece, moving.rotationState))
-        return true
+    private fun getTopLeftFromCenter(centerRow: Int, centerCol: Int, piece: Piece): Pair<Int, Int> {
+        val (rowOffset, colOffset) = piece.getRotationCenter()
+        return Pair(centerRow - rowOffset, centerCol - colOffset)
     }
 
 
