@@ -14,7 +14,7 @@ import model.Rotation
 import model.defaults.DefaultMovingPiece
 import util.CollisionUtils.checkCollisionWithBoard
 
-class DefaultPieceController<T : Piece>(
+class DefaultGuidelinePieceController<T : Piece>(
     private val board: Board,
     private val settings: GameSettings,
     private val gameTimers: GameTimers,

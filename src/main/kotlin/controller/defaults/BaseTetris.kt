@@ -15,7 +15,7 @@ class BaseTetris<T : Piece>(
     timeManager: TimeManager = TimeManager(settings),
     eventBus: GameEventBus,
     boardManager: BoardManager = BoardManager(settings.boardRows, settings.boardCols, settings.bufferHeight),
-    pieceController: PieceController<T> = DefaultPieceController(
+    pieceController: PieceController<T> = DefaultGuidelinePieceController(
         boardManager.board,
         settings,
         gameTimers,
