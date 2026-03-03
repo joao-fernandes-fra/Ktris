@@ -4,16 +4,15 @@ import controller.PieceController
 import model.AppLog
 import model.Board
 import model.DasState
-import model.GameSettings
 import model.GameEvent
 import model.GameEventBus
+import model.GameSettings
 import model.GameTimers
 import model.MovingPiece
 import model.Piece
 import model.Rotation
 import model.defaults.DefaultMovingPiece
 import util.CollisionUtils.checkCollisionWithBoard
-import kotlin.math.abs
 
 class DefaultPieceController<T : Piece>(
     private val board: Board,
@@ -91,7 +90,7 @@ class DefaultPieceController<T : Piece>(
         val newPiece = DefaultMovingPiece(
             piece = piece,
             pieceCol = (board.cols / 2) - (piece.shape.cols / 2),
-            pieceRow = 0
+            pieceRow = -board.bufferSize
         )
 
         if (checkCollisionWithBoard(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
@@ -161,44 +160,42 @@ class DefaultPieceController<T : Piece>(
         val (candidateShape, _) = moving.projectRotation(rotation)
         val tests = moving.piece.getKickTable(rotation, moving.rotationState)
 
-        val (rCenter, cCenter) = moving.piece.getRotationCenter()
-        val originRow = moving.pieceRow + rCenter
-        val originCol = moving.pieceCol + cCenter
+        val (centerRow, centerCol) = moving.piece.getRotationCenter()
+        val originRow = moving.pieceRow + centerRow
+        val originCol = moving.pieceCol + centerCol
 
-        data class Candidate(val topLeftRow: Int, val topLeftCol: Int, val offsetX: Int, val offsetY: Int)
+        data class Candidate(val row: Int, val col: Int, val offsetX: Int, val offsetY: Int)
 
         val validCandidates = mutableListOf<Candidate>()
 
-        for ((offsetX, offsetY) in tests) {
-            val testOriginCol = originCol + offsetX
-            val testOriginRow = originRow + offsetY
+        for ((dx, dy) in tests) {
+            val testOriginRow = originRow + dy
+            val testOriginCol = originCol + dx
 
-            val topLeftCol = testOriginCol - cCenter
-            val topLeftRow = testOriginRow - rCenter
+            val topLeftRow = testOriginRow - centerRow
+            val topLeftCol = testOriginCol - centerCol
 
             val isCollision = checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)
-            AppLog.debug { "Kick test offset=($offsetX,$offsetY) test=($topLeftCol,$topLeftRow) collision=$isCollision" }
             if (!isCollision) {
-                validCandidates.add(Candidate(topLeftRow, topLeftCol, offsetX, offsetY))
+                validCandidates.add(Candidate(topLeftRow, topLeftCol, dx, dy))
             }
         }
 
         if (validCandidates.isEmpty()) return false
 
         val chosen = validCandidates.minWithOrNull(
-            compareBy<Candidate> { -it.topLeftRow }
-                .thenBy { abs(it.topLeftCol - moving.pieceCol) }
-                .thenBy { abs(it.topLeftRow - moving.pieceRow) + abs(it.topLeftCol - moving.pieceCol) }
+            compareBy<Candidate> { -it.row }
+                .thenBy { kotlin.math.abs(it.col - moving.pieceCol) }
         ) ?: validCandidates.first()
 
-
-        moving.rotateShape(candidateShape, chosen.topLeftRow, chosen.topLeftCol, rotation)
+        moving.rotateShape(candidateShape, chosen.row, chosen.col, rotation)
         gameTimers.lockTimer = 0.0f
         resetLockTimer()
         wasRotated = true
         gameEventBus.post(GameEvent.PieceRotated(moving.piece, moving.rotationState))
         return true
     }
+
 
     override fun holdPiece(getNextPiece: () -> T) {
         if (!settings.isHoldEnabled || !canHold || currentPiece == null) return

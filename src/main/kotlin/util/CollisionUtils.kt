@@ -22,7 +22,7 @@ object CollisionUtils {
 
                 if (targetRow >= board.rows) return true
 
-                if (targetRow < -board.bufferHeight) return true
+                if (targetRow < -board.bufferSize) return true
 
                 if (targetRow < 0) continue
 

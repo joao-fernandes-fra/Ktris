@@ -5,10 +5,10 @@ import controller.defaults.ModernGuidelineRules
 import controller.defaults.ScoreRegistry
 import controller.defaults.TimeManager
 import model.AppLog
-import model.GameSettings
 import model.GameEvent
 import model.GameEventBus
 import model.GameGoal
+import model.GameSettings
 import model.defaults.MultiBagRandomizer
 import model.defaults.ProceduralPiece
 import model.defaults.Tetromino

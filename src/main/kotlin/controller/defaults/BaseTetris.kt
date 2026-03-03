@@ -3,8 +3,8 @@ package controller.defaults
 import controller.InputHandler
 import controller.PieceController
 import model.BagRandomizer
-import model.GameSettings
 import model.GameEventBus
+import model.GameSettings
 import model.GameTimers
 import model.Piece
 

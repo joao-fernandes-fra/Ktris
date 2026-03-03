@@ -2,9 +2,9 @@ package model
 
 data class Board(
     var contents: Matrix<Int>,
-    var bufferHeight: Int = 0,
+    var bufferSize: Int = 0,
 ) {
-    constructor(rows: Int, cols: Int, bufferedHeight: Int, initialValue: Int = 0) : this(Matrix(rows + bufferedHeight, cols, initialValue), bufferedHeight)
+    constructor(rows: Int, cols: Int, bufferedHeight: Int, initialValue: Int = 0) : this(Matrix(rows, cols, initialValue), bufferedHeight)
     constructor(rows: Int, cols: Int, initialValue: Int = 0) : this(Matrix(rows, cols, initialValue))
 
     operator fun get(row: Int, col: Int): Int? = contents[row, col]

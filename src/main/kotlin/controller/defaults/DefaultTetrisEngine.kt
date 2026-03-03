@@ -7,10 +7,10 @@ import model.AppLog
 import model.BagRandomizer
 import model.Command
 import model.Drop
-import model.GameSettings
 import model.GameEvent
 import model.GameEventBus
 import model.GameGoal
+import model.GameSettings
 import model.GameSnapshot
 import model.GameState
 import model.GameTimers

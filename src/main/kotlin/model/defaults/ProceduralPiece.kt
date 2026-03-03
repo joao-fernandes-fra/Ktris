@@ -13,7 +13,7 @@ open class ProceduralPiece(
     protected val kicks: SRSKicks = SRSKicks.STANDARD,
 ) : Piece {
     override fun getRotationCenter(): Pair<Int, Int> {
-        return Pair((shape.rows - 1) / 2, (shape.cols - 1) / 2)
+        return Pair(1,1)
     }
 
     override fun getRotationsState(rotationState: Int): Matrix<Int> {
@@ -36,7 +36,7 @@ open class ProceduralPiece(
 }
 
 class ProceduralIPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name, SRSKicks.I_PIECE) {
-    override fun getRotationCenter(): Pair<Int, Int> {return Pair(1, 1)}
+    override fun getRotationCenter(): Pair<Int, Int> {return Pair(1, 2)}
 }
 
 class ProceduralTPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name) {

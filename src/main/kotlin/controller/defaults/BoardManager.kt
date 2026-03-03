@@ -2,7 +2,6 @@ package controller.defaults
 
 import controller.BoardController
 import model.Board
-import model.Matrix
 import model.MovingPiece
 
 

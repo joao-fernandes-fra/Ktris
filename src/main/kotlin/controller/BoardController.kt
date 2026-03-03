@@ -1,7 +1,6 @@
 package controller
 
 import model.Board
-import model.Matrix
 import model.MovingPiece
 
 interface BoardController {
