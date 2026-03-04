@@ -26,7 +26,7 @@ private const val GARBAGE_BLOCK_ID = -99
 fun main(args: Array<String>) {
     GameEvent.registerEvents()
     InputEvent.registerEvents()
-    AppLog.minLevel = AppLog.Level.INFO
+    AppLog.minLevel = AppLog.Level.DEBUG
 
     val baseSettings = when {
         args.contains("expert") -> GameSettingsProvider.expert()
