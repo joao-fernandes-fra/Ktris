@@ -3,12 +3,12 @@ package demo
 import controller.GameRenderer
 import controller.TetrisEngine
 import controller.defaults.ScoreRegistry
-import model.GameEvent
-import model.GameEventBus
 import model.GameSnapshot
 import model.Piece
 import model.PieceState
 import model.defaults.Tetromino
+import model.events.EventHandler
+import model.events.GameEvent
 import model.toPieceState
 import java.awt.BasicStroke
 import java.awt.Color
@@ -20,10 +20,10 @@ import javax.swing.JPanel
 import kotlin.math.min
 import kotlin.math.sin
 
+
 class SwingRenderer<T : Piece>(
     private val scoreRegistry: ScoreRegistry,
     private val tetrisEngine: TetrisEngine<*>,
-    eventBus: GameEventBus
 ) : JPanel(), GameRenderer<T> {
 
     companion object {
@@ -37,7 +37,7 @@ class SwingRenderer<T : Piece>(
         private const val FULL_OPACITY = 100
 
         private const val BOARD_OFFSET_COLS = 5
-        private const val HOLD_PIECE_OFFSET = 0
+        private const val HOLD_PIECE_OFFSET = 25
         private const val NEXT_PIECES_OFFSET_COLS = 6
         private const val NEXT_PIECES_VERTICAL_SPACING = 4
 
@@ -54,6 +54,8 @@ class SwingRenderer<T : Piece>(
         private const val BACKGROUND_ALPHA = 128
         private const val GLOW_ALPHA_BASE = 100
         private const val GLOW_INNER_ALPHA = 200
+
+        private const val HUD_FONT = "SansSerif"
     }
 
     private var lastSnapshot: GameSnapshot<T>? = null
@@ -65,36 +67,47 @@ class SwingRenderer<T : Piece>(
     private var activeMessage: String? = null
     private var messageAlpha = 0f
     private var messageStartTime = 0L
+    private var gameFinished = false
+    private var goalMet = false
+    private var finishMessage: String? = null
 
     init {
         val screenWidth = (SCREEN_HEIGHT * SCREEN_ASPECT_RATIO).toInt()
         preferredSize = Dimension(screenWidth, SCREEN_HEIGHT)
         background = Color.BLACK
 
-        subscribeToGameEvents(eventBus)
+        subscribeToGameEvents()
     }
 
-    private fun subscribeToGameEvents(eventBus: GameEventBus) {
-        eventBus.subscribe<GameEvent.LineCleared> { event ->
+    private fun subscribeToGameEvents() {
+        EventHandler.subscribeToEvent<GameEvent.LineCleared> { event ->
             if (event.linesCleared > 0) {
                 triggerFlashEffect()
             }
         }
 
-        eventBus.subscribe<GameEvent.ScoreUpdated> { event ->
-            if (event.moveType.isSpecial) {
-                if (event.backToBackCount > 0){
-                    showTemporaryMessage("BACK TO BACK ${event.moveType.displayName.uppercase()}")
-                } else showTemporaryMessage(event.moveType.displayName)
+        EventHandler.subscribeToEvent<GameEvent.ScoreUpdated> { event ->
+            val moveTypeName = event.moveTypeName
+            if (!moveTypeName.isNullOrEmpty()) {
+                if (event.backToBackCount > 0) {
+                    showTemporaryMessage("BACK TO BACK $moveTypeName")
+                } else showTemporaryMessage(moveTypeName)
             }
         }
 
-        eventBus.subscribe<GameEvent.ComboTriggered> { event ->
+        EventHandler.subscribeToEvent<GameEvent.ComboTriggered> { event ->
             showTemporaryMessage("COMBO x${event.comboCount}")
         }
 
-        eventBus.subscribe<GameEvent.GarbageSent> {
-            showTemporaryMessage("GARBAGE INCOMING!")
+        EventHandler.subscribeToEvent<GameEvent.GarbageSent> {
+            showTemporaryMessage("INCOMING ${it.lines} GARBAGE LINES")
+        }
+
+        EventHandler.subscribeToEvent<GameEvent.GameOver> {
+            gameFinished = true
+            goalMet = it.goalMet
+            finishMessage = if (it.goalMet) "VICTORY!" else "GAME OVER"
+            repaint()
         }
     }
 
@@ -112,6 +125,19 @@ class SwingRenderer<T : Piece>(
         drawFlashEffect(graphics)
         drawGameBoard(graphics, snapshot)
         drawMessages(graphics, snapshot)
+        if (gameFinished) {
+            drawFinishScreen(graphics)
+        }
+    }
+
+    private fun drawFinishScreen(graphics: Graphics2D) {
+        val text = finishMessage ?: return
+        graphics.color = if (goalMet) Color.GREEN else Color.RED
+        graphics.font = Font(HUD_FONT, Font.BOLD, 48)
+        val metrics = graphics.fontMetrics
+        val x = (width - metrics.stringWidth(text)) / 2
+        val y = height / 2
+        graphics.drawString(text, x, y)
     }
 
     private fun calculateBlockSize(snapshot: GameSnapshot<T>) {
@@ -319,7 +345,7 @@ class SwingRenderer<T : Piece>(
         graphics.fillRect(hudX, hudY, HUD_WIDTH, HUD_HEIGHT)
 
         graphics.color = Color.WHITE
-        graphics.font = Font("Monospaced", Font.BOLD, HUD_FONT_SIZE)
+        graphics.font = Font(HUD_FONT, Font.BOLD, HUD_FONT_SIZE)
 
         var currentY = hudY + 30
 
@@ -357,7 +383,7 @@ class SwingRenderer<T : Piece>(
 
     private fun drawCenteredMessage(graphics: Graphics2D, snapshot: GameSnapshot<T>, message: String) {
         val fontSize = (blockSize * 0.8f).toInt()
-        graphics.font = Font("SansSerif", Font.BOLD, fontSize)
+        graphics.font = Font(HUD_FONT, Font.BOLD, fontSize)
 
         val metrics = graphics.fontMetrics
         val boardPixelWidth = snapshot.board.cols * blockSize
@@ -391,7 +417,7 @@ class SwingRenderer<T : Piece>(
     }
 
     private fun formatTime(seconds: Float): String {
-        val totalSeconds = seconds.toInt()
+        val totalSeconds = seconds.toLong()
         val minutes = (totalSeconds / 60) % 60
         val remainingSeconds = totalSeconds % 60
         return "%02d:%02d".format(minutes, remainingSeconds)

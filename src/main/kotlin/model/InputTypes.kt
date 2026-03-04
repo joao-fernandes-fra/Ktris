@@ -1,6 +1,6 @@
 package model
 
-enum class Command { HOLD }
+enum class Command { HOLD, RESET }
 
 enum class Drop { SOFT_DROP, HARD_DROP }
 

@@ -1,6 +1,6 @@
 package controller
 
-import model.InputEvent
+import model.events.InputEvent
 
 interface CommandRecorder {
     fun record(command: InputEvent, timestamp: Float)

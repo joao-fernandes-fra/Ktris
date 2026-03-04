@@ -6,14 +6,14 @@ import model.Matrix
 object CollisionUtils {
     fun checkCollisionWithBoard(
         board: Board,
-        piece: Matrix<Int>,
+        piece: Matrix,
         startRow: Int,
         startCol: Int,
     ): Boolean {
         for (row in 0 until piece.rows) {
             for (col in 0 until piece.cols) {
                 val pieceCell = piece[row, col]
-                if (pieceCell == null || pieceCell == 0) continue
+                if (pieceCell == 0) continue
 
                 val targetRow = startRow + row
                 val targetCol = startCol + col
@@ -27,7 +27,7 @@ object CollisionUtils {
                 if (targetRow < 0) continue
 
                 val cellValue = board[targetRow, targetCol]
-                if (cellValue != null && cellValue != 0) return true
+                if (cellValue != 0) return true
             }
         }
         return false

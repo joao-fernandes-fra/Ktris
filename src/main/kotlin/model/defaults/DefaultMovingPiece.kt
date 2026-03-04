@@ -1,33 +1,34 @@
 package model.defaults
 
+import kotlinx.serialization.Serializable
 import model.Matrix
 import model.MovingPiece
 import model.Piece
 import model.Rotation
 
 
-typealias Shape = Matrix<Int>
-typealias RotationState = Pair<Shape, Int>
 
+
+@Serializable
 data class DefaultMovingPiece<T : Piece>(
     override var piece: T,
     override var pieceRow: Int = 0,
     override var pieceCol: Int = 0,
     override var rotationState: Int = 0,
-    override var shape: Shape = piece.shape.copy(),
+    override var shape: Matrix = piece.shape.copy(),
 ) : MovingPiece<T> {
     override fun move(tagetRow: Int, tagetCol: Int) {
         pieceRow = tagetRow
         pieceCol = tagetCol
     }
 
-    override fun projectRotation(rotation: Rotation): RotationState {
+    override fun projectRotation(rotation: Rotation): Pair<Matrix, Int> {
         val rotationState = calculateNextState(rotation)
         return piece.getRotationsState(rotationState) to rotationState
     }
 
 
-    override fun rotateShape(rotatedShape: Matrix<Int>, newRow: Int, newCol: Int, rotation: Rotation) {
+    override fun rotateShape(rotatedShape: Matrix, newRow: Int, newCol: Int, rotation: Rotation) {
         rotationState = calculateNextState(rotation)
         shape = rotatedShape
         pieceRow = newRow

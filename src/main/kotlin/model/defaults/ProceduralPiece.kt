@@ -1,14 +1,16 @@
 package model.defaults
 
+import kotlinx.serialization.Serializable
 import model.Board
 import model.Matrix
 import model.Piece
 import model.Rotation
 import model.SpinType
 
+@Serializable
 open class ProceduralPiece(
     override val id: Int,
-    override val shape: Matrix<Int>,
+    override val shape: Matrix,
     override val name: String,
     protected val kicks: SRSKicks = SRSKicks.STANDARD,
 ) : Piece {
@@ -16,7 +18,7 @@ open class ProceduralPiece(
         return Pair(1, 1)
     }
 
-    override fun getRotationsState(rotationState: Int): Matrix<Int> {
+    override fun getRotationsState(rotationState: Int): Matrix {
         val turns = Math.floorMod(rotationState, 4)
         val current = shape.copy()
         repeat(turns) {
@@ -35,39 +37,50 @@ open class ProceduralPiece(
     }
 }
 
-class ProceduralIPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name, SRSKicks.I_PIECE) {
+@Serializable
+class ProceduralIPiece(var _id: Int, var _shape: Matrix, var _name: String) : ProceduralPiece(_id, _shape, _name,
+    SRSKicks.I_PIECE
+) {
     override fun getRotationCenter(): Pair<Int, Int> {
         return Pair(1, 2)
     }
 }
 
-class ProceduralTPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name) {
+@Serializable
+class ProceduralTPiece(var _id: Int, var _shape: Matrix, var _name: String) : ProceduralPiece(_id, _shape, _name) {
     override fun getSpinType(board: Board, row: Int, col: Int, rotationState: Int): SpinType {
-        val (centerX, centerY) = getRotationCenter()
+        val (centerRelRow, centerRelCol) = getRotationCenter()
 
+        // Calculate the absolute board coordinates of the center
+        val centerRow = row + centerRelRow
+        val centerCol = col + centerRelCol
+
+        // Define corners relative to the center
+        // 0: TL, 1: TR, 2: BR, 3: BL
         val corners = listOf(
-            centerX - 1 to centerY - 1, // Top-Left
-            centerX - 1 to centerY + 1, // Top-Right
-            centerX + 1 to centerY + 1, // Bottom-Right
-            centerX + 1 to centerY - 1  // Bottom-Left
+            centerRow - 1 to centerCol - 1, // 0: Top-Left
+            centerRow - 1 to centerCol + 1, // 1: Top-Right
+            centerRow + 1 to centerCol + 1, // 2: Bottom-Right
+            centerRow + 1 to centerCol - 1  // 3: Bottom-Left
         )
+
+        // Check if these board coordinates are occupied
         val occupied = corners.map { (r, c) -> board.isOccupied(r, c) }
         val occupiedCount = occupied.count { it }
 
+        // 3+ corners required for any T-Spin
         if (occupiedCount < 3) return SpinType.NONE
 
-        // Determine which corners are the "Front" (facing direction of the T-tip)
-        // 0: Up, 1: Right, 2: Down, 3: Left
+        //Map the front corners based on rotation (0:Up, 1:Right, 2:Down, 3:Left)
         val frontCorners = when (rotationState) {
-            0 -> listOf(0, 1) // Pointing UP (Top corners are front)
-            1 -> listOf(1, 3) // Pointing RIGHT (Right corners are front)
-            2 -> listOf(2, 3) // Pointing DOWN (Bottom corners are front)
-            3 -> listOf(0, 2) // Pointing LEFT (Left corners are front)
+            0 -> listOf(0, 1) // Pointing UP: Top-Left and Top-Right are front
+            1 -> listOf(1, 2) // Pointing RIGHT: Top-Right and Bottom-Right are front
+            2 -> listOf(2, 3) // Pointing DOWN: Bottom-Right and Bottom-Left are front
+            3 -> listOf(0, 3) // Pointing LEFT: Top-Left and Bottom-Left are front
             else -> listOf()
         }
 
-        // A regular T-Spin must have both front corners blocked.
-        // 4 corners filled is ALWAYS a Regular T-Spin.
+        // A Full T-Spin must have both front corners blocked
         val frontBlocked = frontCorners.all { occupied[it] }
 
         return if (occupiedCount == 4 || frontBlocked) {

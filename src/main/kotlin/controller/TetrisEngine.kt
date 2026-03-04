@@ -1,18 +1,19 @@
 package controller
 
+import model.Board
 import model.Command
 import model.Drop
 import model.GameSnapshot
 import model.Movement
 import model.Piece
+import model.Resetable
 import model.Rotation
 
-interface TetrisEngine<T : Piece> {
+interface TetrisEngine<T : Piece> : Resetable {
     val isGameOver: Boolean
     val isGoalMet: Boolean
-    var deltaTime: Float
     val sessionTimeSeconds: Float
-    fun update()
+    fun start(renderer: GameRenderer<T>)
     fun levelUp(): Int
     fun processGarbage(lines: Int, garbageBlockId: Int)
     fun processCommand(command: Command)
@@ -22,4 +23,5 @@ interface TetrisEngine<T : Piece> {
     fun gameStateSnapshot(): GameSnapshot<T>
     fun onRotationRelease(rotation: Rotation)
     fun onMovementRelease(movement: Movement)
+    fun forceBoardState(newState: Board)
 }

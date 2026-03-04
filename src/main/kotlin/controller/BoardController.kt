@@ -2,8 +2,9 @@ package controller
 
 import model.Board
 import model.MovingPiece
+import model.Resetable
 
-interface BoardController {
+interface BoardController : Resetable {
     val board: Board
     var linesCleared: Int
     val isBoardEmpty: Boolean
@@ -13,4 +14,5 @@ interface BoardController {
     fun addGarbage(lines: Int, garbageBlockId: Int)
     fun placePiece(piece: MovingPiece<*>)
     fun collapseFullLines()
+    fun updateBoard(board: Board)
 }

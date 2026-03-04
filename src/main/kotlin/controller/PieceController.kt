@@ -2,9 +2,10 @@ package controller
 
 import model.MovingPiece
 import model.Piece
+import model.Resetable
 import model.Rotation
 
-interface PieceController<T : Piece> {
+interface PieceController<T : Piece> : Resetable {
     var heldPiece: T?
     var currentPiece: MovingPiece<T>?
     var ghostRow: Int

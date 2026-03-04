@@ -1,5 +1,8 @@
 package model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class SpinType {
     NONE,
     MINI,
@@ -10,13 +13,13 @@ interface Piece {
 
     val id: Int
 
-    val shape: Matrix<Int>
+    val shape: Matrix
 
     val name: String
 
     fun getRotationCenter(): Pair<Int, Int>
 
-    fun getRotationsState(rotationState: Int): Matrix<Int>
+    fun getRotationsState(rotationState: Int): Matrix
 
     fun getKickTable(rotation: Rotation, rotationState: Int): List<Pair<Int, Int>>
 

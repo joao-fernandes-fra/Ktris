@@ -4,9 +4,17 @@ import controller.CommandRecorder
 import controller.InputHandler
 import controller.PieceController
 import model.BagRandomizer
-import model.GameEventBus
-import model.InputEvent
 import model.Piece
+import model.events.EventHandler
+import model.events.InputEvent
+import model.events.InputEvent.CommandInput
+import model.events.InputEvent.DirectionMoveEnd
+import model.events.InputEvent.DirectionMoveStart
+import model.events.InputEvent.DropInput
+import model.events.InputEvent.FreezeTime
+import model.events.InputEvent.RotationInputRelease
+import model.events.InputEvent.RotationInputStart
+import model.events.InputEvent.SlowDownTime
 
 class GameInputHandler<T : Piece>(
     private val engine: DefaultTetrisEngine<T>,
@@ -14,27 +22,34 @@ class GameInputHandler<T : Piece>(
     private val timeManager: TimeManager,
     private val bagRandomizer: BagRandomizer<T>,
     private val commandRecorder: CommandRecorder?,
-    eventBus: GameEventBus
 ) : InputHandler {
-
     init {
-        eventBus.subscribe<InputEvent> { event ->
-            handleInput(event)
-        }
+        subscribeToEvents()
+    }
+
+    private fun subscribeToEvents() {
+        EventHandler.subscribeToEvent<DirectionMoveStart> { handleInput(it) }
+        EventHandler.subscribeToEvent<DirectionMoveEnd> { handleInput(it) }
+        EventHandler.subscribeToEvent<DropInput> { handleInput(it) }
+        EventHandler.subscribeToEvent<CommandInput> { handleInput(it) }
+        EventHandler.subscribeToEvent<RotationInputStart> { handleInput(it) }
+        EventHandler.subscribeToEvent<RotationInputRelease> { handleInput(it) }
+        EventHandler.subscribeToEvent<SlowDownTime> { handleInput(it) }
+        EventHandler.subscribeToEvent<FreezeTime> { handleInput(it) }
     }
 
     override fun handleInput(input: InputEvent) {
         if (engine.isGameOver || engine.isGoalMet) return
 
         when (input) {
-            is InputEvent.DirectionMoveStart -> engine.onMovement(input.movement)
-            is InputEvent.DirectionMoveEnd -> engine.onMovementRelease(input.movement)
-            is InputEvent.DropInput -> engine.processDrop(input.dropType)
-            is InputEvent.CommandInput -> pieceController.holdPiece { bagRandomizer.getNextPiece() }
-            is InputEvent.RotationInputStart -> engine.onRotation(input.rotation)
-            is InputEvent.RotationInputRelease -> engine.onRotationRelease(input.rotation)
-            is InputEvent.SlowDownTime -> timeManager.slowDownTime(input.duration)
-            is InputEvent.FreezeTime -> timeManager.freezeTime(input.duration)
+            is DirectionMoveStart -> engine.onMovement(input.movement)
+            is DirectionMoveEnd -> engine.onMovementRelease(input.movement)
+            is DropInput -> engine.processDrop(input.dropType)
+            is CommandInput -> engine.processCommand(input.command)
+            is RotationInputStart -> engine.onRotation(input.rotation)
+            is RotationInputRelease -> engine.onRotationRelease(input.rotation)
+            is SlowDownTime -> timeManager.slowDownTime(input.duration)
+            is FreezeTime -> timeManager.freezeTime(input.duration)
         }
         commandRecorder?.record(input, System.currentTimeMillis().toFloat() / 1000f)
     }

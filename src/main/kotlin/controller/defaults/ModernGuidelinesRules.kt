@@ -2,9 +2,11 @@ package controller.defaults
 
 import controller.MoveType
 import controller.ScoringRuleBook
+import kotlinx.serialization.Serializable
 import model.Drop
 import model.SpinType
 
+@Serializable
 enum class TetrisMoveType(
     override val isSpecial: Boolean = false,
     override val displayName: String

@@ -37,11 +37,11 @@ Interaction is handled by feeding commands to the GameEventBus and querying the 
 *   **Git:** To clone the repository.
 
 ### Running the Demo
-The project includes a simple Swing-based demo that provides a graphical user interface to interact with the Tetris engine showcasing the following features 
-* This basic demo is built to the Tetris [guidelines](https://tetris.wiki/Tetris_Guideline) to the best of my abilities, report if u find any issues with the code
-* Freeze time handling including the ability to collapse cleared rows
-* Garbage processing capability, rendering the engine "multiplayer ready"
-* Configurable bufferZone for the board
+The project includes a simple Swing-based demo that provides a graphical user interface to interact with the Tetris engine.
+#### Key features showcased in this demo
+* **Guideline compliant:** This engine is built to the Tetris [guidelines](https://harddrop.com/wiki/Tetris_Guideline) to the best of my abilities, report if u find any issues with the code
+* **Freeze Time Handling:** Toggle "Freeze Mode" to stop time and clear multiple rows at once.
+* **Multiplayer Ready:** The engine features garbage processing which can be used to build a multiplayer Tetris game with your own rules
 
 1.  **Clone the repository:**
     ```bash
@@ -57,20 +57,21 @@ The project includes a simple Swing-based demo that provides a graphical user in
 * on **Windows** 
     ```bash
     .\gradlew.bat runDemo
-* You can also enter a cheese mode by passing `--args="cheese"` int the arguments
+* The game have 3 built-in difficulties | Normal | Expert | Pro it can be specified in the arguments ex:`--args="expert"`
+* Also included in the game is a cheese down-stacking mode, difficulties can be specified together with the cheese flag for a game ex:
     ```bash
-    ./gradlew runDemo --args="cheese"
+    ./gradlew runDemo --args="expert cheese"
 
 A Swing window will open with a playable Tetris game. Use the keyboard controls to move and rotate the pieces.
 ### Demo Controls
+*   **Reset:** R
 *   **Rotate Clockwise:** X 
 *   **Rotate CounterClockwise:** Z 
 *   **Hold Piece:** C 
 *   **Freeze/Unfreeze:** S
 *   **Hard Drop:** Space 
 *   **Soft Drop:** ↓ Arrow Key 
-*   **Move Left:** ← Arrow Key 
-*   **Move Right:** → Arrow Key 
+*   **Move Left/Right:** ←/→ Arrow Key
 
 ## 📸 Screenshots & Demo
 ![Swing Demo Screenshot](src/main/resources/assets/gameplay-demo.png)
