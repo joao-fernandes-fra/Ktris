@@ -25,7 +25,7 @@ private const val GARBAGE_BLOCK_ID = -99
 fun main(args: Array<String>) {
     GameEvent.registerEvents()
     InputEvent.registerEvents()
-    AppLog.minLevel = AppLog.Level.DEBUG
+    AppLog.minLevel = AppLog.Level.INFO
 
     val baseSettings = when {
         args.contains("expert") -> GameSettingsProvider.expert()
@@ -38,7 +38,7 @@ fun main(args: Array<String>) {
         goalValue = 2 * 60f
     )
 
-    val frame = JFrame("Ktris - ${if(args.isEmpty()) "Normal" else args[0].uppercase()}")
+    val frame = JFrame("Ktris - ${if (args.isEmpty()) "Normal" else args[0].uppercase()}")
     val timeManager = TimeManager(gameSettings)
 
     val game = BaseTetris(
@@ -82,7 +82,7 @@ private fun setupCheeseGame(game: TetrisEngine<*>) {
 
     EventHandler.subscribeToEvent<GameEvent.LineCleared> {
         if (it.linesCleared > 0)
-            EventHandler.publish(GarbageSent.topic, GarbageSent(it.linesCleared * it.spinType.ordinal))
+            EventHandler.publish(GarbageSent.topic, GarbageSent(it.linesCleared * (it.spinType.ordinal + 1)))
     }
 
     parts.forEach {
