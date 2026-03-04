@@ -1,4 +1,4 @@
-package model.defaults
+package model.events
 
 import model.BagRandomizer
 import model.Piece
@@ -23,7 +23,8 @@ class MultiBagRandomizer<T : Piece>(
     }
 
     override fun getPreview(count: Int): List<T> {
-        return queue.take(count)
+        val currentQueue = queue
+        return currentQueue.take(count)
     }
 
     private fun refill() {

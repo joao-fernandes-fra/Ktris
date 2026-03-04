@@ -2,7 +2,7 @@ package util
 
 import model.Matrix
 
-fun Matrix<Int>.stamp(shape: Matrix<Int>, startR: Int, startC: Int, overrideValue: Int) {
+fun Matrix.stamp(shape: Matrix, startR: Int, startC: Int, overrideValue: Int) {
     for (r in 0 until shape.rows) {
         for (c in 0 until shape.cols) {
             if (shape[r, c] != 0) {

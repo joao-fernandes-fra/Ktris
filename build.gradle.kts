@@ -1,6 +1,7 @@
 plugins {
     id("application")
     kotlin("jvm") version "2.0.21"
+    kotlin("plugin.serialization") version "2.0.21"
 }
 
 group = "com.kari.ktris"
@@ -11,6 +12,8 @@ repositories {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.12")
 }

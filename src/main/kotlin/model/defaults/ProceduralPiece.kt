@@ -1,14 +1,16 @@
 package model.defaults
 
+import kotlinx.serialization.Serializable
 import model.Board
 import model.Matrix
 import model.Piece
 import model.Rotation
 import model.SpinType
 
+@Serializable
 open class ProceduralPiece(
     override val id: Int,
-    override val shape: Matrix<Int>,
+    override val shape: Matrix,
     override val name: String,
     protected val kicks: SRSKicks = SRSKicks.STANDARD,
 ) : Piece {
@@ -16,7 +18,7 @@ open class ProceduralPiece(
         return Pair(1, 1)
     }
 
-    override fun getRotationsState(rotationState: Int): Matrix<Int> {
+    override fun getRotationsState(rotationState: Int): Matrix {
         val turns = Math.floorMod(rotationState, 4)
         val current = shape.copy()
         repeat(turns) {
@@ -35,13 +37,17 @@ open class ProceduralPiece(
     }
 }
 
-class ProceduralIPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name, SRSKicks.I_PIECE) {
+@Serializable
+class ProceduralIPiece(var _id: Int, var _shape: Matrix, var _name: String) : ProceduralPiece(_id, _shape, _name,
+    SRSKicks.I_PIECE
+) {
     override fun getRotationCenter(): Pair<Int, Int> {
         return Pair(1, 2)
     }
 }
 
-class ProceduralTPiece(id: Int, shape: Matrix<Int>, name: String) : ProceduralPiece(id, shape, name) {
+@Serializable
+class ProceduralTPiece(var _id: Int, var _shape: Matrix, var _name: String) : ProceduralPiece(_id, _shape, _name) {
     override fun getSpinType(board: Board, row: Int, col: Int, rotationState: Int): SpinType {
         val (centerX, centerY) = getRotationCenter()
 

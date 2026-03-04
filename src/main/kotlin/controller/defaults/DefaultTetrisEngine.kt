@@ -7,8 +7,6 @@ import model.AppLog
 import model.BagRandomizer
 import model.Command
 import model.Drop
-import model.GameEvent
-import model.GameEventBus
 import model.GameGoal
 import model.GameSettings
 import model.GameSnapshot
@@ -21,20 +19,27 @@ import model.PieceState
 import model.Rotation
 import model.SpinType
 import model.TimeMode
+import model.events.EventHandler
+import model.events.GameEvent.FreezeLineClear
+import model.events.GameEvent.GameOver
+import model.events.GameEvent.GarbageReceived
+import model.events.GameEvent.LevelUp
+import model.events.GameEvent.LineCleared
+import model.events.GameEvent.PieceLocked
+import model.events.GameEvent.SpinDetected
 import kotlin.math.absoluteValue
 
 
 abstract class DefaultTetrisEngine<T : Piece>(
     private val settings: GameSettings,
     private val bagManager: BagRandomizer<T>,
-    private val gameEventBus: GameEventBus,
     private val gameTimers: GameTimers,
     private var timeManager: TimeManager,
     private val boardManager: BoardController,
     private val pieceController: PieceController<T>,
-    override var deltaTime: Float
 ) : TetrisEngine<T> {
 
+    private var deltaTime: Float = 0f
     private var gameState = GameState.ENTRY_DELAY
     private var currentLevel: Int = 1
     private var timeGoalElapsed: Float = 0f
@@ -42,7 +47,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
     override val isGoalMet: Boolean get() = gameState == GameState.GOAL_MET
-    override val sessionTimeSeconds: Float get() = gameTimers.sessionTimer / 1000F
+    override val sessionTimeSeconds get() = gameTimers.sessionTimer / 1000f
     private val activeDirections = mutableListOf<Int>()
     private val currentDirection: Int? get() = activeDirections.lastOrNull()
     private var rotationLock = false
@@ -58,7 +63,10 @@ abstract class DefaultTetrisEngine<T : Piece>(
             val linesCleared = boardManager.clearFullLines()
 
             if (linesCleared > 0) {
-                gameEventBus.post(GameEvent.LineCleared(SpinType.NONE, linesCleared, boardManager.isBoardEmpty))
+                EventHandler.publish(
+                    LineCleared.topic,
+                    LineCleared(SpinType.NONE, linesCleared, boardManager.isBoardEmpty)
+                )
             }
 
             AppLog.info { "Freeze ended. Cleared $linesCleared lines immediately." }
@@ -66,7 +74,9 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     private fun setupEventListeners() {
-        gameEventBus.subscribe<GameEvent.LevelUp> { levelUp() }
+        EventHandler.subscribeToEvent<LevelUp> {
+            levelUp()
+        }
     }
 
     private fun Movement.direction() = when (this) {
@@ -74,9 +84,9 @@ abstract class DefaultTetrisEngine<T : Piece>(
         Movement.MOVE_LEFT -> -1
     }
 
-    override fun update() {
+    open fun update(deltaTime: Float) {
         if (isGameOver || isGoalMet) return
-
+        this.deltaTime = deltaTime
         val effectiveDelta = timeManager.tick(deltaTime)
 
         when (gameState) {
@@ -84,7 +94,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
                 gameTimers.sessionTimer += deltaTime
                 gameTimers.areTimer += deltaTime
                 if (gameTimers.areTimer >= settings.entryDelay) {
-                    gameTimers.areTimer = 0.0f
+                    gameTimers.areTimer = 0f
                     val spawnedPiece = pieceController.spawn(bagManager.getNextPiece())
                     gameState = if (spawnedPiece == null) {
                         GameState.GAME_OVER
@@ -100,8 +110,8 @@ abstract class DefaultTetrisEngine<T : Piece>(
                 pieceController.handleLockDelay(deltaTime) { lockAndProcess() }
             }
 
-            GameState.GAME_OVER -> gameEventBus.post(GameEvent.GameOver(false, settings.goalType))
-            GameState.GOAL_MET -> gameEventBus.post(GameEvent.GameOver(true, settings.goalType))
+            GameState.GAME_OVER -> EventHandler.publish(GameOver.topic, GameOver(false, settings.goalType))
+            GameState.GOAL_MET -> EventHandler.publish(GameOver.topic, GameOver(true, settings.goalType))
         }
     }
 
@@ -113,7 +123,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     override fun processGarbage(lines: Int, garbageBlockId: Int) {
         boardManager.addGarbage(lines, garbageBlockId)
         AppLog.info { "Garbage processed: $lines" }
-        gameEventBus.post(GameEvent.GarbageReceived(lines))
+        EventHandler.publish(GarbageReceived.topic, GarbageReceived(lines))
     }
 
     override fun processCommand(command: Command) {
@@ -186,28 +196,32 @@ abstract class DefaultTetrisEngine<T : Piece>(
         boardManager.placePiece(piece)
         val linesCount = boardManager.getFullLines().size
 
-        if (spinType != SpinType.NONE) gameEventBus.post(GameEvent.SpinDetected(spinType))
-        gameEventBus.post(GameEvent.PieceLocked(linesCount > 0))
+        if (spinType != SpinType.NONE) EventHandler.publish(SpinDetected.topic, SpinDetected(spinType))
+        EventHandler.publish(PieceLocked.topic, PieceLocked(linesCount > 0))
 
         if (timeManager.mode == TimeMode.FROZEN) {
             freezeLineClears = (freezeLineClears - linesCount).absoluteValue
             if (settings.shouldCollapseOnFreeze) boardManager.collapseFullLines()
-            if (freezeLineClears > 0) gameEventBus.post(GameEvent.FreezeLineClear(linesCount, spinType))
+            if (freezeLineClears > 0) EventHandler.publish(
+                FreezeLineClear.topic,
+                FreezeLineClear(linesCount, spinType)
+            )
         } else {
-            gameEventBus.post(
-                GameEvent.LineCleared(
+            boardManager.clearFullLines()
+            EventHandler.publish(
+                LineCleared.topic,
+                LineCleared(
                     spinType,
                     linesCount,
                     boardManager.isBoardEmpty
                 )
             )
-            boardManager.clearFullLines()
         }
 
-        AppLog.debug { "Piece locked. Cleared $linesCount lines. Spin: $spinType" }
+        AppLog.debug { "Piece locked. Cleared $linesCount lines. Spin: $spinType. BoardEmpty: ${boardManager.isBoardEmpty}" }
         pieceController.clearPiece()
         gameState = GameState.ENTRY_DELAY
-        gameTimers.areTimer = 0.0f
+        gameTimers.areTimer = 0f
     }
 
     private fun getSpinType(pieceState: MovingPiece<T>): SpinType {

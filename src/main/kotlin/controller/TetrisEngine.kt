@@ -6,13 +6,13 @@ import model.GameSnapshot
 import model.Movement
 import model.Piece
 import model.Rotation
+import javax.swing.Renderer
 
 interface TetrisEngine<T : Piece> {
     val isGameOver: Boolean
     val isGoalMet: Boolean
-    var deltaTime: Float
     val sessionTimeSeconds: Float
-    fun update()
+    fun start(renderer: GameRenderer<T>)
     fun levelUp(): Int
     fun processGarbage(lines: Int, garbageBlockId: Int)
     fun processCommand(command: Command)

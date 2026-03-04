@@ -9,7 +9,7 @@ data class GameSnapshot<T : Piece>(
 )
 
 data class PieceState<T : Piece>(
-    val shape: Matrix<Int>,
+    val shape: Matrix,
     val row: Int,
     val col: Int,
     val type: T

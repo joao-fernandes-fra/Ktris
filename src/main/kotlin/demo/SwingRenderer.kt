@@ -3,12 +3,12 @@ package demo
 import controller.GameRenderer
 import controller.TetrisEngine
 import controller.defaults.ScoreRegistry
-import model.GameEvent
-import model.GameEventBus
+import model.events.GameEvent
 import model.GameSnapshot
 import model.Piece
 import model.PieceState
 import model.defaults.Tetromino
+import model.events.EventHandler
 import model.toPieceState
 import java.awt.BasicStroke
 import java.awt.Color
@@ -23,7 +23,6 @@ import kotlin.math.sin
 class SwingRenderer<T : Piece>(
     private val scoreRegistry: ScoreRegistry,
     private val tetrisEngine: TetrisEngine<*>,
-    eventBus: GameEventBus
 ) : JPanel(), GameRenderer<T> {
 
     companion object {
@@ -71,30 +70,31 @@ class SwingRenderer<T : Piece>(
         preferredSize = Dimension(screenWidth, SCREEN_HEIGHT)
         background = Color.BLACK
 
-        subscribeToGameEvents(eventBus)
+        subscribeToGameEvents()
     }
 
-    private fun subscribeToGameEvents(eventBus: GameEventBus) {
-        eventBus.subscribe<GameEvent.LineCleared> { event ->
+    private fun subscribeToGameEvents() {
+        EventHandler.subscribeToEvent<GameEvent.LineCleared> { event ->
             if (event.linesCleared > 0) {
                 triggerFlashEffect()
             }
         }
 
-        eventBus.subscribe<GameEvent.ScoreUpdated> { event ->
-            if (event.moveType.isSpecial) {
-                if (event.backToBackCount > 0){
-                    showTemporaryMessage("BACK TO BACK ${event.moveType.displayName.uppercase()}")
-                } else showTemporaryMessage(event.moveType.displayName)
+        EventHandler.subscribeToEvent<GameEvent.ScoreUpdated> { event ->
+            val moveTypeName = event.moveTypeName
+            if (!moveTypeName.isNullOrEmpty()) {
+                if (event.backToBackCount > 0) {
+                    showTemporaryMessage("BACK TO BACK $moveTypeName")
+                } else showTemporaryMessage(moveTypeName)
             }
         }
 
-        eventBus.subscribe<GameEvent.ComboTriggered> { event ->
+        EventHandler.subscribeToEvent<GameEvent.ComboTriggered> { event ->
             showTemporaryMessage("COMBO x${event.comboCount}")
         }
 
-        eventBus.subscribe<GameEvent.GarbageSent> {
-            showTemporaryMessage("GARBAGE INCOMING!")
+        EventHandler.subscribeToEvent<GameEvent.GarbageSent> {
+            showTemporaryMessage("INCOMING ${it.lines} GARBAGE LINES")
         }
     }
 
@@ -391,7 +391,7 @@ class SwingRenderer<T : Piece>(
     }
 
     private fun formatTime(seconds: Float): String {
-        val totalSeconds = seconds.toInt()
+        val totalSeconds = seconds.toLong()
         val minutes = (totalSeconds / 60) % 60
         val remainingSeconds = totalSeconds % 60
         return "%02d:%02d".format(minutes, remainingSeconds)

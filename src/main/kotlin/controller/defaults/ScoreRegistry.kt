@@ -3,26 +3,32 @@ package controller.defaults
 import controller.ScoringRuleBook
 import model.AppLog
 import model.Drop
-import model.GameEvent
-import model.GameEventBus
+import model.events.GameEvent
 import model.SpinType
+import model.events.EventHandler
+import model.events.GameEvent.HardDrop
+import model.events.GameEvent.LineCleared
+import model.events.GameEvent.SoftDrop
+import model.events. EventHandler.publish
+import model.events.GameEvent.BackToBackTrigger
+import model.events.GameEvent.ComboTriggered
+import model.events.GameEvent.LevelUp
+import model.events.GameEvent.ScoreUpdated
 
-class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEventBus: GameEventBus) {
+class ScoreRegistry(private val ruleBook: ScoringRuleBook) {
 
     init {
         setupEventListener()
     }
 
     private fun setupEventListener() {
-        gameEventBus.subscribe<GameEvent.LineCleared> { event ->
+        EventHandler.subscribeToEvent<LineCleared> { event ->
             recordAction(event.spinType, event.linesCleared, event.isPerfectClear)
         }
-
-        gameEventBus.subscribe<GameEvent.HardDrop> { event ->
+        EventHandler.subscribeToEvent<HardDrop> { event ->
             recordDrop(Drop.HARD_DROP, event.distance)
         }
-
-        gameEventBus.subscribe<GameEvent.SoftDrop> { event ->
+        EventHandler.subscribeToEvent<SoftDrop> { event ->
             recordDrop(Drop.SOFT_DROP, event.distance)
         }
     }
@@ -41,7 +47,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
         if (ruleBook.isDifficult(action, lines)) {
             b2bCount++
             if (b2bCount > 0) {
-                gameEventBus.post(GameEvent.BackToBackTrigger(b2bCount))
+                publish(BackToBackTrigger.topic, BackToBackTrigger(b2bCount))
                 basePoints *= 1.5
             }
         } else {
@@ -51,7 +57,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
         if (lines > 0) combo++ else combo = -1
 
         val comboBonus = if (combo > 0) {
-            gameEventBus.post(GameEvent.ComboTriggered(combo))
+            publish(ComboTriggered.topic, ComboTriggered(combo))
             (ruleBook.comboFactor * combo * level)
         } else 0.0
 
@@ -62,27 +68,31 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook, private val gameEvent
         totalLinesCleared += lines
         handleLevelUp()
         AppLog.info { "Score Updated: $totalPoints (Total Lines: $totalLinesCleared) " + if (moveType.isSpecial) "(SpecialMove: $moveType)" else "" }
-        gameEventBus.post(
-            GameEvent.ScoreUpdated(
+        publish(
+            ScoreUpdated.topic,
+            ScoreUpdated(
                 totalLinesCleared,
                 totalPoints,
                 pointsAwarded,
-                moveType,
+                 moveType.displayName.takeIf { moveType.isSpecial },
                 combo,
                 b2bCount
             )
-        )
+       )
     }
 
     private fun handleLevelUp() {
         val newLevel = totalLinesCleared.div(10)
         if (newLevel > level) {
-            gameEventBus.post(GameEvent.LevelUp(newLevel))
+            AppLog.info { "Level Up Trigger [from $level to $newLevel]" }
+            publish(LevelUp.topic, LevelUp(newLevel))
         }
         level = newLevel
     }
 
     private fun recordDrop(type: Drop, distance: Int) {
-        totalPoints += distance * (ruleBook.dropTables[type] ?: 0.0)
+        val dropPoints = distance * (ruleBook.dropTables[type] ?: 0.0)
+        AppLog.debug { "Drop Trigger [$type] awarded: $dropPoints points" }
+        totalPoints += dropPoints
     }
 }

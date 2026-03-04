@@ -13,7 +13,7 @@ class BoardManager(rows: Int, cols: Int, bufferHeight: Int) : BoardController {
 
     override val board: Board = Board(rows, cols, bufferHeight, EMPTY_BLOCK_VALUE)
     override var linesCleared: Int = 0
-    override val isBoardEmpty = board.isEmpty
+    override val isBoardEmpty get() = board.isEmpty
 
     override fun isOccupied(row: Int, col: Int): Boolean = board[row, col] != EMPTY_BLOCK_VALUE
 

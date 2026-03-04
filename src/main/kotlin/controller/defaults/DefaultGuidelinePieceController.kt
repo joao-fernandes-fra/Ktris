@@ -4,21 +4,25 @@ import controller.PieceController
 import model.AppLog
 import model.Board
 import model.DasState
-import model.GameEvent
-import model.GameEventBus
+import model.events.GameEvent
 import model.GameSettings
 import model.GameTimers
 import model.MovingPiece
 import model.Piece
 import model.Rotation
 import model.defaults.DefaultMovingPiece
+import model.events.EventHandler
+import model.events.GameEvent.GameOver
+import model.events.GameEvent.NewPiece
+import model.events.GameEvent.PieceHeld
+import model.events.GameEvent.PieceRotated
+import model.events.GameEvent.SoftDrop
 import util.CollisionUtils.checkCollisionWithBoard
 
 class DefaultGuidelinePieceController<T : Piece>(
     private val board: Board,
     private val settings: GameSettings,
-    private val gameTimers: GameTimers,
-    private val gameEventBus: GameEventBus
+    private val gameTimers: GameTimers
 ) : PieceController<T> {
     companion object {
         private const val SOFT_DROP_PRECISION_EPSILON = 0.001f
@@ -75,10 +79,10 @@ class DefaultGuidelinePieceController<T : Piece>(
         if (gameTimers.dropTimer >= effectiveGravity) {
             if (move(1, 0)) {
                 wasRotated = false
-                gameTimers.lockTimer = 0.0f
+                gameTimers.lockTimer = 0f
                 gameTimers.dropTimer -= effectiveGravity
             } else {
-                gameTimers.dropTimer = 0.0f
+                gameTimers.dropTimer = 0f
             }
         }
         updateGhost()
@@ -93,7 +97,7 @@ class DefaultGuidelinePieceController<T : Piece>(
         )
 
         if (checkCollisionWithBoard(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
-            gameEventBus.post(GameEvent.GameOver(false, settings.goalType))
+            EventHandler.publish(GameOver.topic, GameOver(false, settings.goalType))
             return null
         }
 
@@ -101,10 +105,10 @@ class DefaultGuidelinePieceController<T : Piece>(
         canHold = true
         wasRotated = false
         lockResets = 0
-        gameTimers.lockTimer = 0.0f
+        gameTimers.lockTimer = 0f
 
         updateGhost()
-        gameEventBus.post(GameEvent.NewPiece(newPiece.piece))
+        EventHandler.publish(NewPiece.topic, NewPiece(newPiece.piece))
         return newPiece
     }
 
@@ -113,11 +117,13 @@ class DefaultGuidelinePieceController<T : Piece>(
             val distance = ghostRow - piece.pieceRow
             piece.pieceRow = ghostRow
             gameTimers.lockTimer = settings.lockDelay
-            gameEventBus.post(GameEvent.HardDrop(distance))
+            EventHandler.publish(GameEvent.HardDrop.topic, GameEvent.HardDrop(distance))
         }
     }
 
     override fun softDrop(deltaTime: Float) {
+        AppLog.debug { "SOFT_DROP: Configured Delay: ${settings.softDropDelay}" }
+        AppLog.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Delay: ${settings.softDropDelay}" }
         gameTimers.softDropTimer += deltaTime
         var dropLines = 0
         if (settings.softDropDelay <= SOFT_DROP_PRECISION_EPSILON) {
@@ -128,19 +134,23 @@ class DefaultGuidelinePieceController<T : Piece>(
             }
         } else {
             while (gameTimers.softDropTimer >= settings.softDropDelay) {
+                AppLog.debug { "SOFT_DROP: Dropping Piece with delay: ${settings.softDropDelay}" }
                 if (move(1, 0)) {
                     dropLines++
                     gameTimers.dropTimer = 0.0f
                     wasRotated = false
                     gameTimers.softDropTimer -= settings.softDropDelay
                 } else {
+                    AppLog.debug { "SOFT_DROP: Movement blocked (Hit floor/stack)" }
                     gameTimers.softDropTimer = 0.0f
                     break
                 }
             }
         }
 
-        gameEventBus.post(GameEvent.SoftDrop(dropLines))
+        if (dropLines > 0) {
+            EventHandler.publish(SoftDrop.topic, SoftDrop(dropLines))
+        }
     }
 
     override fun move(targetRow: Int, targetCol: Int): Boolean {
@@ -172,7 +182,7 @@ class DefaultGuidelinePieceController<T : Piece>(
                 gameTimers.lockTimer = 0.0f
                 resetLockTimer()
                 wasRotated = true
-                gameEventBus.post(GameEvent.PieceRotated(piece.piece, piece.rotationState))
+                EventHandler.publish(PieceRotated.topic, PieceRotated(piece.piece, piece.rotationState))
                 return true
             }
         }
@@ -198,7 +208,7 @@ class DefaultGuidelinePieceController<T : Piece>(
             spawn(next)
         }
         AppLog.info { "Piece held: ${heldPiece?.name}" }
-        gameEventBus.post(GameEvent.PieceHeld(heldPiece!!))
+        EventHandler.publish(PieceHeld.topic, PieceHeld(heldPiece!!))
         canHold = false
     }
 
@@ -210,6 +220,7 @@ class DefaultGuidelinePieceController<T : Piece>(
         if (lockResets < settings.maxLockResets) {
             gameTimers.lockTimer = 0.0f
             lockResets++
+            AppLog.debug { "Lock timer resets $lockResets" }
         }
     }
 
@@ -220,7 +231,7 @@ class DefaultGuidelinePieceController<T : Piece>(
                 onLock()
             }
         } else {
-            gameTimers.lockTimer = 0.0f
+            gameTimers.lockTimer = 0f
         }
     }
 

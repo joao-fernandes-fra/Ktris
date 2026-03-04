@@ -1,6 +1,6 @@
 package controller
 
-import model.InputEvent
+import model.events.InputEvent
 
 interface InputHandler {
     fun handleInput(input: InputEvent)
