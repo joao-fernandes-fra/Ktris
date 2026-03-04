@@ -6,6 +6,7 @@ import controller.defaults.ScoreRegistry
 import model.GameSnapshot
 import model.Piece
 import model.PieceState
+import model.SpinType
 import model.defaults.Tetromino
 import model.events.EventHandler
 import model.events.GameEvent
@@ -56,6 +57,8 @@ class SwingRenderer<T : Piece>(
         private const val GLOW_INNER_ALPHA = 200
 
         private const val HUD_FONT = "SansSerif"
+        private const val SPIN_EFFECT_DURATION_MS = 300L
+
     }
 
     private var lastSnapshot: GameSnapshot<T>? = null
@@ -70,6 +73,10 @@ class SwingRenderer<T : Piece>(
     private var gameFinished = false
     private var goalMet = false
     private var finishMessage: String? = null
+
+    private var spinEffectStartTime = 0L
+    private var lastSpinPieceState: PieceState<T>? = null
+    private var lastSpinType: SpinType? = null
 
     init {
         val screenWidth = (SCREEN_HEIGHT * SCREEN_ASPECT_RATIO).toInt()
@@ -109,6 +116,11 @@ class SwingRenderer<T : Piece>(
             finishMessage = if (it.goalMet) "VICTORY!" else "GAME OVER"
             repaint()
         }
+        EventHandler.subscribeToEvent<GameEvent.SpinDetected> { event ->
+            lastSpinPieceState = lastSnapshot?.currentPiece
+            lastSpinType = event.spinType
+            spinEffectStartTime = System.currentTimeMillis()
+        }
     }
 
     override fun render(state: GameSnapshot<T>) {
@@ -127,6 +139,34 @@ class SwingRenderer<T : Piece>(
         drawMessages(graphics, snapshot)
         if (gameFinished) {
             drawFinishScreen(graphics)
+        }
+    }
+
+    private fun drawSpinEffect(graphics: Graphics2D, offsetX: Int, offsetY: Int) {
+        val piece = lastSpinPieceState ?: return
+        val elapsedTime = System.currentTimeMillis() - spinEffectStartTime
+        if (elapsedTime >= SPIN_EFFECT_DURATION_MS) return
+
+        val progress = elapsedTime.toFloat() / SPIN_EFFECT_DURATION_MS
+        val alpha = (1.0f - progress) * 200
+        val scale = 1.0f + (progress * 0.5f)
+
+        val baseColor = if (lastSpinType == SpinType.FULL) Color.WHITE else Color.CYAN
+        graphics.color = baseColor.withAlpha(alpha.toInt())
+
+        // Draw an "aura" pulse around the piece
+        graphics.stroke = BasicStroke(3f * (1.0f - progress))
+        for (row in 0 until piece.shape.rows) {
+            for (col in 0 until piece.shape.cols) {
+                if (piece.shape[row, col] != 0) {
+                    val x = offsetX + (piece.col + col) * blockSize
+                    val y = offsetY + (piece.row + row) * blockSize
+                    // Draw a slightly larger, outlined box
+                    val sizeOffset = (blockSize * (scale - 1.0f)).toInt()
+                    graphics.drawRect(x - sizeOffset, y - sizeOffset,
+                        blockSize + sizeOffset * 2, blockSize + sizeOffset * 2)
+                }
+            }
         }
     }
 
@@ -177,6 +217,7 @@ class SwingRenderer<T : Piece>(
         drawBoardBorder(graphics, snapshot, boardOffsetX, borderYOffset)
         drawBoardBlocks(graphics, snapshot, boardOffsetX, 0)
         drawGhostPiece(graphics, snapshot, boardOffsetX, 0)
+        drawSpinEffect(graphics, boardOffsetX, 0)
         drawCurrentPiece(graphics, snapshot, boardOffsetX, 0)
         drawHoldPiece(graphics, snapshot)
         drawNextPieces(graphics, snapshot)

@@ -174,7 +174,12 @@ abstract class DefaultTetrisEngine<T : Piece>(
     override fun onRotation(rotation: Rotation): Boolean {
         if (rotationLock) return false
         val successfulRotation = pieceController.rotate(rotation)
-        AppLog.debug { "Processing Rotation [$rotation] for piece [${pieceController.currentPiece?.piece?.name}]: $successfulRotation" }
+        val piece = pieceController.currentPiece
+        if (piece != null) {
+            val spinType = getSpinType(piece)
+            if (spinType != SpinType.NONE) EventHandler.publish(SpinDetected.topic, SpinDetected(spinType))
+            AppLog.debug { "Processing Rotation [$rotation] for piece [${pieceController.currentPiece?.piece?.name}]: $successfulRotation | SpinType [$spinType]" }
+        }
         rotationLock = successfulRotation
         return successfulRotation
     }
@@ -215,11 +220,12 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     private fun lockAndProcess() {
         val piece = pieceController.currentPiece ?: return
-        val spinType = getSpinType(piece)
+
 
         boardManager.placePiece(piece)
         val linesCount = boardManager.getFullLines().size
 
+        val spinType = getSpinType(piece)
         if (spinType != SpinType.NONE) EventHandler.publish(SpinDetected.topic, SpinDetected(spinType))
         EventHandler.publish(PieceLocked.topic, PieceLocked(linesCount > 0))
 
