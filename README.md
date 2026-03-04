@@ -57,10 +57,11 @@ The project includes a simple Swing-based demo that provides a graphical user in
 * on **Windows** 
     ```bash
     .\gradlew.bat runDemo
-* The game have 3 built-in difficulties | Normal | Expert | Pro it can be specified in the arguments ex:`--args="expert"`
-* Also included in the game is a cheese down-stacking mode, difficulties can be specified together with the cheese flag for a game ex:
+* The demo have 3 built-in difficulties | Normal | Expert | Pro it can be specified in the arguments ex:`--args="expert"`
+* Also included in the demo is a cheese down-stacking mode, and a 4way mode with a 4-wide board so u can test your combos
+* Difficulties can be specified together with the game mode cheese and/or 4way flag for a game ex:
     ```bash
-    ./gradlew runDemo --args="expert cheese"
+    ./gradlew runDemo --args="expert 4way cheese"
 
 A Swing window will open with a playable Tetris game. Use the keyboard controls to move and rotate the pieces.
 ### Demo Controls
@@ -80,6 +81,8 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 ![Cheese Demo Screenshot](src/main/resources/assets/cheese-demo.png)
 ### Showcase engine ability to handle time freezes and board collapses ###
 ![Freeze Demo GIF](src/main/resources/assets/freeze-demo.gif)
+### Showcase customization with a 4wide board focused on combos ###
+![Four Way Demo GIF](src/main/resources/assets/fourway-demo.gif)
 
 
 ## 🛠️ Building and Editing
