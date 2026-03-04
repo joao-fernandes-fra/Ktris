@@ -21,7 +21,7 @@ class BaseTetris<T : Piece>(
     settings, bagManager, gameTimers, timeManager, boardManager, pieceController
 ) {
     private val inputHandler: InputHandler =
-        GameInputHandler(this, pieceController, timeManager, bagManager, null)
+        GameInputHandler(this, timeManager, null)
 
     override fun start(renderer: GameRenderer<T>) {
         val targetFps = 60

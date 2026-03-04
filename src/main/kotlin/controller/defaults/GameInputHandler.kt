@@ -2,8 +2,6 @@ package controller.defaults
 
 import controller.CommandRecorder
 import controller.InputHandler
-import controller.PieceController
-import model.BagRandomizer
 import model.Piece
 import model.events.EventHandler
 import model.events.InputEvent
@@ -18,9 +16,7 @@ import model.events.InputEvent.SlowDownTime
 
 class GameInputHandler<T : Piece>(
     private val engine: DefaultTetrisEngine<T>,
-    private val pieceController: PieceController<T>,
     private val timeManager: TimeManager,
-    private val bagRandomizer: BagRandomizer<T>,
     private val commandRecorder: CommandRecorder?,
 ) : InputHandler {
     init {

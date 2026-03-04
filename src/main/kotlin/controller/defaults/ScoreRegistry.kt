@@ -38,7 +38,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook) {
     var combo: Int = -1; private set
     var b2bCount: Int = -1; private set
 
-    private fun recordAction(action: SpinType, lines: Int, isPerfectClear: Boolean) {
+    private fun recordAction(action: SpinType, lines: Int, isBoardEmpty: Boolean) {
         AppLog.debug { "Recording action $action" }
         val moveType = ruleBook.getMoveType(action, lines)
         var basePoints = ruleBook.getBasePoints(action, lines)
@@ -60,7 +60,7 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook) {
             (ruleBook.comboFactor * combo * level)
         } else 0.0
 
-        val pcBonus = if (isPerfectClear) ruleBook.perfectClearBonus * level else 0.0
+        val pcBonus = if (isBoardEmpty) ruleBook.perfectClearBonus * level else 0.0
 
         val pointsAwarded = (basePoints * level) + comboBonus + pcBonus
         totalPoints += pointsAwarded
@@ -73,9 +73,8 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook) {
                 totalLinesCleared,
                 totalPoints,
                 pointsAwarded,
-                 moveType.displayName.takeIf { moveType.isSpecial },
-                combo,
-                b2bCount
+                 moveType.displayName,
+                isBoardEmpty
             )
        )
     }

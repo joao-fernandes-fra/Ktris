@@ -35,10 +35,17 @@ fun main(args: Array<String>) {
     }
     val isCheeseGame = args.contains("cheese")
 
-    val gameSettings = baseSettings.copy(
+    val gameSettings = if (args.contains("4way"))
+        baseSettings.copy(
+            goalType = GameGoal.TIME,
+            goalValue = 2 * 60f,
+            boardCols = 4
+        )
+    else baseSettings.copy(
         goalType = GameGoal.TIME,
         goalValue = 2 * 60f
     )
+
 
     val frame = JFrame("Ktris - ${if (args.isEmpty()) "Normal" else args[0].uppercase()}")
     val timeManager = TimeManager(gameSettings)

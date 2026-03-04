@@ -58,8 +58,7 @@ open class GameEvent : Event {
         val currentPoints: Double,
         val pointsEarned: Double,
         val moveTypeName: String?,
-        val comboCount: Int,
-        val backToBackCount: Int
+        val allClear: Boolean
     ) : GameEvent() {
         companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "score-updated" }
     }
