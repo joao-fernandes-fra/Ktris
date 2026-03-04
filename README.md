@@ -64,6 +64,7 @@ The project includes a simple Swing-based demo that provides a graphical user in
 
 A Swing window will open with a playable Tetris game. Use the keyboard controls to move and rotate the pieces.
 ### Demo Controls
+*   **Reset:** R
 *   **Rotate Clockwise:** X 
 *   **Rotate CounterClockwise:** Z 
 *   **Hold Piece:** C 

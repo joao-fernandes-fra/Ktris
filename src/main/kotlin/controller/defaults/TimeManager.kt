@@ -2,9 +2,10 @@ package controller.defaults
 
 import model.AppLog
 import model.GameSettings
+import model.Resetable
 import model.TimeMode
 
-class TimeManager(private val settings: GameSettings) {
+class TimeManager(private val settings: GameSettings) : Resetable {
     var mode: TimeMode = TimeMode.NORMAL
         private set
 
@@ -42,5 +43,10 @@ class TimeManager(private val settings: GameSettings) {
         }
 
         return 0f
+    }
+
+    override fun reset() {
+        mode = TimeMode.NORMAL
+        modeDuration = 0f
     }
 }

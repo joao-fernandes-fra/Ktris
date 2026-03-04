@@ -29,7 +29,7 @@ class BaseTetris<T : Piece>(
 
         var lastTime = System.nanoTime()
 
-        while (!isGameOver && !isGoalMet) {
+        while (!isGameOver || !isGoalMet) {
             val currentTime = System.nanoTime()
             val elapsedNs = currentTime - lastTime
 

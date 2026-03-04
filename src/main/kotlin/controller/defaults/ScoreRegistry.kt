@@ -3,17 +3,16 @@ package controller.defaults
 import controller.ScoringRuleBook
 import model.AppLog
 import model.Drop
-import model.events.GameEvent
 import model.SpinType
 import model.events.EventHandler
-import model.events.GameEvent.HardDrop
-import model.events.GameEvent.LineCleared
-import model.events.GameEvent.SoftDrop
-import model.events. EventHandler.publish
+import model.events.EventHandler.publish
 import model.events.GameEvent.BackToBackTrigger
 import model.events.GameEvent.ComboTriggered
+import model.events.GameEvent.HardDrop
 import model.events.GameEvent.LevelUp
+import model.events.GameEvent.LineCleared
 import model.events.GameEvent.ScoreUpdated
+import model.events.GameEvent.SoftDrop
 
 class ScoreRegistry(private val ruleBook: ScoringRuleBook) {
 

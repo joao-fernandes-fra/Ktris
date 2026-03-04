@@ -5,10 +5,10 @@ import model.Drop
 import model.GameSnapshot
 import model.Movement
 import model.Piece
+import model.Resetable
 import model.Rotation
-import javax.swing.Renderer
 
-interface TetrisEngine<T : Piece> {
+interface TetrisEngine<T : Piece> : Resetable {
     val isGameOver: Boolean
     val isGoalMet: Boolean
     val sessionTimeSeconds: Float

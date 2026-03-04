@@ -4,7 +4,6 @@ import controller.PieceController
 import model.AppLog
 import model.Board
 import model.DasState
-import model.events.GameEvent
 import model.GameSettings
 import model.GameTimers
 import model.MovingPiece
@@ -12,6 +11,7 @@ import model.Piece
 import model.Rotation
 import model.defaults.DefaultMovingPiece
 import model.events.EventHandler
+import model.events.GameEvent
 import model.events.GameEvent.GameOver
 import model.events.GameEvent.NewPiece
 import model.events.GameEvent.PieceHeld
@@ -247,5 +247,15 @@ class DefaultGuidelinePieceController<T : Piece>(
             }
             ghostRow = testRow
         }
+    }
+
+    override fun reset() {
+        heldPiece = null
+        currentPiece = null
+        ghostRow = 0
+        wasRotated = false
+        lockResets = 0
+        dasState = DasState.IDLE
+        canHold = true
     }
 }

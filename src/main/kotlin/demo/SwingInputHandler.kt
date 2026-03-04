@@ -36,6 +36,8 @@ class SwingInputHandler(
                     timeManager.freezeTime(Float.MAX_VALUE)
                 }
             }
+
+            KeyEvent.VK_R -> EventHandler.publish(CommandInput.topic, CommandInput(Command.RESET))
         }
     }
 

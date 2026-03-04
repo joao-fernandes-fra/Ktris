@@ -2,6 +2,7 @@ package controller.defaults
 
 import controller.BoardController
 import model.Board
+import model.Matrix
 import model.MovingPiece
 
 
@@ -90,5 +91,10 @@ class BoardManager(rows: Int, cols: Int, bufferHeight: Int) : BoardController {
                 }
             }
         }
+    }
+
+    override fun reset() {
+        board.contents = Matrix(board.rows, board.cols, EMPTY_BLOCK_VALUE)
+        linesCleared = 0
     }
 }

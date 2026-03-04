@@ -3,12 +3,12 @@ package demo
 import controller.GameRenderer
 import controller.TetrisEngine
 import controller.defaults.ScoreRegistry
-import model.events.GameEvent
 import model.GameSnapshot
 import model.Piece
 import model.PieceState
 import model.defaults.Tetromino
 import model.events.EventHandler
+import model.events.GameEvent
 import model.toPieceState
 import java.awt.BasicStroke
 import java.awt.Color
@@ -64,6 +64,7 @@ class SwingRenderer<T : Piece>(
     private var activeMessage: String? = null
     private var messageAlpha = 0f
     private var messageStartTime = 0L
+    private var isGameOver = false
 
     init {
         val screenWidth = (SCREEN_HEIGHT * SCREEN_ASPECT_RATIO).toInt()
@@ -96,6 +97,11 @@ class SwingRenderer<T : Piece>(
         EventHandler.subscribeToEvent<GameEvent.GarbageSent> {
             showTemporaryMessage("INCOMING ${it.lines} GARBAGE LINES")
         }
+
+        EventHandler.subscribeToEvent<GameEvent.GameOver> {
+            isGameOver = true
+            repaint()
+        }
     }
 
     override fun render(state: GameSnapshot<T>) {
@@ -112,6 +118,19 @@ class SwingRenderer<T : Piece>(
         drawFlashEffect(graphics)
         drawGameBoard(graphics, snapshot)
         drawMessages(graphics, snapshot)
+        if (isGameOver) {
+            drawGameOver(graphics)
+        }
+    }
+
+    private fun drawGameOver(graphics: Graphics2D) {
+        graphics.color = Color.RED
+        graphics.font = Font("SansSerif", Font.BOLD, 48)
+        val text = "GAME OVER"
+        val metrics = graphics.fontMetrics
+        val x = (width - metrics.stringWidth(text)) / 2
+        val y = height / 2
+        graphics.drawString(text, x, y)
     }
 
     private fun calculateBlockSize(snapshot: GameSnapshot<T>) {

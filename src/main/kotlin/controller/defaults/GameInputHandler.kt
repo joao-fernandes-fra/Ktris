@@ -4,9 +4,9 @@ import controller.CommandRecorder
 import controller.InputHandler
 import controller.PieceController
 import model.BagRandomizer
-import model.events.InputEvent
 import model.Piece
 import model.events.EventHandler
+import model.events.InputEvent
 import model.events.InputEvent.CommandInput
 import model.events.InputEvent.DirectionMoveEnd
 import model.events.InputEvent.DirectionMoveStart
@@ -45,7 +45,7 @@ class GameInputHandler<T : Piece>(
             is DirectionMoveStart -> engine.onMovement(input.movement)
             is DirectionMoveEnd -> engine.onMovementRelease(input.movement)
             is DropInput -> engine.processDrop(input.dropType)
-            is CommandInput -> pieceController.holdPiece { bagRandomizer.getNextPiece() }
+            is CommandInput -> engine.processCommand(input.command)
             is RotationInputStart -> engine.onRotation(input.rotation)
             is RotationInputRelease -> engine.onRotationRelease(input.rotation)
             is SlowDownTime -> timeManager.slowDownTime(input.duration)

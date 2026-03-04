@@ -1,7 +1,5 @@
 package model.events
 
-import controller.MoveType
-import controller.defaults.TetrisMoveType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.plus
@@ -115,7 +113,7 @@ object EventHandler {
     inline fun <reified T : Event> publish(topic: String, payload: T) {
         val jsonString = json.encodeToString(serializer(), payload)
         register(T::class, topic)
-        dispatchInternal(topic, jsonString)
+        dispatch(topic, jsonString)
     }
 
     inline fun <reified T : Event> subscribeToEvent(crossinline callback: (T) -> Unit) {
@@ -143,7 +141,7 @@ object EventHandler {
     fun getTopic(clazz: KClass<out Event>): String =
         topicMap[clazz] ?: throw IllegalArgumentException("Topic not found for ${clazz.simpleName}")
 
-    fun dispatchInternal(topic: String, jsonString: String) {
+    fun dispatch(topic: String, jsonString: String) {
         listeners[topic]?.forEach { callback ->
             executor.submit {
                 try {

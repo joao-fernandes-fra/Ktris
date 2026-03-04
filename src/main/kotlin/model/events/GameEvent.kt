@@ -1,6 +1,5 @@
 package model.events
 
-import controller.MoveType
 import kotlinx.serialization.Serializable
 import model.GameGoal
 import model.Piece

@@ -68,7 +68,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
                     LineCleared(SpinType.NONE, linesCleared, boardManager.isBoardEmpty)
                 )
             }
-
             AppLog.info { "Freeze ended. Cleared $linesCleared lines immediately." }
         }
     }
@@ -84,11 +83,27 @@ abstract class DefaultTetrisEngine<T : Piece>(
         Movement.MOVE_LEFT -> -1
     }
 
-    open fun update(deltaTime: Float) {
-        if (isGameOver || isGoalMet) return
-        this.deltaTime = deltaTime
-        val effectiveDelta = timeManager.tick(deltaTime)
+    override fun reset() {
+        gameState = GameState.ENTRY_DELAY
+        currentLevel = 1
+        timeGoalElapsed = 0f
+        freezeLineClears = 0
+        activeDirections.clear()
+        rotationLock = false
 
+
+        boardManager.reset()
+        pieceController.reset()
+        bagManager.reset()
+        gameTimers.reset()
+        timeManager.reset()
+
+        AppLog.info { "Engine state reset." }
+    }
+
+    open fun update(deltaTime: Float) {
+        this.deltaTime = deltaTime
+        val gravityDelta = timeManager.tick(deltaTime)
         when (gameState) {
             GameState.ENTRY_DELAY -> {
                 gameTimers.sessionTimer += deltaTime
@@ -97,6 +112,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
                     gameTimers.areTimer = 0f
                     val spawnedPiece = pieceController.spawn(bagManager.getNextPiece())
                     gameState = if (spawnedPiece == null) {
+                        EventHandler.publish(GameOver.topic, GameOver(false, settings.goalType))
                         GameState.GAME_OVER
                     } else GameState.PLAYING
                 }
@@ -106,12 +122,12 @@ abstract class DefaultTetrisEngine<T : Piece>(
                 gameTimers.sessionTimer += deltaTime
                 checkWinCondition()
                 pieceController.handleDAS(deltaTime, currentDirection)
-                pieceController.handleGravity(currentLevel, effectiveDelta)
+                pieceController.handleGravity(currentLevel, gravityDelta)
                 pieceController.handleLockDelay(deltaTime) { lockAndProcess() }
             }
 
-            GameState.GAME_OVER -> EventHandler.publish(GameOver.topic, GameOver(false, settings.goalType))
-            GameState.GOAL_MET -> EventHandler.publish(GameOver.topic, GameOver(true, settings.goalType))
+            GameState.GAME_OVER -> {}
+            GameState.GOAL_MET -> {}
         }
     }
 
@@ -129,6 +145,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     override fun processCommand(command: Command) {
         when (command) {
             Command.HOLD -> pieceController.holdPiece { bagManager.getNextPiece() }
+            else -> reset()
         }
     }
 
@@ -239,14 +256,14 @@ abstract class DefaultTetrisEngine<T : Piece>(
             GameGoal.TIME -> {
                 timeGoalElapsed += deltaTime
                 if (timeGoalElapsed >= settings.goalValue * 1000f) {
-                    AppLog.info { "Goal reached! Terminating Game." }
+                    EventHandler.publish(GameOver.topic, GameOver(true, settings.goalType))
                     gameState = GameState.GOAL_MET
                 }
             }
 
             GameGoal.LINES -> {
                 if (boardManager.linesCleared >= settings.goalValue) {
-                    AppLog.info { "Goal reached! Terminating Game." }
+                    EventHandler.publish(GameOver.topic, GameOver(true, settings.goalType))
                     gameState = GameState.GOAL_MET
                 }
             }

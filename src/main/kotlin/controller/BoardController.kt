@@ -2,8 +2,9 @@ package controller
 
 import model.Board
 import model.MovingPiece
+import model.Resetable
 
-interface BoardController {
+interface BoardController : Resetable {
     val board: Board
     var linesCleared: Int
     val isBoardEmpty: Boolean

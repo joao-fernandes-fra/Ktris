@@ -5,22 +5,27 @@ import controller.defaults.BaseTetris
 import controller.defaults.ModernGuidelineRules
 import controller.defaults.ScoreRegistry
 import controller.defaults.TimeManager
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
+import kotlinx.serialization.modules.subclass
 import model.AppLog
-import model.events.GameEvent
+import model.Command
 import model.GameGoal
-import model.GameSettings
-import model.events.MultiBagRandomizer
 import model.defaults.ProceduralPiece
 import model.defaults.Tetromino
+import model.events.Event
 import model.events.EventHandler
+import model.events.GameEvent
 import model.events.GameEvent.GarbageSent
 import model.events.InputEvent
+import model.events.MultiBagRandomizer
 import util.GameSettingsProvider
 import javax.swing.JFrame
 import javax.swing.WindowConstants
 import kotlin.random.Random
 
 private const val GARBAGE_BLOCK_ID = -99
+
 
 fun main(args: Array<String>) {
     GameEvent.registerEvents()
@@ -32,6 +37,7 @@ fun main(args: Array<String>) {
         args.contains("pro") -> GameSettingsProvider.pro()
         else -> GameSettingsProvider.normal()
     }
+    val isCheeseGame = args.contains("cheese")
 
     val gameSettings = baseSettings.copy(
         goalType = GameGoal.TIME,
@@ -46,7 +52,14 @@ fun main(args: Array<String>) {
         bagManager = MultiBagRandomizer(Tetromino.values),
         timeManager = timeManager,
     )
-    if (args.contains("cheese")) {
+
+    EventHandler.subscribeToEvent<InputEvent.CommandInput> { event ->
+        if (event.command == Command.RESET && isCheeseGame) {
+            startCheeseRows()
+        }
+    }
+
+    if (isCheeseGame) {
         setupCheeseGame(game)
     }
 
@@ -64,25 +77,29 @@ fun main(args: Array<String>) {
 }
 
 private fun setupCheeseGame(game: TetrisEngine<*>) {
+    EventHandler.subscribeToEvent<GarbageSent> {
+        game.processGarbage(it.lines, GARBAGE_BLOCK_ID)
+    }
+
+    startCheeseRows()
+
+    EventHandler.subscribeToEvent<GameEvent.LineCleared> {
+        if (it.linesCleared > 0)
+            EventHandler.publish(GarbageSent.topic, GarbageSent(it.linesCleared * (it.spinType.ordinal + 1)))
+    }
+}
+
+private fun startCheeseRows() {
     val parts = mutableListOf<Int>()
-    var remaining = 10
+    var remaining = 5
     val minPart = 1
     while (remaining > 0) {
-        val upperLimit = minOf(remaining, 4)
+        val upperLimit = minOf(remaining, 2)
 
         val part = Random.nextInt(minPart, upperLimit + 1)
 
         parts.add(part)
         remaining -= part
-    }
-
-    EventHandler.subscribeToEvent<GarbageSent> {
-        game.processGarbage(it.lines, GARBAGE_BLOCK_ID)
-    }
-
-    EventHandler.subscribeToEvent<GameEvent.LineCleared> {
-        if (it.linesCleared > 0)
-            EventHandler.publish(GarbageSent.topic, GarbageSent(it.linesCleared * (it.spinType.ordinal + 1)))
     }
 
     parts.forEach {

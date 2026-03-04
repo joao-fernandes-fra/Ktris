@@ -35,4 +35,8 @@ class MultiBagRandomizer<T : Piece>(
         newBag.shuffle()
         queue.addAll(newBag)
     }
+
+    override fun reset() {
+        refill()
+    }
 }
