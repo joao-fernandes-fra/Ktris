@@ -18,6 +18,7 @@ import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CopyOnWriteArraySet
 import javax.swing.JPanel
 import kotlin.math.min
 import kotlin.math.sin
@@ -33,7 +34,7 @@ class SwingRenderer<T : Piece>(
         private const val SCREEN_ASPECT_RATIO = 16f / 9f
 
         private const val FLASH_DURATION_MS = 200L
-        private const val MESSAGE_DURATION_MS = 500L
+        private const val MESSAGE_DURATION_MS = 1500L
 
         private const val GHOST_PIECE_OPACITY = 30
         private const val FULL_OPACITY = 100
@@ -44,6 +45,9 @@ class SwingRenderer<T : Piece>(
         private const val HUD_HEIGHT = 150
         private const val HUD_LINE_HEIGHT = 25
         private const val HUD_FONT_SIZE = 18
+        private const val HUD_PADDING = 10
+        private const val HUD_LINE_PADDING = 30
+
 
         private const val BOARD_BORDER_WIDTH = 2
         private const val BLOCK_PADDING = 2
@@ -55,26 +59,25 @@ class SwingRenderer<T : Piece>(
 
         private const val HUD_FONT = "SansSerif"
         private const val SPIN_EFFECT_DURATION_MS = 300L
-        private const val GAP_BETWEEN_MESSAGES_MS = 100L
+        private const val LERP_SPEED = 0.15f
 
     }
 
     private var lastSnapshot: GameSnapshot<T>? = null
-    private var blockSize = 30
+    private var blockSize = HUD_LINE_PADDING
 
     private var flashAlpha = 0f
     private var lastClearTime = 0L
 
-    private val messageQueue = CopyOnWriteArrayList<GameMessage>()
+    private val messageQueue = CopyOnWriteArraySet<GameMessage>()
+    private val messageYAnimation = mutableMapOf<GameMessage, Float>()
     private var gameFinished = false
     private var goalMet = false
     private var finishMessage: String? = null
-    private var lastMessageEndTime = 0L
 
     private var spinEffectStartTime = 0L
     private var lastSpinPieceState: PieceState<T>? = null
     private var lastSpinType: SpinType? = null
-    private var messageStartTime: Long = 0
 
     init {
         val screenWidth = (SCREEN_HEIGHT * SCREEN_ASPECT_RATIO).toInt()
@@ -199,49 +202,38 @@ class SwingRenderer<T : Piece>(
         val now = System.currentTimeMillis()
         messageQueue.add(GameMessage(text, priority, now))
 
-        messageQueue.sortWith(
+        messageQueue.sortedWith(
             compareByDescending<GameMessage> { it.priority.level }
                 .thenBy { it.timestamp }
         )
     }
 
-    private fun drawMessages(graphics: Graphics2D, snapshot: GameSnapshot<T>, boardOffsetX: Int, uiOffsetY: Int) {
+    private fun drawAllNotifications(graphics: Graphics2D, boardOffsetX: Int, uiOffsetY: Int) {
         val now = System.currentTimeMillis()
+        messageQueue.removeIf { now - it.timestamp >= MESSAGE_DURATION_MS }
 
-        val head = messageQueue.firstOrNull() ?: return
+        var targetY = HUD_LINE_PADDING + HUD_FONT_SIZE + uiOffsetY
 
-        if (messageStartTime == 0L) {
-            messageStartTime = now
+        for ((index, msg) in messageQueue.withIndex()) {
+            val cascadeFactor = 1.0f - (index * 0.05f).coerceAtMost(0.4f)
+            val dynamicLerp = LERP_SPEED * cascadeFactor
+            val startY = messageYAnimation.getOrDefault(msg, targetY + 100f)
+            val newY = startY + (targetY - startY) * dynamicLerp
+            messageYAnimation[msg] = newY
+            drawNotification(graphics, msg.text, boardOffsetX, newY.toInt())
+            targetY += HUD_LINE_PADDING
         }
 
-        if (now - messageStartTime >= MESSAGE_DURATION_MS) {
-            messageQueue.removeAt(0)
-            messageStartTime = 0
-            return
-        }
-
-        drawCenteredMessage(graphics, snapshot, head.text, boardOffsetX, uiOffsetY)
+        messageYAnimation.keys.retainAll(messageQueue.toSet())
     }
 
-    private fun drawCenteredMessage(
+    private fun drawNotification(
         graphics: Graphics2D,
-        snapshot: GameSnapshot<T>,
         message: String,
-        boardOffsetX: Int,
-        uiOffsetY: Int
+        textX: Int,
+        textY: Int
     ) {
-        val fontSize = (blockSize * 0.8f).toInt()
-        graphics.font = Font(HUD_FONT, Font.BOLD, fontSize)
-
-        val metrics = graphics.fontMetrics
-        val boardPixelWidth = snapshot.board.cols * blockSize
-        val boardPixelHeight = snapshot.board.rows * blockSize
-
-        val centerX = boardOffsetX + (boardPixelWidth / 2)
-        val centerY = (boardPixelHeight / 2)
-
-        val textX = centerX - (metrics.stringWidth(message) / 2)
-        val textY = uiOffsetY + centerY + (metrics.height / 4)
+        graphics.font = Font(HUD_FONT, Font.BOLD, HUD_FONT_SIZE)
 
         graphics.color = Color.WHITE
         graphics.drawString(message, textX, textY)
@@ -279,8 +271,10 @@ class SwingRenderer<T : Piece>(
 
         drawHoldPiece(graphics, snapshot, boardOffsetX, uiOffsetY)
         drawNextPieces(graphics, snapshot, boardOffsetX, uiOffsetY)
-        drawHUD(graphics, boardOffsetX, uiOffsetY)
-        drawMessages(graphics, snapshot, boardOffsetX, uiOffsetY)
+        val hudX = boardOffsetX - (6 * blockSize)
+        val hudY = uiOffsetY + (4 * blockSize)
+        val currenHUDY = drawHUD(graphics, hudX, hudY)
+        drawAllNotifications(graphics, hudX, currenHUDY)
     }
 
     private fun drawBoardBorder(
@@ -440,9 +434,7 @@ class SwingRenderer<T : Piece>(
         )
     }
 
-    private fun drawHUD(graphics: Graphics2D, boardOffsetX: Int, boardOffsetY: Int) {
-        val hudX = boardOffsetX - (6 * blockSize)
-        val hudY = boardOffsetY + (4 * blockSize)
+    private fun drawHUD(graphics: Graphics2D, hudX: Int, hudY: Int): Int {
 
         graphics.color = Color(0, 0, 0, 150)
         graphics.fillRect(hudX, hudY, HUD_WIDTH, HUD_HEIGHT)
@@ -450,21 +442,22 @@ class SwingRenderer<T : Piece>(
         graphics.color = Color.WHITE
         graphics.font = Font(HUD_FONT, Font.BOLD, HUD_FONT_SIZE)
 
-        var currentY = hudY + 30
+        var currentY = hudY + HUD_LINE_PADDING
 
-        drawHUDLine(graphics, "SCORE", hudX + 10, currentY)
+        drawHUDLine(graphics, "SCORE", hudX + HUD_PADDING, currentY)
         currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, scoreRegistry.totalPoints.toInt().toString(), hudX + 10, currentY)
-
-        currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, "LINES", hudX + 10, currentY)
-        currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, scoreRegistry.totalLinesCleared.toString(), hudX + 10, currentY)
+        drawHUDLine(graphics, scoreRegistry.totalPoints.toInt().toString(), hudX + HUD_PADDING, currentY)
 
         currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, "TIME", hudX + 10, currentY)
+        drawHUDLine(graphics, "LINES", hudX + HUD_PADDING, currentY)
         currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, formatTime(tetrisEngine.sessionTimeSeconds), hudX + 10, currentY)
+        drawHUDLine(graphics, scoreRegistry.totalLinesCleared.toString(), hudX + HUD_PADDING, currentY)
+
+        currentY += HUD_LINE_HEIGHT
+        drawHUDLine(graphics, "TIME", hudX + HUD_PADDING, currentY)
+        currentY += HUD_LINE_HEIGHT
+        drawHUDLine(graphics, formatTime(tetrisEngine.sessionTimeSeconds), hudX + HUD_PADDING, currentY)
+        return currentY
     }
 
     private fun drawHUDLine(graphics: Graphics2D, text: String, x: Int, y: Int) {
