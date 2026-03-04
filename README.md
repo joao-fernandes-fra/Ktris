@@ -79,6 +79,7 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 ![Gameplay GIF](src/main/resources/assets/gameplay-demo.gif)
 ### Showcase engine ability to handle garbage lines ###
 ![Cheese Demo Screenshot](src/main/resources/assets/cheese-demo.png)
+![Cheese Demo GIF](src/main/resources/assets/cheese-demo.gif)
 ### Showcase engine ability to handle time freezes and board collapses ###
 ![Freeze Demo GIF](src/main/resources/assets/freeze-demo.gif)
 ### Showcase customization with a 4wide board focused on combos ###
