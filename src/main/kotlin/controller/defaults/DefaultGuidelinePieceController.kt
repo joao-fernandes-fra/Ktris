@@ -6,6 +6,7 @@ import model.Board
 import model.DasState
 import model.GameSettings
 import model.GameTimers
+import model.LastPieceAction
 import model.MovingPiece
 import model.Piece
 import model.Rotation
@@ -31,7 +32,7 @@ class DefaultGuidelinePieceController<T : Piece>(
     override var heldPiece: T? = null
     override var currentPiece: MovingPiece<T>? = null
     override var ghostRow: Int = 0
-    override var wasRotated = false
+    override var lastAction: LastPieceAction = LastPieceAction.NONE
 
     private var dasState: DasState = DasState.IDLE
     private var lockResets: Int = 0
@@ -53,7 +54,7 @@ class DefaultGuidelinePieceController<T : Piece>(
 
             DasState.REPEAT -> {
                 while (gameTimers.dasTimer >= settings.arrDelay) {
-                    if (!move(0, dir)) {
+                    if (!movePiece(0, dir)) {
                         gameTimers.dasTimer = 0f
                         break
                     }
@@ -77,7 +78,7 @@ class DefaultGuidelinePieceController<T : Piece>(
         gameTimers.dropTimer += delta
 
         if (gameTimers.dropTimer >= effectiveGravity) {
-            if (move(1, 0)) {
+            if (movePiece(1, 0)) {
                 gameTimers.lockTimer = 0f
                 gameTimers.dropTimer -= effectiveGravity
             } else {
@@ -102,7 +103,7 @@ class DefaultGuidelinePieceController<T : Piece>(
 
         currentPiece = newPiece
         canHold = true
-        wasRotated = false
+        lastAction = LastPieceAction.NONE
         lockResets = 0
         gameTimers.lockTimer = 0f
 
@@ -126,18 +127,18 @@ class DefaultGuidelinePieceController<T : Piece>(
         gameTimers.softDropTimer += deltaTime
         var dropLines = 0
         if (settings.softDropDelay <= SOFT_DROP_PRECISION_EPSILON) {
-            while (move(1, 0)) {
+            while (movePiece(1, 0)) {
                 dropLines++
                 gameTimers.dropTimer = 0.0f
-                
+
             }
         } else {
             while (gameTimers.softDropTimer >= settings.softDropDelay) {
                 AppLog.debug { "SOFT_DROP: Dropping Piece with delay: ${settings.softDropDelay}" }
-                if (move(1, 0)) {
+                if (movePiece(1, 0)) {
                     dropLines++
                     gameTimers.dropTimer = 0.0f
-                    
+
                     gameTimers.softDropTimer -= settings.softDropDelay
                 } else {
                     AppLog.debug { "SOFT_DROP: Movement blocked (Hit floor/stack)" }
@@ -153,6 +154,14 @@ class DefaultGuidelinePieceController<T : Piece>(
     }
 
     override fun move(targetRow: Int, targetCol: Int): Boolean {
+        if (movePiece(targetRow, targetCol)) {
+            lastAction = LastPieceAction.MOVE
+            return true
+        }
+        return false
+    }
+
+    private fun movePiece(targetRow: Int, targetCol: Int): Boolean {
         val moving = currentPiece ?: return false
         if (canMove(moving, targetRow, targetCol)) {
             moving.move(moving.pieceRow + targetRow, moving.pieceCol + targetCol)
@@ -180,7 +189,7 @@ class DefaultGuidelinePieceController<T : Piece>(
                 piece.rotateShape(candidateShape, topLeftRow, topLeftCol, rotation)
                 gameTimers.lockTimer = 0.0f
                 resetLockTimer()
-                wasRotated = true
+                lastAction = LastPieceAction.ROTATE
                 EventHandler.publish(PieceRotated.topic, PieceRotated(piece.piece, piece.rotationState))
                 return true
             }
@@ -252,7 +261,7 @@ class DefaultGuidelinePieceController<T : Piece>(
         heldPiece = null
         currentPiece = null
         ghostRow = 0
-        
+
         lockResets = 0
         dasState = DasState.IDLE
         canHold = true

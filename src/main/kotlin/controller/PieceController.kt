@@ -1,5 +1,6 @@
 package controller
 
+import model.LastPieceAction
 import model.MovingPiece
 import model.Piece
 import model.Resetable
@@ -9,7 +10,7 @@ interface PieceController<T : Piece> : Resetable {
     var heldPiece: T?
     var currentPiece: MovingPiece<T>?
     var ghostRow: Int
-    var wasRotated: Boolean
+    var lastAction: LastPieceAction
     fun handleDAS(delta: Float, currentDirection: Int?)
     fun resetDas()
     fun handleGravity(currentLevel: Int, delta: Float)

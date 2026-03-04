@@ -13,6 +13,7 @@ import model.GameSettings
 import model.GameSnapshot
 import model.GameState
 import model.GameTimers
+import model.LastPieceAction
 import model.Movement
 import model.MovingPiece
 import model.Piece
@@ -255,7 +256,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     private fun getSpinType(pieceState: MovingPiece<T>): SpinType {
-        if (!settings.isSpinEnabled || !pieceController.wasRotated) return SpinType.NONE
+        if (!settings.isSpinEnabled || pieceController.lastAction != LastPieceAction.ROTATE) return SpinType.NONE
         return pieceState.piece.getSpinType(
             boardManager.board,
             pieceState.pieceRow,
