@@ -75,15 +75,15 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 *   **Move Left/Right:** ←/→ Arrow Key
 
 ## 📸 Screenshots & Demo
-![Swing Demo Screenshot](src/main/resources/assets/gameplay-demo.png)
-![Gameplay GIF](src/main/resources/assets/gameplay-demo.gif)
+![Swing Demo Screenshot](src/commonMain/resources/assets/gameplay-demo.png)
+![Gameplay GIF](src/commonMain/resources/assets/gameplay-demo.gif)
 ### Showcase engine ability to handle garbage lines ###
-![Cheese Demo Screenshot](src/main/resources/assets/cheese-demo.png)
-![Cheese Demo GIF](src/main/resources/assets/cheese-demo.gif)
+![Cheese Demo Screenshot](src/commonMain/resources/assets/cheese-demo.png)
+![Cheese Demo GIF](src/commonMain/resources/assets/cheese-demo.gif)
 ### Showcase engine ability to handle time freezes and board collapses ###
-![Freeze Demo GIF](src/main/resources/assets/freeze-demo.gif)
+![Freeze Demo GIF](src/commonMain/resources/assets/freeze-demo.gif)
 ### Showcase customization with a 4wide board focused on combos ###
-![Four Way Demo GIF](src/main/resources/assets/fourway-demo.gif)
+![Four Way Demo GIF](src/commonMain/resources/assets/fourway-demo.gif)
 
 
 ## 🛠️ Building and Editing

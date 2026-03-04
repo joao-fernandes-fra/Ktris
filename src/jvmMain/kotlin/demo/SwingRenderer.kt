@@ -17,7 +17,6 @@ import java.awt.Dimension
 import java.awt.Font
 import java.awt.Graphics
 import java.awt.Graphics2D
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CopyOnWriteArraySet
 import javax.swing.JPanel
 import kotlin.math.min
@@ -483,6 +482,6 @@ class SwingRenderer<T : Piece>(
         val totalSeconds = seconds.toLong()
         val minutes = (totalSeconds / 60) % 60
         val remainingSeconds = totalSeconds % 60
-        return "%02d:%02d".format(minutes, remainingSeconds)
+        return "$minutes:$remainingSeconds"
     }
 }

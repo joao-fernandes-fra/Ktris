@@ -9,47 +9,47 @@ import model.SpinType
 open class GameEvent : Event {
     @Serializable
     data class GameOver(val goalMet: Boolean, val goal: GameGoal) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "game-over" }
+        companion object : TopicProvider { override val topic = PREFIX + "game-over" }
     }
 
     @Serializable
     data class NewPiece(val piece: Piece) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "new-piece" }
+        companion object : TopicProvider { override val topic = PREFIX + "new-piece" }
     }
 
     @Serializable
     data class PieceHeld(val piece: Piece) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "piece-held" }
+        companion object : TopicProvider { override val topic = PREFIX + "piece-held" }
     }
 
     @Serializable
     data class PieceRotated(val piece: Piece, val rotationState: Int) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "piece-rotated" }
+        companion object : TopicProvider { override val topic = PREFIX + "piece-rotated" }
     }
 
     @Serializable
     data class HardDrop(var distance: Int) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "hard-drop" }
+        companion object : TopicProvider { override val topic = PREFIX + "hard-drop" }
     }
 
     @Serializable
     data class SoftDrop(var distance: Int) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "soft-drop" }
+        companion object : TopicProvider { override val topic = PREFIX + "soft-drop" }
     }
 
     @Serializable
     data class PieceLocked(val linesCleared: Boolean) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "piece-locked" }
+        companion object : TopicProvider { override val topic = PREFIX + "piece-locked" }
     }
 
     @Serializable
     data class LineCleared(val spinType: SpinType, val linesCleared: Int, val isPerfectClear: Boolean) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "line-cleared" }
+        companion object : TopicProvider { override val topic = PREFIX + "line-cleared" }
     }
 
     @Serializable
     data class FreezeLineClear(val linesCleared: Int, val spinType: SpinType) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "freeze-line-cleared" }
+        companion object : TopicProvider { override val topic = PREFIX + "freeze-line-cleared" }
     }
 
     @Serializable
@@ -60,42 +60,42 @@ open class GameEvent : Event {
         val moveTypeName: String?,
         val allClear: Boolean
     ) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "score-updated" }
+        companion object : TopicProvider { override val topic = PREFIX + "score-updated" }
     }
 
     @Serializable
     data class SpinDetected(val spinType: SpinType) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "spin-detected" }
+        companion object : TopicProvider { override val topic = PREFIX + "spin-detected" }
     }
 
     @Serializable
     data class LevelUp(val newLevel: Int) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "level-up" }
+        companion object : TopicProvider { override val topic = PREFIX + "level-up" }
     }
 
     @Serializable
     data class ComboTriggered(val comboCount: Int) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "combo-triggered" }
+        companion object : TopicProvider { override val topic = PREFIX + "combo-triggered" }
     }
 
     @Serializable
     data class BackToBackTrigger(val backToBackCount: Int) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "back-to-back" }
+        companion object : TopicProvider { override val topic = PREFIX + "back-to-back" }
     }
 
     @Serializable
     data class SfxTrigger(val soundName: String) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "sfx-trigger" }
+        companion object : TopicProvider { override val topic = PREFIX + "sfx-trigger" }
     }
 
     @Serializable
     data class GarbageSent(val lines: Int) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "garbage-sent" }
+        companion object : TopicProvider { override val topic = PREFIX + "garbage-sent" }
     }
 
     @Serializable
     data class GarbageReceived(val lines: Int) : GameEvent() {
-        companion object : TopicProvider { @JvmStatic override val topic = PREFIX + "garbage-received" }
+        companion object : TopicProvider { override val topic = PREFIX + "garbage-received" }
     }
 
     companion object {

@@ -11,56 +11,56 @@ open class InputEvent : Event {
     @Serializable
     data class SlowDownTime(val duration: Float) : InputEvent() {
         companion object : TopicProvider {
-            @JvmStatic override val topic = PREFIX + "slow-down"
+            override val topic = PREFIX + "slow-down"
         }
     }
 
     @Serializable
     data class FreezeTime(val duration: Float) : InputEvent() {
         companion object : TopicProvider {
-            @JvmStatic override val topic = PREFIX + "freeze-time"
+            override val topic = PREFIX + "freeze-time"
         }
     }
 
     @Serializable
     data class DirectionMoveStart(val movement: Movement) : InputEvent() {
         companion object : TopicProvider {
-            @JvmStatic override val topic = PREFIX + "direction-start"
+            override val topic = PREFIX + "direction-start"
         }
     }
 
     @Serializable
     data class DirectionMoveEnd(val movement: Movement) : InputEvent() {
         companion object : TopicProvider {
-            @JvmStatic override val topic = PREFIX + "direction-end"
+            override val topic = PREFIX + "direction-end"
         }
     }
 
     @Serializable
     data class DropInput(val dropType: Drop) : InputEvent() {
         companion object : TopicProvider {
-            @JvmStatic override val topic = PREFIX + "drop"
+            override val topic = PREFIX + "drop"
         }
     }
 
     @Serializable
     data class CommandInput(val command: Command) : InputEvent() {
         companion object : TopicProvider {
-            @JvmStatic override val topic = PREFIX + "command"
+            override val topic = PREFIX + "command"
         }
     }
 
     @Serializable
     data class RotationInputStart(val rotation: Rotation) : InputEvent() {
         companion object : TopicProvider {
-            @JvmStatic override val topic = PREFIX + "rotation-start"
+            override val topic = PREFIX + "rotation-start"
         }
     }
 
     @Serializable
     data class RotationInputRelease(val rotation: Rotation) : InputEvent() {
         companion object : TopicProvider {
-            @JvmStatic override val topic = PREFIX + "rotation-release"
+            override val topic = PREFIX + "rotation-release"
         }
     }
 

@@ -7,6 +7,8 @@ import model.BagRandomizer
 import model.GameSettings
 import model.GameTimers
 import model.Piece
+import platform.nanoTime
+import platform.sleep
 
 class BaseTetris<T : Piece>(
     settings: GameSettings,
@@ -27,10 +29,10 @@ class BaseTetris<T : Piece>(
         val targetFps = 60
         val frameTimeNs = 1_000_000_000L / targetFps
 
-        var lastTime = System.nanoTime()
+        var lastTime = nanoTime()
 
         while (!isGameOver || !isGoalMet) {
-            val currentTime = System.nanoTime()
+            val currentTime = nanoTime()
             val elapsedNs = currentTime - lastTime
 
             val deltaTimeMs = elapsedNs / 1_000_000f
@@ -41,11 +43,11 @@ class BaseTetris<T : Piece>(
 
             renderer.render(gameStateSnapshot())
 
-            val workTimeNs = System.nanoTime() - currentTime
+            val workTimeNs = nanoTime() - currentTime
             val sleepTimeNs = frameTimeNs - workTimeNs
 
             if (sleepTimeNs > 0) {
-                Thread.sleep(sleepTimeNs / 1_000_000L, (sleepTimeNs % 1_000_000L).toInt())
+                sleep(sleepTimeNs / 1_000_000L)
             }
         }
     }

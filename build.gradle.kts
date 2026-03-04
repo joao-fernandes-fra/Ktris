@@ -1,7 +1,6 @@
 plugins {
-    id("application")
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.serialization") version "2.0.21"
+    kotlin("multiplatform") version "2.3.10"
+    kotlin("plugin.serialization") version "2.3.10"
 }
 
 group = "com.kari.ktris"
@@ -11,37 +10,65 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-
-    testImplementation(kotlin("test"))
-    testImplementation("io.mockk:mockk:1.13.12")
-}
-
 kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-        vendor.set(JvmVendorSpec.GRAAL_VM)
+    jvm {
+        testRuns["test"].executionTask.configure {
+            useJUnitPlatform()
+        }
     }
 
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-
-        freeCompilerArgs.add("-Xjsr305=strict")
+    js {
+        browser {
+            binaries.executable()
+            testTask {
+                useKarma {
+                    useChromeHeadless()
+                }
+            }
+        }
     }
-}
 
-tasks.test {
-    useJUnitPlatform()
-}
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+        val jvmMain by getting {
+            dependsOn(commonMain)
+            dependencies {
 
-application {
-    mainClass.set("demo.SwingTetrisTestKt")
+            }
+        }
+        val jvmTest by getting {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(kotlin("test-junit5"))
+            }
+        }
+        val jsMain by getting {
+            dependsOn(commonMain)
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
+            }
+        }
+        val jsTest by getting {
+            dependsOn(commonTest)
+            dependencies {
+                implementation(kotlin("test-js"))
+            }
+        }
+    }
 }
 
 tasks.register<JavaExec>("runDemo") {
     group = "application"
-    description = "Runs the Tetris swing demonstration"
+    description = "Runs the Tetris Swing demonstration"
     mainClass.set("demo.SwingTetrisTestKt")
-    classpath = sourceSets["main"].runtimeClasspath
+    classpath = sourceSets["jvmMain"].runtimeClasspath
 }

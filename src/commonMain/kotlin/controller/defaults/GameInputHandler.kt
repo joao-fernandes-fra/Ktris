@@ -13,6 +13,7 @@ import model.events.InputEvent.FreezeTime
 import model.events.InputEvent.RotationInputRelease
 import model.events.InputEvent.RotationInputStart
 import model.events.InputEvent.SlowDownTime
+import platform.currentTimeMillis
 
 class GameInputHandler<T : Piece>(
     private val engine: DefaultTetrisEngine<T>,
@@ -47,6 +48,6 @@ class GameInputHandler<T : Piece>(
             is SlowDownTime -> timeManager.slowDownTime(input.duration)
             is FreezeTime -> timeManager.freezeTime(input.duration)
         }
-        commandRecorder?.record(input, System.currentTimeMillis().toFloat() / 1000f)
+        commandRecorder?.record(input, currentTimeMillis().toFloat() / 1000f)
     }
 }

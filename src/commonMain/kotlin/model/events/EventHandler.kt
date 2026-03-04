@@ -36,19 +36,17 @@ import model.events.InputEvent.FreezeTime
 import model.events.InputEvent.RotationInputRelease
 import model.events.InputEvent.RotationInputStart
 import model.events.InputEvent.SlowDownTime
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.reflect.KClass
 
 
 object EventHandler {
-    val executor: ExecutorService = Executors.newFixedThreadPool(2)
-    val listeners = ConcurrentHashMap<String, CopyOnWriteArrayList<(String) -> Unit>>()
+    val executor: EventExecutor = EventExecutor()
+    val listeners = HashMap<String, ArrayList<(String) -> Unit>>()
     private val topicMap = mutableMapOf<KClass<out Event>, String>()
 
+    @OptIn(ExperimentalAtomicApi::class)
     private val jsonConfig = AtomicReference(
         Json {
             serializersModule = SerializersModule {
@@ -91,13 +89,15 @@ object EventHandler {
         }
     )
 
-    val json: Json get() = jsonConfig.get()
+    @OptIn(ExperimentalAtomicApi::class)
+    val json: Json get() = jsonConfig.load()
 
+    @OptIn(ExperimentalAtomicApi::class)
     fun withModule(newModule: SerializersModule): EventHandler {
-        val currentModule = jsonConfig.get().serializersModule
+        val currentModule = jsonConfig.load().serializersModule
         val combinedModule = currentModule + newModule
 
-        jsonConfig.set(
+        jsonConfig.exchange(
             Json {
                 serializersModule = combinedModule
                 ignoreUnknownKeys = true
@@ -107,7 +107,7 @@ object EventHandler {
     }
 
     fun subscribe(topic: String, callback: (String) -> Unit) {
-        listeners.computeIfAbsent(topic) { CopyOnWriteArrayList() }.add(callback)
+        listeners.getOrPut(topic) { arrayListOf() }.add(callback)
     }
 
     inline fun <reified T : Event> publish(topic: String, payload: T) {
@@ -143,7 +143,7 @@ object EventHandler {
 
     fun dispatch(topic: String, jsonString: String) {
         listeners[topic]?.forEach { callback ->
-            executor.submit {
+            executor.run {
                 try {
                     callback(jsonString)
                 } catch (e: Exception) {
