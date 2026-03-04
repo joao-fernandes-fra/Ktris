@@ -14,4 +14,5 @@ interface BoardController : Resetable {
     fun addGarbage(lines: Int, garbageBlockId: Int)
     fun placePiece(piece: MovingPiece<*>)
     fun collapseFullLines()
+    fun updateBoard(board: Board)
 }

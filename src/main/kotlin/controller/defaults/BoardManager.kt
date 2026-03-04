@@ -61,6 +61,12 @@ class BoardManager(rows: Int, cols: Int, bufferHeight: Int) : BoardController {
         }
     }
 
+    override fun updateBoard(board: Board) {
+        if (board == this.board) {
+            this.board.contents = board.contents
+        }
+    }
+
     override fun addGarbage(lines: Int, garbageBlockId: Int) {
         if (lines <= 0) return
 

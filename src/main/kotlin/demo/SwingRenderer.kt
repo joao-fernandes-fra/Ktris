@@ -20,6 +20,7 @@ import javax.swing.JPanel
 import kotlin.math.min
 import kotlin.math.sin
 
+
 class SwingRenderer<T : Piece>(
     private val scoreRegistry: ScoreRegistry,
     private val tetrisEngine: TetrisEngine<*>,
@@ -36,7 +37,7 @@ class SwingRenderer<T : Piece>(
         private const val FULL_OPACITY = 100
 
         private const val BOARD_OFFSET_COLS = 5
-        private const val HOLD_PIECE_OFFSET = 0
+        private const val HOLD_PIECE_OFFSET = 25
         private const val NEXT_PIECES_OFFSET_COLS = 6
         private const val NEXT_PIECES_VERTICAL_SPACING = 4
 
@@ -53,6 +54,8 @@ class SwingRenderer<T : Piece>(
         private const val BACKGROUND_ALPHA = 128
         private const val GLOW_ALPHA_BASE = 100
         private const val GLOW_INNER_ALPHA = 200
+
+        private const val HUD_FONT = "SansSerif"
     }
 
     private var lastSnapshot: GameSnapshot<T>? = null
@@ -64,7 +67,9 @@ class SwingRenderer<T : Piece>(
     private var activeMessage: String? = null
     private var messageAlpha = 0f
     private var messageStartTime = 0L
-    private var isGameOver = false
+    private var gameFinished = false
+    private var goalMet = false
+    private var finishMessage: String? = null
 
     init {
         val screenWidth = (SCREEN_HEIGHT * SCREEN_ASPECT_RATIO).toInt()
@@ -99,7 +104,9 @@ class SwingRenderer<T : Piece>(
         }
 
         EventHandler.subscribeToEvent<GameEvent.GameOver> {
-            isGameOver = true
+            gameFinished = true
+            goalMet = it.goalMet
+            finishMessage = if (it.goalMet) "VICTORY!" else "GAME OVER"
             repaint()
         }
     }
@@ -118,15 +125,15 @@ class SwingRenderer<T : Piece>(
         drawFlashEffect(graphics)
         drawGameBoard(graphics, snapshot)
         drawMessages(graphics, snapshot)
-        if (isGameOver) {
-            drawGameOver(graphics)
+        if (gameFinished) {
+            drawFinishScreen(graphics)
         }
     }
 
-    private fun drawGameOver(graphics: Graphics2D) {
-        graphics.color = Color.RED
-        graphics.font = Font("SansSerif", Font.BOLD, 48)
-        val text = "GAME OVER"
+    private fun drawFinishScreen(graphics: Graphics2D) {
+        val text = finishMessage ?: return
+        graphics.color = if (goalMet) Color.GREEN else Color.RED
+        graphics.font = Font(HUD_FONT, Font.BOLD, 48)
         val metrics = graphics.fontMetrics
         val x = (width - metrics.stringWidth(text)) / 2
         val y = height / 2
@@ -338,7 +345,7 @@ class SwingRenderer<T : Piece>(
         graphics.fillRect(hudX, hudY, HUD_WIDTH, HUD_HEIGHT)
 
         graphics.color = Color.WHITE
-        graphics.font = Font("Monospaced", Font.BOLD, HUD_FONT_SIZE)
+        graphics.font = Font(HUD_FONT, Font.BOLD, HUD_FONT_SIZE)
 
         var currentY = hudY + 30
 
@@ -376,7 +383,7 @@ class SwingRenderer<T : Piece>(
 
     private fun drawCenteredMessage(graphics: Graphics2D, snapshot: GameSnapshot<T>, message: String) {
         val fontSize = (blockSize * 0.8f).toInt()
-        graphics.font = Font("SansSerif", Font.BOLD, fontSize)
+        graphics.font = Font(HUD_FONT, Font.BOLD, fontSize)
 
         val metrics = graphics.fontMetrics
         val boardPixelWidth = snapshot.board.cols * blockSize

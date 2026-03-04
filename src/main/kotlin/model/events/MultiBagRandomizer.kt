@@ -5,38 +5,43 @@ import model.Piece
 
 class MultiBagRandomizer<T : Piece>(
     private val availablePieces: List<T>,
-    private val setsPerBag: Int = 1,
     private val previewSize: Int = 5
 ) : BagRandomizer<T> {
 
     private val queue: MutableList<T> = mutableListOf()
+    private val currentBag: MutableList<T> = mutableListOf()
 
     init {
         refill()
     }
 
     override fun getNextPiece(): T {
-        if (queue.size <= previewSize) {
+        if (queue.isEmpty()) {
             refill()
         }
-        return queue.removeAt(0)
+        val piece = queue.removeAt(0)
+
+        refill()
+        return piece
     }
 
     override fun getPreview(count: Int): List<T> {
-        val currentQueue = queue
-        return currentQueue.take(count)
+        refill()
+        return queue.take(count)
     }
 
     private fun refill() {
-        val newBag = mutableListOf<T>()
-        repeat(setsPerBag) {
-            newBag.addAll(availablePieces)
+        while (queue.size <= previewSize) {
+            if (currentBag.isEmpty()) {
+                currentBag.addAll(availablePieces.shuffled())
+            }
+            queue.add(currentBag.removeAt(0))
         }
-        newBag.shuffle()
-        queue.addAll(newBag)
     }
 
     override fun reset() {
+        queue.clear()
+        currentBag.clear()
         refill()
     }
 }

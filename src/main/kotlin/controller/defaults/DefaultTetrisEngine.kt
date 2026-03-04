@@ -5,6 +5,7 @@ import controller.PieceController
 import controller.TetrisEngine
 import model.AppLog
 import model.BagRandomizer
+import model.Board
 import model.Command
 import model.Drop
 import model.GameGoal
@@ -104,6 +105,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     open fun update(deltaTime: Float) {
         this.deltaTime = deltaTime
         val gravityDelta = timeManager.tick(deltaTime)
+        checkWinCondition()
         when (gameState) {
             GameState.ENTRY_DELAY -> {
                 gameTimers.sessionTimer += deltaTime
@@ -120,7 +122,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
             GameState.PLAYING -> {
                 gameTimers.sessionTimer += deltaTime
-                checkWinCondition()
                 pieceController.handleDAS(deltaTime, currentDirection)
                 pieceController.handleGravity(currentLevel, gravityDelta)
                 pieceController.handleLockDelay(deltaTime) { lockAndProcess() }
@@ -206,6 +207,12 @@ abstract class DefaultTetrisEngine<T : Piece>(
         }
     }
 
+    override fun forceBoardState(newState: Board) {
+        boardManager.updateBoard(newState)
+        pieceController.clearPiece()
+        gameState = GameState.ENTRY_DELAY
+    }
+
     private fun lockAndProcess() {
         val piece = pieceController.currentPiece ?: return
         val spinType = getSpinType(piece)
@@ -252,23 +259,20 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     private fun checkWinCondition() {
-        when (settings.goalType) {
-            GameGoal.TIME -> {
-                timeGoalElapsed += deltaTime
-                if (timeGoalElapsed >= settings.goalValue * 1000f) {
-                    EventHandler.publish(GameOver.topic, GameOver(true, settings.goalType))
-                    gameState = GameState.GOAL_MET
-                }
-            }
+        if (settings.goalType == GameGoal.TIME) {
+            val elapsedSeconds = gameTimers.sessionTimer / 1000f
 
-            GameGoal.LINES -> {
-                if (boardManager.linesCleared >= settings.goalValue) {
-                    EventHandler.publish(GameOver.topic, GameOver(true, settings.goalType))
-                    gameState = GameState.GOAL_MET
-                }
+            if (elapsedSeconds >= settings.goalValue) {
+                EventHandler.publish(GameOver.topic, GameOver(true, settings.goalType))
+                gameState = GameState.GOAL_MET
             }
+        }
 
-            else -> {}
+        if (settings.goalType == GameGoal.LINES) {
+            if (boardManager.linesCleared >= settings.goalValue) {
+                EventHandler.publish(GameOver.topic, GameOver(true, settings.goalType))
+                gameState = GameState.GOAL_MET
+            }
         }
     }
 

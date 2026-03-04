@@ -1,5 +1,6 @@
 package controller
 
+import model.Board
 import model.Command
 import model.Drop
 import model.GameSnapshot
@@ -22,4 +23,5 @@ interface TetrisEngine<T : Piece> : Resetable {
     fun gameStateSnapshot(): GameSnapshot<T>
     fun onRotationRelease(rotation: Rotation)
     fun onMovementRelease(movement: Movement)
+    fun forceBoardState(newState: Board)
 }

@@ -5,15 +5,11 @@ import controller.defaults.BaseTetris
 import controller.defaults.ModernGuidelineRules
 import controller.defaults.ScoreRegistry
 import controller.defaults.TimeManager
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.polymorphic
-import kotlinx.serialization.modules.subclass
 import model.AppLog
 import model.Command
 import model.GameGoal
 import model.defaults.ProceduralPiece
 import model.defaults.Tetromino
-import model.events.Event
 import model.events.EventHandler
 import model.events.GameEvent
 import model.events.GameEvent.GarbageSent
@@ -30,7 +26,7 @@ private const val GARBAGE_BLOCK_ID = -99
 fun main(args: Array<String>) {
     GameEvent.registerEvents()
     InputEvent.registerEvents()
-    AppLog.minLevel = AppLog.Level.INFO
+    AppLog.minLevel = AppLog.Level.DEBUG
 
     val baseSettings = when {
         args.contains("expert") -> GameSettingsProvider.expert()

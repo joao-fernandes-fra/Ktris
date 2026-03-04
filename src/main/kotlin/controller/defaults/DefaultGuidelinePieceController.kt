@@ -78,7 +78,6 @@ class DefaultGuidelinePieceController<T : Piece>(
 
         if (gameTimers.dropTimer >= effectiveGravity) {
             if (move(1, 0)) {
-                wasRotated = false
                 gameTimers.lockTimer = 0f
                 gameTimers.dropTimer -= effectiveGravity
             } else {
@@ -130,7 +129,7 @@ class DefaultGuidelinePieceController<T : Piece>(
             while (move(1, 0)) {
                 dropLines++
                 gameTimers.dropTimer = 0.0f
-                wasRotated = false
+                
             }
         } else {
             while (gameTimers.softDropTimer >= settings.softDropDelay) {
@@ -138,7 +137,7 @@ class DefaultGuidelinePieceController<T : Piece>(
                 if (move(1, 0)) {
                     dropLines++
                     gameTimers.dropTimer = 0.0f
-                    wasRotated = false
+                    
                     gameTimers.softDropTimer -= settings.softDropDelay
                 } else {
                     AppLog.debug { "SOFT_DROP: Movement blocked (Hit floor/stack)" }
@@ -253,7 +252,7 @@ class DefaultGuidelinePieceController<T : Piece>(
         heldPiece = null
         currentPiece = null
         ghostRow = 0
-        wasRotated = false
+        
         lockResets = 0
         dasState = DasState.IDLE
         canHold = true
