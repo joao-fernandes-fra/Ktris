@@ -13,7 +13,8 @@ object Tetromino {
             1, 1, 1, 1,
             0, 0, 0, 0,
             0, 0, 0, 0
-        ), "I")
+        ), "I"
+    )
 
     val O = ProceduralPiece(
         2,

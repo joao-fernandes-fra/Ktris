@@ -21,6 +21,7 @@ import model.PieceState
 import model.Rotation
 import model.SpinType
 import model.TimeMode
+import model.debug
 import model.events.EventHandler
 import model.events.GameEvent.FreezeLineClear
 import model.events.GameEvent.GameOver
@@ -29,6 +30,7 @@ import model.events.GameEvent.LevelUp
 import model.events.GameEvent.LineCleared
 import model.events.GameEvent.PieceLocked
 import model.events.GameEvent.SpinDetected
+import model.info
 import kotlin.math.absoluteValue
 
 
@@ -49,7 +51,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
     override val isGoalMet: Boolean get() = gameState == GameState.GOAL_MET
-    override val sessionTimeSeconds get() = gameTimers.sessionTimer / 1000f
     private val activeDirections = mutableListOf<Int>()
     private val currentDirection: Int? get() = activeDirections.lastOrNull()
     private var rotationLock = false

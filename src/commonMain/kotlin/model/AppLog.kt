@@ -1,15 +1,15 @@
 package model
 
-enum class Level { DEBUG, INFO, WARN, ERROR }
+enum class LogLevel { DEBUG, INFO, WARN, ERROR }
 
 expect object AppLog {
 
-    var minLevel: Level
+    var minLogLevel: LogLevel
 
-    fun debug(tag: String = "APP", msg: () -> Any) = log(Level.DEBUG, tag, msg)
-    fun info(tag: String = "APP", msg: () -> Any) = log(Level.INFO, tag, msg)
-    fun warn(tag: String = "APP", msg: () -> Any) = log(Level.WARN, tag, msg)
-    fun error(tag: String = "APP", msg: () -> Any) = log(Level.ERROR, tag, msg)
-
-    fun log(level: Level, tag: String, message: () -> Any)
+    fun log(logLevel: LogLevel, tag: String, message: () -> Any)
 }
+
+fun AppLog.debug(tag: String = "APP", msg: () -> Any) = log(LogLevel.DEBUG, tag, msg)
+fun AppLog.info(tag: String = "APP", msg: () -> Any) = log(LogLevel.INFO, tag, msg)
+fun AppLog.warn(tag: String = "APP", msg: () -> Any) = log(LogLevel.WARN, tag, msg)
+fun AppLog.error(tag: String = "APP", msg: () -> Any) = log(LogLevel.ERROR, tag, msg)

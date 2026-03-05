@@ -7,8 +7,6 @@ import model.Piece
 import model.Rotation
 
 
-
-
 @Serializable
 data class DefaultMovingPiece<T : Piece>(
     override var piece: T,

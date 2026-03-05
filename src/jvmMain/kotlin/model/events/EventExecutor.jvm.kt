@@ -7,5 +7,6 @@ actual class EventExecutor {
     actual fun execute(task: () -> Unit) {
         executor.submit { task() }
     }
+
     actual fun shutdown() = executor.shutdown()
 }

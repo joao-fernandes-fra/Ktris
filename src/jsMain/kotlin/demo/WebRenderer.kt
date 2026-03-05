@@ -1,9 +1,9 @@
 package demo
 
 import controller.GameRenderer
-import controller.TetrisEngine
 import controller.defaults.ScoreRegistry
 import model.GameSnapshot
+import model.GameTimers
 import model.Piece
 import model.PieceState
 import model.SpinType
@@ -12,42 +12,72 @@ import model.events.EventHandler
 import model.events.GameEvent
 import model.toPieceState
 import org.w3c.dom.CanvasRenderingContext2D
+import platform.currentTimeMillis
 import kotlin.js.Date
 import kotlin.math.min
 import kotlin.math.sin
 
 class WebRenderer<T : Piece>(
     private val scoreRegistry: ScoreRegistry,
-    private val tetrisEngine: TetrisEngine<*>,
+    private val gameTimers: GameTimers,
     private val ctx: CanvasRenderingContext2D
 ) : GameRenderer<T> {
 
     companion object {
-        private const val FLASH_DURATION_MS = 200.0
-        private const val MESSAGE_DURATION_MS = 1500.0
-        private const val GHOST_OPACITY = 0.3
-        private const val BLOCK_PADDING = 2
-        private const val BOARD_BORDER_WIDTH = 2
-        private const val HUD_FONT = "16px sans-serif"
-        private const val HUD_LINE_HEIGHT = 20
+        private const val SCREEN_HEIGHT = 720
+        private const val SCREEN_ASPECT_RATIO = 16 / 9
+
+        private const val FLASH_DURATION_MS = 200L
+        private const val MESSAGE_DURATION_MS = 1500L
+
+        private const val GHOST_PIECE_OPACITY = 0.3
+        private const val FULL_OPACITY = 1.0
+
+        private const val NEXT_PIECES_VERTICAL_SPACING = 4.0
+
+        private const val HUD_WIDTH = 150.0
+        private const val HUD_HEIGHT = 150.0
+        private const val HUD_LINE_HEIGHT = 25.0
+        private const val HUD_FONT_SIZE = 18.0
+        private const val HUD_PADDING = 10.0
+        private const val HUD_LINE_PADDING = 30.0
+
+
+        private const val BOARD_BORDER_WIDTH = 2.0
+        private const val BLOCK_PADDING = 2.0
+        private const val GLOW_BLOCK_PADDING = 6
+
+        private const val BACKGROUND_ALPHA = 128.0
+        private const val GLOW_ALPHA_BASE = 100.0
+        private const val GLOW_INNER_ALPHA = 200.0
+
+        private const val HUD_FONT = "SansSerif"
+        private const val SPIN_EFFECT_DURATION_MS = 300L
+        private const val LERP_SPEED = 0.15f
+
+    }
+
+    init {
+        ctx.canvas.width = SCREEN_HEIGHT * SCREEN_ASPECT_RATIO
+        ctx.canvas.height = SCREEN_HEIGHT
+        subscribeToEvents()
     }
 
     private var lastSnapshot: GameSnapshot<T>? = null
-    private var blockSize = 30
+    private var blockSize = 0
+
     private var flashAlpha = 0.0
     private var lastClearTime = 0.0
+
+    private var messageQueue = mutableSetOf<GameMessage>()
+    private val messageYAnimation = mutableMapOf<GameMessage, Double>()
     private var gameFinished = false
     private var goalMet = false
     private var finishMessage: String? = null
 
-    private val messages = mutableListOf<GameMessage>()
-    private var spinEffectStartTime = 0.0
+    private var spinEffectStartTime = 0L
     private var lastSpinPieceState: PieceState<T>? = null
     private var lastSpinType: SpinType? = null
-
-    init {
-        subscribeToEvents()
-    }
 
     private fun subscribeToEvents() {
         EventHandler.subscribeToEvent<GameEvent.LineCleared> { event ->
@@ -76,7 +106,7 @@ class WebRenderer<T : Piece>(
         EventHandler.subscribeToEvent<GameEvent.SpinDetected> { event ->
             lastSpinPieceState = lastSnapshot?.currentPiece
             lastSpinType = event.spinType
-            spinEffectStartTime = Date.now()
+            spinEffectStartTime = Date.now().toLong()
         }
     }
 
@@ -87,78 +117,127 @@ class WebRenderer<T : Piece>(
 
     private fun draw() {
         val snapshot = lastSnapshot ?: return
-        val canvasWidth = ctx.canvas.width.toDouble()
-        val canvasHeight = ctx.canvas.height.toDouble()
+        val canvasWidth = ctx.canvas.width
+        val canvasHeight = ctx.canvas.height
 
         ctx.fillStyle = "black"
-        ctx.fillRect(0.0, 0.0, canvasWidth, canvasHeight)
+        ctx.fillRect(0.0, 0.0, canvasWidth.toDouble(), canvasHeight.toDouble())
 
         calculateBlockSize(snapshot)
-        drawBoard(snapshot)
-        if (gameFinished) drawFinishScreen()
+        if (gameFinished) {
+            drawFinishScreen()
+        }
         drawFlash()
-        drawMessages()
+        drawGameBoard(snapshot)
     }
 
     private fun calculateBlockSize(snapshot: GameSnapshot<T>) {
-        val maxWidth = ctx.canvas.width / (snapshot.board.cols + 8)
+        val padding = 12
+        val maxWidth = ctx.canvas.width / (snapshot.board.cols + padding)
         val maxHeight = ctx.canvas.height / snapshot.board.rows
         blockSize = min(maxWidth, maxHeight)
     }
 
-    private fun drawBoard(snapshot: GameSnapshot<T>) {
-        val cols = snapshot.board.cols
-        val rows = snapshot.board.rows
-        val boardWidth = cols * blockSize
-        val boardHeight = rows * blockSize
-        val offsetX = (ctx.canvas.width - boardWidth) / 2
-        val offsetY = (ctx.canvas.height - boardHeight) / 2
+    private fun drawGameBoard(snapshot: GameSnapshot<T>) {
+        val boardPixelWidth = snapshot.board.cols * blockSize
+        val boardPixelHeight = snapshot.board.rows * blockSize
 
-        // Draw blocks
-        for (row in 0 until rows) {
-            for (col in 0 until cols) {
+        val boardOffsetX = (ctx.canvas.width - boardPixelWidth) / 2
+        val boardOffsetY = (ctx.canvas.height - boardPixelHeight) / 2
+
+        val bufferOffset = snapshot.board.bufferSize * blockSize
+
+        val uiOffsetY = boardOffsetY + bufferOffset
+
+        drawBoardBlocks(snapshot, boardOffsetX, boardOffsetY)
+        drawGhostPiece(snapshot, boardOffsetX, boardOffsetY)
+        drawSpinEffect(boardOffsetX, boardOffsetY)
+        drawCurrentPiece(snapshot, boardOffsetX, boardOffsetY)
+
+        drawBoardBorder(snapshot, boardOffsetX, uiOffsetY)
+
+        drawHoldPiece(snapshot, boardOffsetX, uiOffsetY)
+        drawNextPieces(snapshot, boardOffsetX, uiOffsetY)
+        val hudX = boardOffsetX - (6 * blockSize)
+        val hudY = uiOffsetY + (4 * blockSize)
+        val currenHUDY = drawHUD(hudX, hudY)
+        drawAllNotifications(hudX, currenHUDY.toInt())
+    }
+
+    private fun drawBoardBlocks(
+        snapshot: GameSnapshot<T>,
+        offsetX: Int,
+        offsetY: Int
+    ) {
+        for (row in 0 until snapshot.board.rows) {
+            for (col in 0 until snapshot.board.cols) {
                 val blockId = snapshot.board[row, col]
+
                 when {
-                    blockId == -1 -> drawGlowingBlock(offsetX + col * blockSize, offsetY + row * blockSize)
+                    blockId == -1 -> {
+                        drawGlowingBlock(row, col, offsetX, offsetY)
+                    }
+
                     blockId != 0 -> {
-                        val color = getTetrominoColor(blockId)
-                        drawBlock(offsetX + col * blockSize, offsetY + row * blockSize, color)
+                        val color = adjustOpacity(getTetrominoColor(blockId), FULL_OPACITY)
+                        drawBlock(row, col, offsetX, offsetY, color)
                     }
                 }
             }
         }
+    }
 
-        // Draw ghost piece
-        snapshot.ghostPiece?.let { drawPiece(it, offsetX, offsetY, GHOST_OPACITY) }
-
-        // Draw current piece
-        snapshot.currentPiece?.let { drawPiece(it, offsetX, offsetY, 1.0) }
-
-        // Draw spin effect
-        drawSpinEffect(offsetX, offsetY)
-
-        // Draw hold piece
-        snapshot.holdPiece?.let {
-            val holdX = offsetX - 5 * blockSize
-            drawPiece(it.toPieceState(), holdX, offsetY, 1.0)
+    private fun drawGhostPiece(
+        snapshot: GameSnapshot<T>,
+        offsetX: Int,
+        offsetY: Int
+    ) {
+        snapshot.ghostPiece?.let { piece ->
+            drawPiece(piece, offsetX, offsetY, GHOST_PIECE_OPACITY)
         }
+    }
 
-        // Draw next pieces
+    private fun drawHoldPiece(snapshot: GameSnapshot<T>, boardOffsetX: Int, boardOffsetY: Int) {
+        snapshot.holdPiece?.let { piece ->
+            val holdX = boardOffsetX - (5 * blockSize)
+            drawPiece(piece.toPieceState(), holdX, boardOffsetY, FULL_OPACITY)
+        }
+    }
+
+    private fun drawCurrentPiece(snapshot: GameSnapshot<T>, boardOffsetX: Int, boardOffsetY: Int) {
+        snapshot.currentPiece?.let { piece ->
+            drawPiece(piece, boardOffsetX, boardOffsetY, FULL_OPACITY)
+        }
+    }
+
+    private fun drawNextPieces(snapshot: GameSnapshot<T>, boardOffsetX: Int, boardOffsetY: Int) {
+        val nextX = boardOffsetX + (snapshot.board.cols * blockSize) + blockSize
+
         snapshot.nextPieces.forEachIndexed { index, piece ->
             piece?.let {
-                val nextX = offsetX + (cols * blockSize) + blockSize
-                val nextY = offsetY + index * 4 * blockSize
-                drawPiece(it.toPieceState(), nextX, nextY, 1.0)
+                val nextY = boardOffsetY + (index * NEXT_PIECES_VERTICAL_SPACING * blockSize)
+                drawPiece(it.toPieceState(), nextX, nextY.toInt(), FULL_OPACITY)
             }
         }
+    }
 
-        // Draw board border
+    private fun drawBoardBorder(snapshot: GameSnapshot<T>, boardOffsetX: Int, uiOffsetY: Int) {
         ctx.strokeStyle = "white"
-        ctx.lineWidth = BOARD_BORDER_WIDTH.toDouble()
-        ctx.strokeRect(offsetX.toDouble(), offsetY.toDouble(), boardWidth.toDouble(), (snapshot.board.visibleRows * blockSize).toDouble())
+        ctx.lineWidth = BOARD_BORDER_WIDTH
 
-        // Draw HUD
-        drawHUD(offsetX - 6 * blockSize, offsetY + 4 * blockSize)
+        val totalWidth = (snapshot.board.cols * blockSize) + (2 * BOARD_BORDER_WIDTH)
+        val totalHeight = (snapshot.board.visibleRows * blockSize) + (2 * BOARD_BORDER_WIDTH)
+
+        val startX = boardOffsetX - BOARD_BORDER_WIDTH
+        val startY = uiOffsetY - BOARD_BORDER_WIDTH
+        ctx.beginPath()
+        ctx.strokeStyle = "white"
+        ctx.lineWidth = BOARD_BORDER_WIDTH
+        ctx.moveTo(startX, startY)
+        ctx.lineTo(startX, startY + totalHeight)
+        ctx.lineTo(startX + totalWidth, startY + totalHeight)
+        ctx.lineTo(startX + totalWidth, startY)
+        ctx.stroke()
     }
 
     private fun drawPiece(piece: PieceState<T>, offsetX: Int, offsetY: Int, opacity: Double) {
@@ -171,38 +250,71 @@ class WebRenderer<T : Piece>(
                 if (piece.shape[row, col] != 0) {
                     val x = offsetX + (piece.col + col) * blockSize
                     val y = offsetY + (piece.row + row) * blockSize
-                    ctx.fillRect(x.toDouble(), y.toDouble(), (blockSize - BLOCK_PADDING).toDouble(), (blockSize - BLOCK_PADDING).toDouble())
+                    ctx.fillRect(
+                        x.toDouble(),
+                        y.toDouble(),
+                        (blockSize - BLOCK_PADDING),
+                        (blockSize - BLOCK_PADDING)
+                    )
                 }
             }
         }
     }
 
-    private fun drawBlock(x: Int, y: Int, color: String) {
+    private fun drawBlock(row: Int, col: Int, offsetX: Int, offsetY: Int, color: String) {
+        val x = offsetX + col * blockSize
+        val y = offsetY + row * blockSize
+        val blockWidth = blockSize - BLOCK_PADDING
+        val blockHeight = blockSize - BLOCK_PADDING
         ctx.fillStyle = color
-        ctx.fillRect(x.toDouble(), y.toDouble(), (blockSize - BLOCK_PADDING).toDouble(), (blockSize - BLOCK_PADDING).toDouble())
+        ctx.fillRect(
+            x.toDouble(),
+            y.toDouble(),
+            blockWidth,
+            blockHeight
+        )
     }
 
-    private fun drawGlowingBlock(x: Int, y: Int) {
+    private fun drawGlowingBlock(row: Int, col: Int, offsetX: Int, offsetY: Int) {
+        val x = offsetX + col * blockSize
+        val y = offsetY + row * blockSize
+        val blockWidth = blockSize - BLOCK_PADDING
+        val blockHeight = blockSize - BLOCK_PADDING
         val pulse = (sin(Date.now() / 150.0) * 0.25 + 0.55).toFloat()
         val glowAlpha = (pulse * 100).toInt()
         val glowColor = "rgba(255,255,255,${glowAlpha / 255.0})"
         ctx.fillStyle = glowColor
-        ctx.fillRect((x - BLOCK_PADDING).toDouble(), (y - BLOCK_PADDING).toDouble(), (blockSize + 2 * BLOCK_PADDING).toDouble(), (blockSize + 2 * BLOCK_PADDING).toDouble())
+        ctx.fillRect(
+            (x - BLOCK_PADDING),
+            (y - BLOCK_PADDING),
+            (blockSize + 2 * BLOCK_PADDING),
+            (blockSize + 2 * BLOCK_PADDING)
+        )
 
         ctx.fillStyle = "white"
-        ctx.fillRect(x.toDouble(), y.toDouble(), (blockSize - BLOCK_PADDING).toDouble(), (blockSize - BLOCK_PADDING).toDouble())
+        ctx.fillRect(
+            x.toDouble(),
+            y.toDouble(),
+            (blockSize - BLOCK_PADDING),
+            (blockSize - BLOCK_PADDING)
+        )
 
         ctx.strokeStyle = "rgba(255,255,255,0.8)"
         ctx.lineWidth = 1.0
-        ctx.strokeRect((x + BLOCK_PADDING / 2).toDouble(), (y + BLOCK_PADDING / 2).toDouble(), (blockSize - 6).toDouble(), (blockSize - 6).toDouble())
+        ctx.strokeRect(
+            (x + BLOCK_PADDING / 2),
+            (y + BLOCK_PADDING / 2),
+            (blockSize - 6).toDouble(),
+            (blockSize - 6).toDouble()
+        )
     }
 
     private fun drawSpinEffect(offsetX: Int, offsetY: Int) {
         val piece = lastSpinPieceState ?: return
         val elapsed = Date.now() - spinEffectStartTime
-        if (elapsed >= 300) return
+        if (elapsed >= SPIN_EFFECT_DURATION_MS) return
 
-        val progress = (elapsed / 300.0).toFloat()
+        val progress = (elapsed / SPIN_EFFECT_DURATION_MS).toFloat()
         val alpha = (1.0f - progress) * 0.8f
         val scale = 1.0f + (progress * 0.5f)
 
@@ -224,24 +336,26 @@ class WebRenderer<T : Piece>(
         }
     }
 
-    private fun drawHUD(hudX: Int, hudY: Int) {
+    private fun drawHUD(hudX: Int, boardOffsetY: Int): Double {
         ctx.font = HUD_FONT
         ctx.fillStyle = "rgba(0,0,0,0.7)"
-        ctx.fillRect(hudX.toDouble(), hudY.toDouble(), 150.0, 150.0)
+        ctx.fillRect(hudX.toDouble(), boardOffsetY.toDouble(), 150.0, 150.0)
 
         ctx.fillStyle = "white"
-        var y = hudY + 20
-        ctx.fillText("SCORE", hudX + 10.0, y.toDouble())
-        y += HUD_LINE_HEIGHT
-        ctx.fillText(scoreRegistry.totalPoints.toInt().toString(), hudX + 10.0, y.toDouble())
-        y += HUD_LINE_HEIGHT
-        ctx.fillText("LINES", hudX + 10.0, y.toDouble())
-        y += HUD_LINE_HEIGHT
-        ctx.fillText(scoreRegistry.totalLinesCleared.toString(), hudX + 10.0, y.toDouble())
-        y += HUD_LINE_HEIGHT
-        ctx.fillText("TIME", hudX + 10.0, y.toDouble())
-        y += HUD_LINE_HEIGHT
-        ctx.fillText(formatTime(tetrisEngine.sessionTimeSeconds), hudX + 10.0, y.toDouble())
+        var hudY = boardOffsetY + HUD_LINE_HEIGHT
+        ctx.fillText("SCORE", hudX + HUD_PADDING, hudY)
+        hudY += HUD_LINE_HEIGHT
+        ctx.fillText(scoreRegistry.totalPoints.toInt().toString(), hudX + 10.0, hudY)
+        hudY += HUD_LINE_HEIGHT
+        ctx.fillText("LINES", hudX + 10.0, hudY)
+        hudY += HUD_LINE_HEIGHT
+        ctx.fillText(scoreRegistry.totalLinesCleared.toString(), hudX + 10.0, hudY)
+        hudY += HUD_LINE_HEIGHT
+        ctx.fillText("TIME", hudX + 10.0, hudY)
+        hudY += HUD_LINE_HEIGHT
+        ctx.fillText(formatTime(gameTimers.sessionTimer), hudX + 10.0, hudY)
+
+        return hudY
     }
 
     private fun drawFinishScreen() {
@@ -249,9 +363,9 @@ class WebRenderer<T : Piece>(
         ctx.fillStyle = if (goalMet) "green" else "red"
         val text = finishMessage ?: return
         val metrics = ctx.measureText(text)
-        val x = (ctx.canvas.width - metrics.width) / 2
-        val y = ctx.canvas.height / 2
-        ctx.fillText(text, x, y.toDouble())
+        val messageX = (ctx.canvas.width - metrics.width) / 2
+        val messageY = ctx.canvas.height / 2
+        ctx.fillText(text, messageX, messageY.toDouble())
     }
 
     private fun drawFlash() {
@@ -263,20 +377,37 @@ class WebRenderer<T : Piece>(
         }
     }
 
-    private fun drawMessages() {
-        val now = Date.now()
-        messages.removeAll { now - it.timestamp >= MESSAGE_DURATION_MS }
-        var y = 50
-        for (msg in messages) {
-            ctx.font = "bold 20px sans-serif"
-            ctx.fillStyle = "white"
-            ctx.fillText(msg.text, 20.0, y.toDouble())
-            y += 25
+    private fun drawAllNotifications(boardOffsetX: Int, uiOffsetY: Int) {
+        val now = currentTimeMillis()
+
+        messageQueue.removeAll { now - it.timestamp >= MESSAGE_DURATION_MS }
+
+        var targetY = HUD_LINE_PADDING + HUD_FONT_SIZE + uiOffsetY
+
+        for ((index, msg) in messageQueue.toList().withIndex()) {
+            val cascadeFactor = 1.0f - (index * 0.05f).coerceAtMost(0.4f)
+            val dynamicLerp = LERP_SPEED * cascadeFactor
+
+            val startY = messageYAnimation[msg] ?: (targetY + 100f)
+            val newY = startY + (targetY - startY) * dynamicLerp
+
+            messageYAnimation[msg] = newY
+
+            drawNotification(msg.text, boardOffsetX, newY.toInt())
+            targetY += HUD_LINE_PADDING
         }
+
+        messageYAnimation.keys.retainAll(messageQueue.toSet())
+    }
+
+    private fun drawNotification(text: String, boardOffsetX: Int, boardOffsetY: Int) {
+        ctx.font = "bold 20px sans-serif"
+        ctx.fillStyle = "white"
+        ctx.fillText(text, boardOffsetX.toDouble(), boardOffsetY.toDouble())
     }
 
     private fun queueMessage(text: String) {
-        messages.add(GameMessage(text, Date.now()))
+        messageQueue.add(GameMessage(text, Date.now()))
     }
 
     private fun triggerFlash() {
@@ -309,7 +440,7 @@ class WebRenderer<T : Piece>(
     }
 
     private fun formatTime(seconds: Float): String {
-        val total = seconds.toInt()
+        val total = (seconds / 1000).toInt()
         val mins = (total / 60) % 60
         val secs = total % 60
         return "$mins:$secs"

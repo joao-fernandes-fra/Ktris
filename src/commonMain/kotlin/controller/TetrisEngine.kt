@@ -12,7 +12,6 @@ import model.Rotation
 interface TetrisEngine<T : Piece> : Resetable {
     val isGameOver: Boolean
     val isGoalMet: Boolean
-    val sessionTimeSeconds: Float
     fun start(renderer: GameRenderer<T>)
     fun levelUp(): Int
     fun processGarbage(lines: Int, garbageBlockId: Int)

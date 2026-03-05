@@ -1,9 +1,9 @@
 package demo
 
 import controller.GameRenderer
-import controller.TetrisEngine
 import controller.defaults.ScoreRegistry
 import model.GameSnapshot
+import model.GameTimers
 import model.Piece
 import model.PieceState
 import model.SpinType
@@ -25,7 +25,7 @@ import kotlin.math.sin
 
 class SwingRenderer<T : Piece>(
     private val scoreRegistry: ScoreRegistry,
-    private val tetrisEngine: TetrisEngine<*>,
+    private val gameTimers: GameTimers,
 ) : JPanel(), GameRenderer<T> {
 
     companion object {
@@ -63,7 +63,7 @@ class SwingRenderer<T : Piece>(
     }
 
     private var lastSnapshot: GameSnapshot<T>? = null
-    private var blockSize = HUD_LINE_PADDING
+    private var blockSize = 30
 
     private var flashAlpha = 0f
     private var lastClearTime = 0L
@@ -85,6 +85,12 @@ class SwingRenderer<T : Piece>(
 
         subscribeToGameEvents()
     }
+
+    override fun render(state: GameSnapshot<T>) {
+        lastSnapshot = state
+        repaint()
+    }
+
 
     private fun subscribeToGameEvents() {
         EventHandler.subscribeToEvent<GameEvent.LineCleared> { event ->
@@ -127,25 +133,20 @@ class SwingRenderer<T : Piece>(
         }
     }
 
-    override fun render(state: GameSnapshot<T>) {
-        lastSnapshot = state
-        repaint()
-    }
-
     override fun paintComponent(g: Graphics) {
         super.paintComponent(g)
         val graphics = g as Graphics2D
         val snapshot = lastSnapshot ?: return
 
         calculateBlockSize(snapshot)
-        drawFlashEffect(graphics)
-        drawGameBoard(graphics, snapshot)
         if (gameFinished) {
             drawFinishScreen(graphics)
         }
+        drawFlashEffect(graphics)
+        drawGameBoard(graphics, snapshot)
     }
 
-    private fun drawSpinEffect(graphics: Graphics2D, offsetX: Int, offsetY: Int) {
+    private fun drawSpinEffect(graphics: Graphics2D, offsetX: Int, offsetY: Int, ghostRow: Int) {
         val piece = lastSpinPieceState ?: return
         val elapsedTime = System.currentTimeMillis() - spinEffectStartTime
         if (elapsedTime >= SPIN_EFFECT_DURATION_MS) return
@@ -163,7 +164,7 @@ class SwingRenderer<T : Piece>(
             for (col in 0 until piece.shape.cols) {
                 if (piece.shape[row, col] != 0) {
                     val x = offsetX + (piece.col + col) * blockSize
-                    val y = offsetY + (piece.row + row) * blockSize
+                    val y = offsetY + (ghostRow + row) * blockSize
                     // Draw a slightly larger, outlined box
                     val sizeOffset = (blockSize * (scale - 1.0f)).toInt()
                     graphics.drawRect(
@@ -263,7 +264,7 @@ class SwingRenderer<T : Piece>(
 
         drawBoardBlocks(graphics, snapshot, boardOffsetX, boardOffsetY)
         drawGhostPiece(graphics, snapshot, boardOffsetX, boardOffsetY)
-        drawSpinEffect(graphics, boardOffsetX, boardOffsetY)
+        drawSpinEffect(graphics, boardOffsetX, boardOffsetY, snapshot.ghostPiece!!.row)
         drawCurrentPiece(graphics, snapshot, boardOffsetX, boardOffsetY)
 
         drawBoardBorder(graphics, snapshot, boardOffsetX, uiOffsetY)
@@ -455,7 +456,7 @@ class SwingRenderer<T : Piece>(
         currentY += HUD_LINE_HEIGHT
         drawHUDLine(graphics, "TIME", hudX + HUD_PADDING, currentY)
         currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, formatTime(tetrisEngine.sessionTimeSeconds), hudX + HUD_PADDING, currentY)
+        drawHUDLine(graphics, formatTime(gameTimers.sessionTimer), hudX + HUD_PADDING, currentY)
         return currentY
     }
 
@@ -479,7 +480,7 @@ class SwingRenderer<T : Piece>(
     }
 
     private fun formatTime(seconds: Float): String {
-        val totalSeconds = seconds.toLong()
+        val totalSeconds = seconds / 1000f
         val minutes = (totalSeconds / 60) % 60
         val remainingSeconds = totalSeconds % 60
         return "$minutes:$remainingSeconds"

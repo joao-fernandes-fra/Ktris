@@ -8,7 +8,8 @@ import controller.defaults.TimeManager
 import model.AppLog
 import model.Command
 import model.GameGoal
-import model.Level
+import model.GameTimers
+import model.LogLevel
 import model.defaults.ProceduralPiece
 import model.defaults.Tetromino
 import model.events.EventHandler
@@ -27,7 +28,7 @@ private const val GARBAGE_BLOCK_ID = -99
 fun main(args: Array<String>) {
     GameEvent.registerEvents()
     InputEvent.registerEvents()
-    AppLog.minLevel = Level.DEBUG
+    AppLog.minLogLevel = LogLevel.DEBUG
 
     val baseSettings = when {
         args.contains("expert") -> GameSettingsProvider.expert()
@@ -50,9 +51,10 @@ fun main(args: Array<String>) {
 
     val frame = JFrame("Ktris - ${if (args.isEmpty()) "Normal" else args[0].uppercase()}")
     val timeManager = TimeManager(gameSettings)
-
+    val gameTimers = GameTimers()
     val game = BaseTetris(
         settings = gameSettings,
+        gameTimers = gameTimers,
         bagManager = MultiBagRandomizer(Tetromino.values),
         timeManager = timeManager,
     )
@@ -68,8 +70,8 @@ fun main(args: Array<String>) {
     }
 
     val scoreRegistry = ScoreRegistry(ModernGuidelineRules())
-    val renderer = SwingRenderer<ProceduralPiece>(scoreRegistry, game)
-    val inputHandler = SwingInputHandler(timeManager)
+    val renderer = SwingRenderer<ProceduralPiece>(scoreRegistry, gameTimers)
+    val inputHandler = SwingInputHandler(scoreRegistry)
 
     frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
     frame.add(renderer)

@@ -66,14 +66,14 @@ open class InputEvent : Event {
 
     companion object {
         fun registerEvents() {
-                EventHandler.register(SlowDownTime::class, SlowDownTime.topic)
-                EventHandler.register(FreezeTime::class, FreezeTime.topic)
-                EventHandler.register(DirectionMoveStart::class, DirectionMoveStart.topic)
-                EventHandler.register(DirectionMoveEnd::class, DirectionMoveEnd.topic)
-                EventHandler.register(DropInput::class, DropInput.topic)
-                EventHandler.register(CommandInput::class, CommandInput.topic)
-                EventHandler.register(RotationInputStart::class, RotationInputStart.topic)
-                EventHandler.register(RotationInputRelease::class, RotationInputRelease.topic)
+            EventHandler.register(SlowDownTime::class, SlowDownTime.topic)
+            EventHandler.register(FreezeTime::class, FreezeTime.topic)
+            EventHandler.register(DirectionMoveStart::class, DirectionMoveStart.topic)
+            EventHandler.register(DirectionMoveEnd::class, DirectionMoveEnd.topic)
+            EventHandler.register(DropInput::class, DropInput.topic)
+            EventHandler.register(CommandInput::class, CommandInput.topic)
+            EventHandler.register(RotationInputStart::class, RotationInputStart.topic)
+            EventHandler.register(RotationInputRelease::class, RotationInputRelease.topic)
         }
 
         const val PREFIX = "application.internal.events.input-event."

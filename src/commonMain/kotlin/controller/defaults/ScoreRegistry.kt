@@ -3,7 +3,9 @@ package controller.defaults
 import controller.ScoringRuleBook
 import model.AppLog
 import model.Drop
+import model.Resetable
 import model.SpinType
+import model.debug
 import model.events.EventHandler
 import model.events.EventHandler.publish
 import model.events.GameEvent.BackToBackTrigger
@@ -13,8 +15,9 @@ import model.events.GameEvent.LevelUp
 import model.events.GameEvent.LineCleared
 import model.events.GameEvent.ScoreUpdated
 import model.events.GameEvent.SoftDrop
+import model.info
 
-class ScoreRegistry(private val ruleBook: ScoringRuleBook) {
+class ScoreRegistry(private val ruleBook: ScoringRuleBook) : Resetable {
 
     init {
         setupEventListener()
@@ -73,10 +76,10 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook) {
                 totalLinesCleared,
                 totalPoints,
                 pointsAwarded,
-                 moveType.displayName,
+                moveType.displayName,
                 isBoardEmpty
             )
-       )
+        )
     }
 
     private fun handleLevelUp() {
@@ -92,5 +95,13 @@ class ScoreRegistry(private val ruleBook: ScoringRuleBook) {
         val dropPoints = distance * (ruleBook.dropTables[type] ?: 0.0)
         AppLog.debug { "Drop Trigger [$type] awarded: $dropPoints points" }
         totalPoints += dropPoints
+    }
+
+    override fun reset() {
+        level = 1
+        totalLinesCleared = 0
+        totalPoints = 0.0
+        combo = -1
+        b2bCount = -1
     }
 }

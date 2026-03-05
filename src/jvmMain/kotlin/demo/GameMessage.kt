@@ -8,7 +8,7 @@ data class GameMessage(
     var text: String,
     val priority: MessagePriority,
     val timestamp: Long = System.currentTimeMillis()
-){
+) {
     override fun toString(): String {
         return "$text:$priority"
     }

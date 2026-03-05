@@ -10,6 +10,7 @@ import model.LastPieceAction
 import model.MovingPiece
 import model.Piece
 import model.Rotation
+import model.debug
 import model.defaults.DefaultMovingPiece
 import model.events.EventHandler
 import model.events.GameEvent
@@ -18,6 +19,7 @@ import model.events.GameEvent.NewPiece
 import model.events.GameEvent.PieceHeld
 import model.events.GameEvent.PieceRotated
 import model.events.GameEvent.SoftDrop
+import model.info
 import util.CollisionUtils.checkCollisionWithBoard
 
 class DefaultGuidelinePieceController<T : Piece>(

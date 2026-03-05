@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
+
 plugins {
     kotlin("multiplatform") version "2.3.10"
     kotlin("plugin.serialization") version "2.3.10"
@@ -19,13 +21,15 @@ kotlin {
 
     js {
         browser {
-            binaries.executable()
-            testTask {
-                useKarma {
-                    useChromeHeadless()
+            val projectDirPath = project.projectDir.path
+            commonWebpackConfig {
+                outputFileName = "ktris.js"
+                devServer = (devServer ?: KotlinWebpackConfig.DevServer()).apply {
+                    static(projectDirPath)
                 }
             }
         }
+        binaries.executable()
     }
 
     sourceSets {
@@ -40,25 +44,21 @@ kotlin {
             }
         }
         val jvmMain by getting {
-            dependsOn(commonMain)
             dependencies {
 
             }
         }
         val jvmTest by getting {
-            dependsOn(commonTest)
             dependencies {
                 implementation(kotlin("test-junit5"))
             }
         }
         val jsMain by getting {
-            dependsOn(commonMain)
             dependencies {
-                implementation("org.jetbrains.kotlinx:kotlinx-browser:0.3")
+                implementation("org.jetbrains.kotlinx:kotlinx-browser:0.5.0")
             }
         }
         val jsTest by getting {
-            dependsOn(commonTest)
             dependencies {
                 implementation(kotlin("test-js"))
             }

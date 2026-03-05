@@ -1,17 +1,24 @@
 package demo
 
-import controller.defaults.TimeManager
+import controller.defaults.ScoreRegistry
 import kotlinx.browser.window
-import org.w3c.dom.events.KeyboardEvent
 import model.Command
 import model.Drop
 import model.Movement
 import model.Rotation
-import model.TimeMode
 import model.events.EventHandler
-import model.events.InputEvent.*
+import model.events.InputEvent
+import model.events.InputEvent.CommandInput
+import model.events.InputEvent.DirectionMoveEnd
+import model.events.InputEvent.DirectionMoveStart
+import model.events.InputEvent.DropInput
+import model.events.InputEvent.RotationInputRelease
+import model.events.InputEvent.RotationInputStart
+import org.w3c.dom.events.KeyboardEvent
 
-class WebInputHandler(private val timeManager: TimeManager) {
+class WebInputHandler(private val scoreRegistry: ScoreRegistry) {
+    private var isTimeFrozen = false
+
     init {
         window.addEventListener("keydown", { event ->
             val e = event as KeyboardEvent
@@ -28,13 +35,18 @@ class WebInputHandler(private val timeManager: TimeManager) {
                 "ArrowLeft" -> EventHandler.publish(DirectionMoveStart.topic, DirectionMoveStart(Movement.MOVE_LEFT))
                 "ArrowRight" -> EventHandler.publish(DirectionMoveStart.topic, DirectionMoveStart(Movement.MOVE_RIGHT))
                 "s" -> {
-                    if (timeManager.mode == TimeMode.FROZEN) {
-                        timeManager.resetState()
+                    if (!isTimeFrozen) {
+                        EventHandler.publish(InputEvent.FreezeTime.topic, InputEvent.FreezeTime(Float.MAX_VALUE))
                     } else {
-                        timeManager.freezeTime(Float.MAX_VALUE)
+                        EventHandler.publish(InputEvent.FreezeTime.topic, InputEvent.FreezeTime(Float.MIN_VALUE))
                     }
+                    isTimeFrozen = !isTimeFrozen
                 }
-                "r" -> EventHandler.publish(CommandInput.topic, CommandInput(Command.RESET))
+
+                "r" -> {
+                    scoreRegistry.reset()
+                    EventHandler.publish(CommandInput.topic, CommandInput(Command.RESET))
+                }
             }
         })
 

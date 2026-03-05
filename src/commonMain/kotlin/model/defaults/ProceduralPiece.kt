@@ -6,6 +6,7 @@ import model.Matrix
 import model.Piece
 import model.Rotation
 import model.SpinType
+import kotlin.math.floor
 
 @Serializable
 open class ProceduralPiece(
@@ -19,7 +20,7 @@ open class ProceduralPiece(
     }
 
     override fun getRotationsState(rotationState: Int): Matrix {
-        val turns = Math.floorMod(rotationState, 4)
+        val turns = floor((rotationState % 4).toDouble()).toInt()
         val current = shape.copy()
         repeat(turns) {
             current.transpose()
@@ -38,7 +39,8 @@ open class ProceduralPiece(
 }
 
 @Serializable
-class ProceduralIPiece(var _id: Int, var _shape: Matrix, var _name: String) : ProceduralPiece(_id, _shape, _name,
+class ProceduralIPiece(var _id: Int, var _shape: Matrix, var _name: String) : ProceduralPiece(
+    _id, _shape, _name,
     SRSKicks.I_PIECE
 ) {
     override fun getRotationCenter(): Pair<Int, Int> {

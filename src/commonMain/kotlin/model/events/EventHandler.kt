@@ -11,6 +11,7 @@ import model.Piece
 import model.defaults.ProceduralIPiece
 import model.defaults.ProceduralPiece
 import model.defaults.ProceduralTPiece
+import model.error
 import model.events.GameEvent.BackToBackTrigger
 import model.events.GameEvent.ComboTriggered
 import model.events.GameEvent.FreezeLineClear
