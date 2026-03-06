@@ -23,6 +23,7 @@ class GarbageProcessor(
     init {
         scope.launch {
             while (isActive) {
+                updatePendingGarbage()
                 if (garbageQueue.isNotEmpty()) {
                     val packet = garbageQueue.removeFirst()
                     val wait = packet.scheduledAt - System.currentTimeMillis()

@@ -46,6 +46,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override val gameId = scope.coroutineContext[GameId]?.value ?: error("No GameId in scope")
 
+    // idk if this is a good choice, its working kinda but it was kinda weird to get it running and im kinda clueless still
     private val provider = EngineProviders.resolve<T>(gameId)
 
     protected val playerSettings = provider.providePlayerSettings(gameId)
