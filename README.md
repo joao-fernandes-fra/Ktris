@@ -41,7 +41,8 @@ The project includes a simple Swing-based demo that provides a graphical user in
 #### Key features showcased in this demo
 * **Guideline compliant:** This engine is built to the Tetris [guidelines](https://harddrop.com/wiki/Tetris_Guideline) to the best of my abilities, report if u find any issues with the code
 * **Freeze Time Handling:** Toggle "Freeze Mode" to stop time and clear multiple rows at once.
-* **Multiplayer Ready:** The engine features garbage processing which can be used to build a multiplayer Tetris game with your own rules
+* **Versus:** Try to survive for 2 minutes against a simulated enemy with configurable apm based on the difficulty setting
+* **4-way:** Practice combos in a reduced size board
 
 1.  **Clone the repository:**
     ```bash
@@ -58,10 +59,9 @@ The project includes a simple Swing-based demo that provides a graphical user in
     ```bash
     .\gradlew.bat runDemo
 * The demo have 3 built-in difficulties | Normal | Expert | Pro it can be specified in the arguments ex:`--args="expert"`
-* Also included in the demo is a cheese down-stacking mode, and a 4way mode with a 4-wide board so u can test your combos
-* Difficulties can be specified together with the game mode cheese and/or 4way flag for a game ex:
+* Difficulties can be specified together with the game mode versus and/or 4way flag for a game ex:
     ```bash
-    ./gradlew runDemo --args="expert 4way cheese"
+    ./gradlew runDemo --args="expert versus 4way"
 
 A Swing window will open with a playable Tetris game. Use the keyboard controls to move and rotate the pieces.
 ### Demo Controls
@@ -78,8 +78,8 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 ![Swing Demo Screenshot](src/main/resources/assets/gameplay-demo.png)
 ![Gameplay GIF](src/main/resources/assets/gameplay-demo.gif)
 ### Showcase engine ability to handle garbage lines ###
-![Cheese Demo Screenshot](src/main/resources/assets/cheese-demo.png)
-![Cheese Demo GIF](src/main/resources/assets/cheese-demo.gif)
+![Versus Demo Screenshot](src/main/resources/assets/versus-demo.png)
+![Versus Demo GIF](src/main/resources/assets/versus-demo.gif)
 ### Showcase engine ability to handle time freezes and board collapses ###
 ![Freeze Demo GIF](src/main/resources/assets/freeze-demo.gif)
 ### Showcase customization with a 4wide board focused on combos ###

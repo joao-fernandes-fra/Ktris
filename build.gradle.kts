@@ -13,6 +13,7 @@ repositories {
 
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
     testImplementation(kotlin("test"))
     testImplementation("io.mockk:mockk:1.13.12")
@@ -36,12 +37,12 @@ tasks.test {
 }
 
 application {
-    mainClass.set("demo.SwingTetrisTestKt")
+    mainClass.set("demo.KtrisKt")
 }
 
 tasks.register<JavaExec>("runDemo") {
     group = "application"
     description = "Runs the Tetris swing demonstration"
-    mainClass.set("demo.SwingTetrisTestKt")
+    mainClass.set("demo.KtrisKt")
     classpath = sourceSets["main"].runtimeClasspath
 }
