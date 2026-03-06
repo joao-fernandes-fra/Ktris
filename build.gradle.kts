@@ -1,48 +1,54 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
+
 plugins {
-    id("application")
-    kotlin("jvm") version "2.0.21"
-    kotlin("plugin.serialization") version "2.0.21"
+    kotlin("multiplatform") version "2.3.10"
+    kotlin("plugin.serialization") version "2.3.10"
+    id("maven-publish")
 }
 
 group = "com.kari.ktris"
-description = "Ktris - A cross-platform Tetris engine for JVM"
+description = "Ktris - A cross-platform Tetris engine"
 
 repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
-
-    testImplementation(kotlin("test"))
-    testImplementation("io.mockk:mockk:1.13.12")
-}
-
 kotlin {
-    jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
-        vendor.set(JvmVendorSpec.GRAAL_VM)
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_17)
+            freeCompilerArgs.add("-Xjsr305=strict")
+        }
+    }
+    js {
+        browser()
+        nodejs()
     }
 
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
-
-        freeCompilerArgs.add("-Xjsr305=strict")
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+                implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test"))
+            }
+        }
+        val jvmMain by getting {
+            dependencies {
+            }
+        }
     }
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-application {
-    mainClass.set("demo.KtrisKt")
 }
 
 tasks.register<JavaExec>("runDemo") {
     group = "application"
-    description = "Runs the Tetris swing demonstration"
+    description = "Runs the Tetris Swing demonstration"
     mainClass.set("demo.KtrisKt")
-    classpath = sourceSets["main"].runtimeClasspath
+    classpath = sourceSets["jvmMain"].runtimeClasspath
 }

@@ -75,15 +75,15 @@ A Swing window will open with a playable Tetris game. Use the keyboard controls 
 *   **Move Left/Right:** ←/→ Arrow Key
 
 ## 📸 Screenshots & Demo
-![Swing Demo Screenshot](src/main/resources/assets/gameplay-demo.png)
-![Gameplay GIF](src/main/resources/assets/gameplay-demo.gif)
+![Swing Demo Screenshot](src/docs/assets/gameplay-demo.png)
+![Gameplay GIF](src/docs/assets/gameplay-demo.gif)
 ### Showcase engine ability to handle garbage lines ###
-![Versus Demo Screenshot](src/main/resources/assets/versus-demo.png)
-![Versus Demo GIF](src/main/resources/assets/versus-demo.gif)
+![Versus Demo Screenshot](src/docs/assets/versus-demo.png)
+![Versus Demo GIF](src/docs/assets/versus-demo.gif)
 ### Showcase engine ability to handle time freezes and board collapses ###
-![Freeze Demo GIF](src/main/resources/assets/freeze-demo.gif)
+![Freeze Demo GIF](src/docs/assets/freeze-demo.gif)
 ### Showcase customization with a 4wide board focused on combos ###
-![Four Way Demo GIF](src/main/resources/assets/fourway-demo.gif)
+![Four Way Demo GIF](src/docs/assets/fourway-demo.gif)
 
 
 ## 🛠️ Building and Editing
