@@ -1,6 +1,6 @@
 package demo.model
 
-import demo.controller.EnemySimulator
+import demo.controller.AttackSimulator
 import demo.controller.GarbageProcessor
 import demo.controller.SwingInputHandler
 import demo.view.SwingRenderer
@@ -28,8 +28,8 @@ class SwingTetris(
     args: Array<String>
 ) {
     companion object {
-        private val PLAYER_GAME_ID = "Ktris-${Uuid.random().toHexString()}"
-        private val ENEMY_GAME_ID = "Enemy-${Uuid.random().toHexString()}"
+        public val PLAYER_GAME_ID = "Ktris-${Uuid.random().toHexString()}"
+        public val ENEMY_GAME_ID = "Enemy-${Uuid.random().toHexString()}"
     }
 
     private var isCheeseGame: Boolean = false
@@ -76,7 +76,7 @@ class SwingTetris(
                 else -> 10
             }
             val enemyScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + GameId(ENEMY_GAME_ID))
-            EnemySimulator(enemyScope, ENEMY_GAME_ID, apm).start()
+            AttackSimulator(enemyScope, apm).start()
         }
 
         garbageProcessor = GarbageProcessor(game.scope)

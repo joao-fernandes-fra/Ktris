@@ -8,6 +8,7 @@ import engine.controller.EngineProviders
 import engine.controller.GameRenderer
 import engine.controller.defaults.ScoreProvider
 import engine.model.AppLog
+import engine.model.Command
 import engine.model.GameSnapshot
 import engine.model.Piece
 import engine.model.PieceState
@@ -16,6 +17,7 @@ import engine.model.defaults.Tetromino
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
 import engine.model.events.GameId
+import engine.model.events.InputEvent
 import engine.model.toPieceState
 import kotlinx.coroutines.CoroutineScope
 import java.awt.BasicStroke
@@ -138,6 +140,15 @@ class SwingRenderer<T : Piece>(private val scope: CoroutineScope) : JPanel(), Ga
             finishMessage = if (it.goalMet) "VICTORY!" else "GAME OVER"
             repaint()
         }
+        EventOrchestrator.subscribe<InputEvent.CommandInput> {
+            if (it.command == Command.RESET) {
+                gameFinished = false
+                goalMet = false
+                finishMessage = null
+                repaint()
+            }
+        }
+
         EventOrchestrator.subscribe<GameEvent.SpinDetected> { event ->
             lastSpinPieceState = lastSnapshot?.currentPiece
             lastSpinType = event.spinType

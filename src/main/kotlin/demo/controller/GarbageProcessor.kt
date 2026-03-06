@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 private const val GARBAGE_ENTRANCE_DELAY = 1000L
 
 class GarbageProcessor(
-    private val scope: CoroutineScope,
+    scope: CoroutineScope,
     private val delayMillis: Long = GARBAGE_ENTRANCE_DELAY
 ) {
     private data class GarbagePacket(val lines: Int, val scheduledAt: Long)
