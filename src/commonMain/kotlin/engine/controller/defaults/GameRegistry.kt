@@ -37,7 +37,7 @@ object GameRegistry {
     ): KtrisContext<T> {
         val boardController = BoardManager(global.boardRows, global.boardCols, global.bufferZone)
         val gameTimers = GameTimers()
-        val pieceController = DefaultPieceProvider<T>(boardController.board, player, global, gameTimers, gameId)
+        val pieceController = DefaultPieceController<T>(boardController.board, player, global, gameTimers, gameId)
 
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default + GameId(gameId))
         val context = KtrisContext(

@@ -14,7 +14,7 @@ private const val ANSI_YELLOW = "\u001B[33m"
 /**
  * Fun exercise to avoid using jvm specifics and keep the default logger field, nothing here is necessary
  * */
-object AppLog {
+object Logger {
     var minLevel = Level.INFO
 
     enum class Level { DEBUG, INFO, WARN, ERROR }

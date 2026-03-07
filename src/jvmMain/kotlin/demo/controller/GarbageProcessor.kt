@@ -10,34 +10,44 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private const val GARBAGE_ENTRANCE_DELAY = 1000L
 
 class GarbageProcessor(
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     private val delayMillis: Long = GARBAGE_ENTRANCE_DELAY
 ) {
     private data class GarbagePacket(val lines: Int, val scheduledAt: Long)
 
+    private val queueMutex = Mutex()
     private val garbageQueue = ArrayDeque<GarbagePacket>()
     private val gameId = scope.coroutineContext[GameId]?.value ?: error("No GameId in scope")
     private var isGameOver: Boolean = false
 
     init {
+        startProcessing()
+        setupSubscribers()
+    }
+
+    private fun startProcessing() {
         scope.launch {
             while (isActive && !isGameOver) {
-                updatePendingGarbage()
-                if (garbageQueue.isNotEmpty()) {
-                    val packet = garbageQueue.removeFirst()
+                val packet = queueMutex.withLock {
+                    if (garbageQueue.isNotEmpty()) garbageQueue.removeFirst() else null
+                }
+
+                if (packet != null) {
                     val wait = packet.scheduledAt - System.currentTimeMillis()
                     if (wait > 0) delay(wait)
                     applyGarbage(packet)
+                    updatePendingGarbage()
                 } else {
                     delay(GARBAGE_ENTRANCE_DELAY)
                 }
             }
         }
-        setupSubscribers()
     }
 
 
@@ -50,34 +60,43 @@ class GarbageProcessor(
             isGameOver = true
         }
         EventOrchestrator.subscribe<InputEvent.CommandInput> {
-            if (it.command == Command.RESET) {
+            if (it.command == Command.RESET && isGameOver) {
                 isGameOver = false
+                startProcessing()
             }
         }
     }
 
     fun receiveGarbage(lines: Int) {
-        val packet = GarbagePacket(lines, System.currentTimeMillis() + delayMillis)
-        garbageQueue.add(packet)
-        updatePendingGarbage()
+        scope.launch {
+            queueMutex.withLock {
+                val packet = GarbagePacket(lines, System.currentTimeMillis() + delayMillis)
+                garbageQueue.add(packet)
+            }
+            updatePendingGarbage()
+        }
     }
 
     fun sendGarbage(lines: Int, distributionMode: String) {
-        var remaining = lines
-
-        while (remaining > 0 && garbageQueue.isNotEmpty()) {
-            val front = garbageQueue.first()
-            if (front.lines <= remaining) {
-                remaining -= front.lines
-                garbageQueue.removeFirst()
-            } else {
-                garbageQueue[0] = front.copy(lines = front.lines - remaining)
-                remaining = 0
+        scope.launch {
+            var remaining = lines
+            queueMutex.withLock {
+                while (remaining > 0 && garbageQueue.isNotEmpty()) {
+                    val front = garbageQueue.first()
+                    if (front.lines <= remaining) {
+                        remaining -= front.lines
+                        garbageQueue.removeFirst()
+                    } else {
+                        garbageQueue[0] = front.copy(lines = front.lines - remaining)
+                        remaining = 0
+                    }
+                }
             }
-        }
 
-        if (remaining > 0) {
-            EventOrchestrator.publish(GameEvent.GarbageSent(remaining, distributionMode, gameId))
+            if (remaining > 0) {
+                EventOrchestrator.publish(GameEvent.GarbageSent(remaining, distributionMode, gameId))
+            }
+            updatePendingGarbage()
         }
     }
 
@@ -85,8 +104,10 @@ class GarbageProcessor(
         EventOrchestrator.publish(GameEvent.GarbageReceived(packet.lines, gameId))
     }
 
-    private fun updatePendingGarbage() {
-        val pendingLines = garbageQueue.sumOf { it.lines }
+    private suspend fun updatePendingGarbage() {
+        val pendingLines = queueMutex.withLock {
+            garbageQueue.sumOf { it.lines }
+        }
         EventOrchestrator.publish(PendingGarbage(pendingLines, gameId))
     }
 }

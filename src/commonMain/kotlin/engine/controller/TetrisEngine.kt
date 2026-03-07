@@ -17,7 +17,7 @@ interface TetrisEngine<T : Piece> : Resetable {
     val sessionTimeSeconds: Double
     suspend fun start(renderer: GameRenderer<T>)
     suspend fun levelUp(newLevel: Int): Int
-    suspend fun processGarbage(lines: Int, garbageBlockId: Int)
+    suspend fun processGarbage(lines: Int)
     suspend fun onCommand(command: Command)
     suspend fun onRotation(rotation: Rotation): Boolean
     suspend fun onMovement(movement: Movement): Boolean

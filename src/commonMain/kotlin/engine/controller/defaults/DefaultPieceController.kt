@@ -1,7 +1,6 @@
 package engine.controller.defaults
 
 import engine.controller.PieceController
-import engine.model.defaults.AppLog
 import engine.model.Board
 import engine.model.DasState
 import engine.model.GameTimers
@@ -12,6 +11,7 @@ import engine.model.Piece
 import engine.model.PlayerSettings
 import engine.model.Rotation
 import engine.model.defaults.DefaultMovingPiece
+import engine.model.defaults.Logger
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
 import engine.model.events.GameEvent.GameOver
@@ -19,10 +19,9 @@ import engine.model.events.GameEvent.NewPiece
 import engine.model.events.GameEvent.PieceHeld
 import engine.model.events.GameEvent.PieceRotated
 import engine.model.events.GameEvent.SoftDrop
-import engine.model.events.currentGameId
 import engine.util.CollisionUtils.checkCollisionWithBoard
 
-class DefaultPieceProvider<T : Piece>(
+class DefaultPieceController<T : Piece>(
     private val board: Board,
     private val playerSettings: PlayerSettings,
     private val globalGameSettings: GlobalGameSettings,
@@ -92,7 +91,7 @@ class DefaultPieceProvider<T : Piece>(
 
 
     override suspend fun spawn(piece: T): MovingPiece<T>? {
-        AppLog.debug { "Spawning piece: ${piece.name}" }
+        Logger.debug { "Spawning piece: ${piece.name}" }
         val newPiece = DefaultMovingPiece(
             piece = piece,
             pieceCol = (board.cols / 2) - (piece.shape.cols / 2),
@@ -114,6 +113,16 @@ class DefaultPieceProvider<T : Piece>(
         return newPiece
     }
 
+    override suspend fun clip() {
+        if (currentPiece == null) return
+        val piece = currentPiece!!
+        var targetRow = piece.pieceRow
+        while (targetRow != 0 && !canMove(piece, targetRow, piece.pieceCol)) {
+            targetRow--
+        }
+        updateGhost()
+    }
+
     override suspend fun hardDrop() {
         currentPiece?.let { piece ->
             val distance = ghostRow - piece.pieceRow
@@ -124,8 +133,8 @@ class DefaultPieceProvider<T : Piece>(
     }
 
     override suspend fun softDrop(deltaTime: Double) {
-        AppLog.debug { "SOFT_DROP: Configured Delay: ${playerSettings.softDropDelay}" }
-        AppLog.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Delay: ${playerSettings.softDropDelay}" }
+        Logger.debug { "SOFT_DROP: Configured Delay: ${playerSettings.softDropDelay}" }
+        Logger.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Delay: ${playerSettings.softDropDelay}" }
         gameTimers.softDropTimer += deltaTime
         var dropLines = 0
         if (playerSettings.softDropDelay <= SOFT_DROP_PRECISION_EPSILON) {
@@ -136,14 +145,14 @@ class DefaultPieceProvider<T : Piece>(
             }
         } else {
             while (gameTimers.softDropTimer >= playerSettings.softDropDelay) {
-                AppLog.debug { "SOFT_DROP: Dropping Piece with delay: ${playerSettings.softDropDelay}" }
+                Logger.debug { "SOFT_DROP: Dropping Piece with delay: ${playerSettings.softDropDelay}" }
                 if (movePiece(1, 0)) {
                     dropLines++
                     gameTimers.dropTimer = 0.0
 
                     gameTimers.softDropTimer -= playerSettings.softDropDelay
                 } else {
-                    AppLog.debug { "SOFT_DROP: Movement blocked (Hit floor/stack)" }
+                    Logger.debug { "SOFT_DROP: Movement blocked (Hit floor/stack)" }
                     gameTimers.softDropTimer = 0.0
                     break
                 }
@@ -217,7 +226,7 @@ class DefaultPieceProvider<T : Piece>(
             heldPiece = pieceToHold
             spawn(next)
         }
-        AppLog.info { "Piece held: ${heldPiece?.name}" }
+        Logger.info { "Piece held: ${heldPiece?.name}" }
         EventOrchestrator.publish(PieceHeld(heldPiece!!, gameId))
         canHold = false
     }
@@ -230,14 +239,19 @@ class DefaultPieceProvider<T : Piece>(
         if (lockResets < playerSettings.maxLockResets) {
             gameTimers.lockTimer = 0.0
             lockResets++
-            AppLog.debug { "Lock timer resets $lockResets" }
+            Logger.debug { "Lock timer resets $lockResets" }
         }
     }
 
     override suspend fun handleLockDelay(deltaTime: Double, onLock: suspend () -> Unit) {
-        if (currentPiece != null && !canMove(currentPiece!!, 1, 0)) {
+        val piece = currentPiece ?: return
+
+        val isTouchingFloor = !canMove(piece, 1, 0)
+        val isInsideBlock = checkCollisionWithBoard(board, piece.shape, piece.pieceRow, piece.pieceCol)
+
+        if (isTouchingFloor || isInsideBlock) {
             gameTimers.lockTimer += deltaTime
-            if (gameTimers.lockTimer >= playerSettings.lockDelay) {
+            if (gameTimers.lockTimer >= playerSettings.lockDelay || isInsideBlock) {
                 onLock()
             }
         } else {
@@ -249,7 +263,7 @@ class DefaultPieceProvider<T : Piece>(
         return !checkCollisionWithBoard(board, piece.shape, row + dRow, piece.pieceCol + dCol)
     }
 
-    private fun updateGhost() {
+    override suspend fun updateGhost() {
         currentPiece?.let { piece ->
             var testRow = piece.pieceRow
             while (canMove(piece, 1, 0, testRow)) {

@@ -1,6 +1,6 @@
 package engine.controller.defaults
 
-import engine.model.defaults.AppLog
+import engine.model.defaults.Logger
 import engine.model.GlobalGameSettings
 import engine.model.Resetable
 import engine.model.TimeState
@@ -22,7 +22,7 @@ class TimeManager(private val settings: GlobalGameSettings) : Resetable {
     }
 
     private fun freezeTime(duration: Double) {
-        AppLog.info { "Freezing time: $duration" }
+        Logger.info { "Freezing time: $duration" }
         mode = TimeState.FROZEN
         modeDuration = duration
     }
@@ -30,7 +30,7 @@ class TimeManager(private val settings: GlobalGameSettings) : Resetable {
     private fun resetState() {
         mode = TimeState.NORMAL
         onFreezeEnded?.invoke()
-        AppLog.info { "Returning to normal state: $mode" }
+        Logger.info { "Returning to normal state: $mode" }
     }
 
     fun slowDownTime(duration: Double) {

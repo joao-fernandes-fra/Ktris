@@ -12,7 +12,7 @@ import engine.model.GameSnapshot
 import engine.model.Piece
 import engine.model.PieceState
 import engine.model.SpinType
-import engine.model.defaults.AppLog
+import engine.model.defaults.Logger
 import engine.model.defaults.Tetromino
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
@@ -124,7 +124,7 @@ class SwingRenderer<T : Piece>(scope: CoroutineScope) : JPanel(), GameRenderer<T
         EventOrchestrator.subscribe<PendingGarbage> { event ->
             if (event.gameId == gameId) {
                 pendingLines = event.lines
-                AppLog.info { "Garbage pending: $pendingLines" }
+                Logger.info { "Garbage pending: $pendingLines" }
                 repaint()
             }
         }

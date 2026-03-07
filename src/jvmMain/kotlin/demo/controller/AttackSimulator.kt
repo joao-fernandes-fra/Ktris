@@ -20,8 +20,11 @@ class AttackSimulator(
     private var startTime = System.currentTimeMillis()
     private var isGameOver = false
 
-    fun start() {
+    init {
         setupListeners()
+    }
+
+    fun startProcess() {
         scope.launch {
             while (isActive && !isGameOver) {
                 val lines = (1..4).random()
@@ -61,8 +64,9 @@ class AttackSimulator(
             isGameOver = true
         }
         EventOrchestrator.subscribe<InputEvent.CommandInput> {
-            if (it.command == Command.RESET) {
+            if (it.command == Command.RESET && isGameOver) {
                 isGameOver = false
+                startProcess()
             }
         }
     }

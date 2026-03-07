@@ -2,13 +2,13 @@ package engine.controller.defaults
 
 import engine.controller.BoardController
 import engine.model.Board
+import engine.model.Board.Companion.EMPTY_BLOCK_VALUE
 import engine.model.Matrix
 import engine.model.MovingPiece
 
 
 class BoardManager(rows: Int, cols: Int, bufferHeight: Int) : BoardController {
     companion object {
-        private const val EMPTY_BLOCK_VALUE = 0
         private const val PENDING_BLOCK_ID = -1
     }
 
@@ -16,7 +16,7 @@ class BoardManager(rows: Int, cols: Int, bufferHeight: Int) : BoardController {
     override var linesCleared: Int = 0
     override val isBoardEmpty get() = board.isEmpty
 
-    override fun isOccupied(row: Int, col: Int): Boolean = board[row, col] != EMPTY_BLOCK_VALUE
+    override fun isOccupied(row: Int, col: Int): Boolean = board.isOccupied(row, col)
 
     override fun clearFullLines(): Set<Int> {
         val fullLines = getFullLines()

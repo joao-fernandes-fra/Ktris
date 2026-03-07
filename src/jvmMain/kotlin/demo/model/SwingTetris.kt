@@ -7,7 +7,7 @@ import demo.view.SwingRenderer
 import engine.controller.defaults.BaseTetris
 import engine.controller.defaults.GameRegistry
 import engine.controller.defaults.ScoreProvider
-import engine.model.defaults.AppLog
+import engine.model.defaults.Logger
 import engine.model.GameGoal
 import engine.model.defaults.ProceduralPiece
 import engine.model.defaults.Tetromino
@@ -38,7 +38,7 @@ class SwingTetris(
     private var garbageProcessor: GarbageProcessor
 
     init {
-        AppLog.minLevel = AppLog.Level.DEBUG
+        Logger.minLevel = Logger.Level.DEBUG
 
         val (playerSetting, globalSettings) = when {
             args.contains("expert") -> GameSettingsProvider.expert()
@@ -76,7 +76,7 @@ class SwingTetris(
                 else -> 10
             }
             val enemyScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + GameId(ENEMY_GAME_ID))
-            AttackSimulator(enemyScope, apm).start()
+            AttackSimulator(enemyScope, apm).startProcess()
         }
 
         garbageProcessor = GarbageProcessor(game.scope)

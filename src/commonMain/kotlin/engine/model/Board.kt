@@ -1,10 +1,15 @@
 package engine.model
 
+
 data class Board(
     var contents: Matrix,
-    var bufferSize: Int = 0,
+    var bufferSize: Int = EMPTY_BLOCK_VALUE,
 ) {
-    constructor(rows: Int, cols: Int, bufferSize: Int, initialValue: Int = 0) : this(
+    companion object {
+        const val EMPTY_BLOCK_VALUE = 0
+    }
+
+    constructor(rows: Int, cols: Int, bufferSize: Int, initialValue: Int = EMPTY_BLOCK_VALUE) : this(
         Matrix(
             rows + bufferSize,
             cols,
@@ -12,7 +17,7 @@ data class Board(
         ), bufferSize
     )
 
-    constructor(rows: Int, cols: Int, initialValue: Int = 0) : this(Matrix(rows, cols, initialValue))
+    constructor(rows: Int, cols: Int, initialValue: Int = EMPTY_BLOCK_VALUE) : this(Matrix(rows, cols, initialValue))
 
     operator fun get(row: Int, col: Int): Int = contents[row, col]
     operator fun set(row: Int, col: Int, value: Int) {
@@ -22,12 +27,14 @@ data class Board(
     val rows get() = contents.rows
     val cols get() = contents.cols
 
+    fun isOccupied(row: Int, col: Int): Boolean = contents[row, col] != EMPTY_BLOCK_VALUE
+
     val isEmpty: Boolean get() = contents.isEmpty()
     val visibleRows: Int get() = rows - bufferSize
 
     override fun toString(): String {
-        return (0 until rows).joinToString("\n") { r ->
-            (0 until cols)
+        return (EMPTY_BLOCK_VALUE until rows).joinToString("\n") { r ->
+            (EMPTY_BLOCK_VALUE until cols)
                 .map { c -> this[r, c] }
                 .joinToString(prefix = "[", postfix = "]", separator = ",")
         }
