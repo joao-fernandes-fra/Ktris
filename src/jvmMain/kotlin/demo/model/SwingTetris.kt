@@ -7,8 +7,8 @@ import demo.view.SwingRenderer
 import engine.controller.defaults.BaseTetris
 import engine.controller.defaults.GameRegistry
 import engine.controller.defaults.ScoreProvider
-import engine.model.defaults.Logger
 import engine.model.GameGoal
+import engine.model.defaults.Logger
 import engine.model.defaults.ProceduralPiece
 import engine.model.defaults.Tetromino
 import engine.model.events.EventOrchestrator
@@ -47,21 +47,25 @@ class SwingTetris(
         }
         isCheeseGame = args.contains("versus")
 
-        val gameSettings = if (args.contains("4way"))
-            globalSettings.copy(goalType = GameGoal.TIME, goalValue = 2 * 60.0, boardCols = 4)
-        else
-            globalSettings.copy(goalType = GameGoal.TIME, goalValue = 2 * 60.0)
+        val gameSettings = if (args.contains("4way")) globalSettings.copy(
+            goalType = GameGoal.TIME,
+            goalValue = 2 * 60.0,
+            boardCols = 4
+        )
+        else globalSettings.copy(goalType = GameGoal.TIME, goalValue = 2 * 60.0)
 
         frame = JFrame("Ktris - ${if (args.isEmpty()) "Normal" else args[0].uppercase()}")
 
-        val gameContext = GameRegistry.buildContext(gameSettings, playerSetting, Tetromino.pieces, PLAYER_GAME_ID)
-        val game = GameRegistry.createGame(gameContext)
+        val game = GameRegistry.registerContext(
+            GameRegistry.getDefaultContext(
+                gameSettings, playerSetting, Tetromino.pieces, PLAYER_GAME_ID
+            )
+        )
 
-        ScoreProvider.defaultBuilder(PLAYER_GAME_ID)
-            .withScope(game.scope)
-            .build()
-        val inputHandler = SwingInputHandler(game.scope)
-        renderer = SwingRenderer(game.scope)
+        val gameScope = game.scope!!
+        ScoreProvider.defaultBuilder(PLAYER_GAME_ID).withScope(gameScope).build()
+        val inputHandler = SwingInputHandler(gameScope)
+        renderer = SwingRenderer(game)
 
         frame.defaultCloseOperation = WindowConstants.EXIT_ON_CLOSE
         frame.add(renderer)
@@ -84,18 +88,16 @@ class SwingTetris(
     }
 
     suspend fun run() {
-        val gameScope = GameRegistry.get<ProceduralPiece>(PLAYER_GAME_ID).scope
-        BaseTetris<ProceduralPiece>(gameScope).start(renderer)
+        val gameContext = GameRegistry.get<ProceduralPiece>(PLAYER_GAME_ID)
+        BaseTetris(gameContext).start(renderer)
     }
 
     private fun setUpGarbageListeners() {
-        EventOrchestrator.subscribe<GameEvent.LineCleared, Int>(
-            { totalLines ->
-                if (totalLines != null && totalLines > 0) {
-                    garbageProcessor.sendGarbage(totalLines, "all")
-                }
-            },
-            { event -> if (event.gameId == PLAYER_GAME_ID) event.linesCleared.size else null })
+        EventOrchestrator.subscribe<GameEvent.LineCleared, Int>({ totalLines ->
+            if (totalLines != null && totalLines > 0) {
+                garbageProcessor.sendGarbage(totalLines, "all")
+            }
+        }, { event -> if (event.gameId == PLAYER_GAME_ID) event.linesCleared.size else null })
 
     }
 }

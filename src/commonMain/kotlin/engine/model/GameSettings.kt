@@ -4,7 +4,7 @@ enum class GameGoal {
     LINES, TIME, NONE
 }
 
-data class GlobalGameSettings(
+data class GameSettings(
     val boardRows: Int = 20,
     val boardCols: Int = 10,
     val bufferZone: Int = 4,

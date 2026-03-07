@@ -13,6 +13,7 @@ gradle-app.setting
 
 # Build System (Maven - if applicable)
 target/
+.kotlin/
 
 # OS/System files
 .DS_Store

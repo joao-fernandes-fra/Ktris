@@ -4,11 +4,11 @@ import demo.model.GameMessage
 import demo.model.MessagePriority
 import demo.model.PendingGarbage
 import demo.model.PlayerAPMUpdated
-import engine.controller.EngineProviders
 import engine.controller.GameRenderer
 import engine.controller.defaults.ScoreProvider
 import engine.model.Command
 import engine.model.GameSnapshot
+import engine.model.KtrisContext
 import engine.model.Piece
 import engine.model.PieceState
 import engine.model.SpinType
@@ -16,10 +16,8 @@ import engine.model.defaults.Logger
 import engine.model.defaults.Tetromino
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
-import engine.model.events.GameId
 import engine.model.events.InputEvent
 import engine.model.toPieceState
-import kotlinx.coroutines.CoroutineScope
 import java.awt.BasicStroke
 import java.awt.Color
 import java.awt.Dimension
@@ -31,10 +29,10 @@ import javax.swing.JPanel
 import kotlin.math.min
 import kotlin.math.sin
 
-class SwingRenderer<T : Piece>(scope: CoroutineScope) : JPanel(), GameRenderer<T> {
-    private val gameId = scope.coroutineContext[GameId]?.value ?: error("No GameId in scope")
+class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRenderer<T> {
+    private val gameId = gameContext.gameId
     private val scoreTracker = ScoreProvider.getTracker(gameId)
-    private val timerManager = EngineProviders.resolve<T>(gameId).provideTimers(gameId)
+    private val timerManager = gameContext.gameTimers
 
     companion object {
         private const val SCREEN_HEIGHT = 720

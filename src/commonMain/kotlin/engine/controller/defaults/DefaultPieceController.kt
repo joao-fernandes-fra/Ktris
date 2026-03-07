@@ -3,8 +3,8 @@ package engine.controller.defaults
 import engine.controller.PieceController
 import engine.model.Board
 import engine.model.DasState
+import engine.model.GameSettings
 import engine.model.GameTimers
-import engine.model.GlobalGameSettings
 import engine.model.LastPieceAction
 import engine.model.MovingPiece
 import engine.model.Piece
@@ -20,11 +20,13 @@ import engine.model.events.GameEvent.PieceHeld
 import engine.model.events.GameEvent.PieceRotated
 import engine.model.events.GameEvent.SoftDrop
 import engine.util.CollisionUtils.checkCollisionWithBoard
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 class DefaultPieceController<T : Piece>(
     private val board: Board,
     private val playerSettings: PlayerSettings,
-    private val globalGameSettings: GlobalGameSettings,
+    private val globalGameSettings: GameSettings,
     private val gameTimers: GameTimers,
     private val gameId: String
 ) : PieceController<T> {
@@ -40,6 +42,7 @@ class DefaultPieceController<T : Piece>(
     private var dasState: DasState = DasState.IDLE
     private var lockResets: Int = 0
     private var canHold = true
+    private val pieceMutex: Mutex = Mutex()
 
     override suspend fun handleDAS(delta: Double, currentDirection: Int?) {
         val dir = currentDirection ?: return
@@ -77,7 +80,6 @@ class DefaultPieceController<T : Piece>(
         val gravitySpeed = globalGameSettings.gravityBase - (currentLevel - 1) * globalGameSettings.gravityIncrement
 
         gameTimers.dropTimer += delta
-
         if (gameTimers.dropTimer >= gravitySpeed) {
             if (movePiece(1, 0)) {
                 gameTimers.lockTimer = 0.0
@@ -113,11 +115,19 @@ class DefaultPieceController<T : Piece>(
         return newPiece
     }
 
-    override fun clip() {
-        val piece = currentPiece ?: return
-        var targetRow = piece.pieceRow
-        while (targetRow != 0 && !canMove(piece, targetRow, piece.pieceCol)) {
-            targetRow--
+    override suspend fun clip() {
+        pieceMutex.withLock {
+            val piece = currentPiece ?: return
+            var targetRow = piece.pieceRow
+
+            while (targetRow > 0 && !canPlace(piece, targetRow, piece.pieceCol)) {
+                targetRow--
+            }
+
+            if (targetRow != piece.pieceRow) {
+                piece.pieceRow = targetRow
+                updateGhost()
+            }
         }
     }
 
@@ -259,6 +269,10 @@ class DefaultPieceController<T : Piece>(
 
     private fun canMove(piece: MovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
         return !checkCollisionWithBoard(board, piece.shape, row + dRow, piece.pieceCol + dCol)
+    }
+
+    private fun canPlace(piece: MovingPiece<T>, row: Int, col: Int): Boolean {
+        return !checkCollisionWithBoard(board, piece.shape, row, col)
     }
 
     override suspend fun updateGhost() {

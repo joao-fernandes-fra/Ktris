@@ -1,11 +1,11 @@
 package engine.controller.defaults
 
 import engine.model.defaults.Logger
-import engine.model.GlobalGameSettings
+import engine.model.GameSettings
 import engine.model.Resetable
 import engine.model.TimeState
 
-class TimeManager(private val settings: GlobalGameSettings) : Resetable {
+class TimeManager(private val settings: GameSettings) : Resetable {
     var mode: TimeState = TimeState.NORMAL
         private set
 
