@@ -1,6 +1,15 @@
 package engine.controller.defaults
 
+import engine.controller.BagRandomizer
+import engine.controller.ClipCapable
+import engine.controller.DasCapable
+import engine.controller.GhostCapable
+import engine.controller.GravityCapable
+import engine.controller.HardDropCapable
+import engine.controller.HoldCapable
+import engine.controller.LockDelayCapable
 import engine.controller.PieceController
+import engine.controller.SoftDropCapable
 import engine.model.Board
 import engine.model.DasState
 import engine.model.GameSettings
@@ -23,19 +32,36 @@ import engine.util.CollisionUtils.checkCollisionWithBoard
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-class DefaultPieceController<T : Piece>(
+class GuidelinePieceController<T : Piece>(
     private val board: Board,
+    private val bagRandomizer: BagRandomizer<T>,
     private val playerSettings: PlayerSettings,
     private val globalGameSettings: GameSettings,
     private val gameTimers: GameTimers,
     private val gameId: String
-) : PieceController<T> {
+) : PieceController<T>, DasCapable, GravityCapable, SoftDropCapable, HardDropCapable, HoldCapable<T>,
+    ClipCapable, LockDelayCapable, GhostCapable {
     companion object {
         private const val SOFT_DROP_PRECISION_EPSILON = 0.001f
     }
 
+    init {
+        EventOrchestrator.subscribe<GameEvent.LevelUp> {
+            if (it.gameId == gameId) {
+                currentLevel = it.newLevel
+            }
+        }
+    }
+
+    private var currentLevel = 0
+
     override var heldPiece: T? = null
     override var currentPiece: MovingPiece<T>? = null
+
+    override suspend fun getNextPieces(previewSize: Int): List<T> {
+        return bagRandomizer.getPreview(previewSize)
+    }
+
     override var ghostRow: Int = 0
     override var lastAction: LastPieceAction = LastPieceAction.NONE
 
@@ -76,7 +102,7 @@ class DefaultPieceController<T : Piece>(
         gameTimers.dasTimer = 0.0
     }
 
-    override suspend fun handleGravity(currentLevel: Int, delta: Double) {
+    override suspend fun handleGravity(delta: Double) {
         val gravitySpeed = globalGameSettings.gravityBase - (currentLevel - 1) * globalGameSettings.gravityIncrement
 
         gameTimers.dropTimer += delta
@@ -92,11 +118,12 @@ class DefaultPieceController<T : Piece>(
     }
 
 
-    override suspend fun spawn(piece: T): MovingPiece<T>? {
-        Logger.debug { "Spawning piece: ${piece.name}" }
+    override suspend fun spawn(piece: T?): MovingPiece<T>? {
+        val nextPiece = piece ?: bagRandomizer.getNextPiece()
+        Logger.debug { "Spawning piece: ${nextPiece.name}" }
         val newPiece = DefaultMovingPiece(
-            piece = piece,
-            pieceCol = (board.cols / 2) - (piece.shape.cols / 2),
+            piece = nextPiece,
+            pieceCol = (board.cols / 2) - (nextPiece.shape.cols / 2),
         )
 
         if (checkCollisionWithBoard(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
@@ -222,13 +249,13 @@ class DefaultPieceController<T : Piece>(
     }
 
 
-    override suspend fun holdPiece(getNextPiece: () -> T) {
+    override suspend fun hold() {
         if (!playerSettings.isHoldEnabled || !canHold || currentPiece == null) return
 
         val pieceToHold = currentPiece!!.piece
         if (heldPiece == null) {
             heldPiece = pieceToHold
-            spawn(getNextPiece())
+            spawn()
         } else {
             val next = heldPiece!!
             heldPiece = pieceToHold
@@ -251,8 +278,8 @@ class DefaultPieceController<T : Piece>(
         }
     }
 
-    override suspend fun handleLockDelay(deltaTime: Double, onLock: suspend () -> Unit) {
-        val piece = currentPiece ?: return
+    override suspend fun handleLockDelay(deltaTime: Double, onLock: suspend () -> Unit): Boolean {
+        val piece = currentPiece ?: return false
 
         val isTouchingFloor = !canMove(piece, 1, 0)
         val isInsideBlock = checkCollisionWithBoard(board, piece.shape, piece.pieceRow, piece.pieceCol)
@@ -261,10 +288,12 @@ class DefaultPieceController<T : Piece>(
             gameTimers.lockTimer += deltaTime
             if (gameTimers.lockTimer >= playerSettings.lockDelay || isInsideBlock) {
                 onLock()
+                return true
             }
         } else {
             gameTimers.lockTimer = 0.0
         }
+        return false
     }
 
     private fun canMove(piece: MovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
@@ -293,5 +322,6 @@ class DefaultPieceController<T : Piece>(
         lockResets = 0
         dasState = DasState.IDLE
         canHold = true
+        bagRandomizer.reset()
     }
 }

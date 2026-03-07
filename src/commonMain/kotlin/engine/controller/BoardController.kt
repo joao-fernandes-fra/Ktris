@@ -11,8 +11,14 @@ interface BoardController : Resetable {
     fun isOccupied(row: Int, col: Int): Boolean
     fun clearFullLines(): Set<Int>
     fun getFullLines(): Set<Int>
-    fun addGarbage(lines: Int, garbageBlockId: Int)
     fun placePiece(piece: MovingPiece<*>)
-    fun collapseFullLines()
     fun updateBoard(board: Board)
+}
+
+interface CollapseCapable {
+    fun collapseFullLines()
+}
+
+interface GarbageCapable {
+    fun addGarbage(lines: Int, garbageBlockId: Int)
 }

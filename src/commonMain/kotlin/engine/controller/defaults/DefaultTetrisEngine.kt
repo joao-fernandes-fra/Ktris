@@ -1,6 +1,5 @@
 package engine.controller.defaults
 
-import engine.controller.BagRandomizer
 import engine.controller.BoardController
 import engine.controller.PieceController
 import engine.controller.TetrisEngine
@@ -39,13 +38,25 @@ import engine.model.events.InputEvent.FreezeTime
 import engine.model.events.InputEvent.RotationInputRelease
 import engine.model.events.InputEvent.RotationInputStart
 import engine.model.events.InputEvent.SlowDownTime
+import engine.util.addGarbageIfSupported
+import engine.util.advanceLockIfSupported
+import engine.util.applyGravityIfSupported
+import engine.util.clipIfSupported
+import engine.util.collapseIfSupported
+import engine.util.getGhostRowIfSupported
+import engine.util.getHeldPieceIfSupported
+import engine.util.handleDASIfSupported
+import engine.util.hardDropIfSupported
+import engine.util.holdIfSupported
+import engine.util.resetDASifSupported
+import engine.util.softDropIfSupported
+import engine.util.updateGhostIfSupported
 import kotlin.math.absoluteValue
 
 
 abstract class DefaultTetrisEngine<T : Piece>(
     protected val playerSettings: PlayerSettings,
     protected val gameSettings: GameSettings,
-    protected val bagManager: BagRandomizer<T>,
     protected val boardManager: BoardController,
     protected val pieceController: PieceController<T>,
     protected val gameTimers: GameTimers = GameTimers(),
@@ -127,7 +138,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
         garbageBuffer.clear()
         boardManager.reset()
         pieceController.reset()
-        bagManager.reset()
         gameTimers.reset()
         timeManager.reset()
 
@@ -138,18 +148,18 @@ abstract class DefaultTetrisEngine<T : Piece>(
         this.deltaTime = deltaTime
         if (garbageBuffer.isNotEmpty()) {
             processPendingGarbage()
-            pieceController.clip()
+            pieceController.clipIfSupported()
         }
         val gravityDelta = timeManager.tick(deltaTime)
         checkWinCondition()
-        pieceController.updateGhost()
+        pieceController.updateGhostIfSupported()
         when (gameState) {
             GameState.ENTRY_DELAY -> {
                 gameTimers.sessionTimer += deltaTime
                 gameTimers.areTimer += deltaTime
                 if (gameTimers.areTimer >= playerSettings.entryDelay) {
                     gameTimers.areTimer = 0.0
-                    val spawnedPiece = pieceController.spawn(bagManager.getNextPiece())
+                    val spawnedPiece = pieceController.spawn()
                     gameState = if (spawnedPiece == null) {
                         EventOrchestrator.publish(GameOver(false, gameSettings.goalType, gameId))
                         GameState.GAME_OVER
@@ -159,9 +169,9 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
             GameState.PLAYING -> {
                 gameTimers.sessionTimer += deltaTime
-                pieceController.handleDAS(deltaTime, currentDirection)
-                pieceController.handleGravity(currentLevel, gravityDelta)
-                pieceController.handleLockDelay(deltaTime, ::lockAndProcess)
+                pieceController.handleDASIfSupported(deltaTime, currentDirection)
+                pieceController.applyGravityIfSupported(gravityDelta)
+                pieceController.advanceLockIfSupported(deltaTime, ::lockAndProcess)
             }
 
             GameState.GAME_OVER -> {}
@@ -171,10 +181,10 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     private suspend fun processPendingGarbage() {
         garbageBuffer.forEach { line ->
-            boardManager.addGarbage(line, gameSettings.garbageBlockId)
+            boardManager.addGarbageIfSupported(line, gameSettings.garbageBlockId)
             Logger.info { "Garbage processed: $line for game $gameId" }
         }
-        pieceController.clip()
+        pieceController.clipIfSupported()
         garbageBuffer.clear()
     }
 
@@ -189,15 +199,16 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override suspend fun onCommand(command: Command) {
         when (command) {
-            Command.HOLD -> pieceController.holdPiece { bagManager.getNextPiece() }
+            Command.HOLD -> pieceController.holdIfSupported()
             Command.RESET -> reset()
         }
     }
 
     override suspend fun gameStateSnapshot(): GameSnapshot<T> {
+        val currentPiece = pieceController.currentPiece
         return GameSnapshot(
             boardManager.board,
-            currentPiece = pieceController.currentPiece?.let {
+            currentPiece = currentPiece?.let {
                 PieceState(
                     it.shape,
                     it.pieceRow,
@@ -205,14 +216,20 @@ abstract class DefaultTetrisEngine<T : Piece>(
                     it.piece
                 )
             },
-            ghostPiece = if (playerSettings.isGhostEnabled) pieceController.currentPiece?.let {
-                PieceState(
-                    it.shape, pieceController.ghostRow, it.pieceCol, it.piece
-                )
-            } else null,
-            nextPieces = bagManager.getPreview(playerSettings.previewSize),
-            holdPiece = pieceController.heldPiece)
+            ghostPiece = snapShotGhost(currentPiece),
+            nextPieces = pieceController.getNextPieces(playerSettings.previewSize),
+            holdPiece = pieceController.getHeldPieceIfSupported()
+        )
     }
+
+    private fun snapShotGhost(currentPiece: MovingPiece<T>?): PieceState<T>? =
+        if (playerSettings.isGhostEnabled) pieceController.getGhostRowIfSupported()?.let { ghostRow ->
+            currentPiece?.let {
+                PieceState(
+                    currentPiece.shape, ghostRow, currentPiece.pieceCol, currentPiece.piece
+                )
+            }
+        } else null
 
 
     override suspend fun onRotation(rotation: Rotation): Boolean {
@@ -240,7 +257,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
         val successfulMovement = pieceController.move(0, dir)
         if (successfulMovement) {
-            pieceController.resetDas()
+            pieceController.resetDASifSupported()
         }
         return successfulMovement
     }
@@ -251,8 +268,8 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override suspend fun onDrop(drop: Drop) {
         when (drop) {
-            Drop.SOFT_DROP -> pieceController.softDrop(deltaTime)
-            Drop.HARD_DROP -> pieceController.hardDrop()
+            Drop.SOFT_DROP -> pieceController.softDropIfSupported(deltaTime)
+            Drop.HARD_DROP -> pieceController.hardDropIfSupported()
         }
     }
 
@@ -268,7 +285,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     private suspend fun lockAndProcess() {
         val piece = pieceController.currentPiece ?: return
-        pieceController.clip()
+        pieceController.clipIfSupported()
         boardManager.placePiece(piece)
         Logger.debug { "Piece placed at board: ${piece.pieceRow}, ${piece.pieceCol}" }
         val fullLines = boardManager.getFullLines()
@@ -280,7 +297,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
         if (timeManager.mode == TimeState.FROZEN) {
             freezeLineClears = (freezeLineClears - linesCount).absoluteValue
-            if (gameSettings.shouldCollapseOnFreeze) boardManager.collapseFullLines()
+            if (gameSettings.shouldCollapseOnFreeze) boardManager.collapseIfSupported()
             if (freezeLineClears > 0) EventOrchestrator.publish(
                 FreezeLineClear(linesCount, spinType, gameId)
             )

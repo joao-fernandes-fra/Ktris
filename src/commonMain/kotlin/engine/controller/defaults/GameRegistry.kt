@@ -25,10 +25,12 @@ object GameRegistry {
         availablePieces: Collection<T>,
         gameId: String
     ): KtrisContext<T> {
-        val boardController = BoardManager(global.boardRows, global.boardCols, global.bufferZone)
+        val bagRandomizer = SevenBagRandomizer(availablePieces, player.previewSize)
+        val boardController = GuidelineBoardController(global.boardRows, global.boardCols, global.bufferZone)
         val gameTimers = GameTimers()
-        val pieceController = DefaultPieceController<T>(
+        val pieceController = GuidelinePieceController(
             boardController.board,
+            bagRandomizer,
             player,
             global,
             gameTimers,
@@ -40,7 +42,7 @@ object GameRegistry {
         return KtrisContextBuilder<T>(gameId)
             .playerSettings(player)
             .gameSettings(global)
-            .bagManager(SevenBagRandomizer(availablePieces, player.previewSize))
+            .bagManager(bagRandomizer)
             .boardManager(boardController)
             .pieceController(pieceController)
             .gameTimers(gameTimers)

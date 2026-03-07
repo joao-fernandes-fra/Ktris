@@ -14,7 +14,7 @@ import engine.model.defaults.Tetromino
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
 import engine.model.events.GameId
-import engine.util.GameSettingsProvider
+import demo.utils.GameSettingsProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

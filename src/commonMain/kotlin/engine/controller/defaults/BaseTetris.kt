@@ -18,7 +18,6 @@ open class BaseTetris<T : Piece>(
 ) : DefaultTetrisEngine<T>(
     context.playerSettings,
     context.gameSettings,
-    context.bagManager,
     context.boardManager,
     context.pieceController,
     context.gameTimers,
