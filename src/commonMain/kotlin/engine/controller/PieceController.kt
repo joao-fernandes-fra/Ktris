@@ -15,7 +15,7 @@ interface PieceController<T : Piece> : Resetable {
     suspend fun resetDas()
     suspend fun handleGravity(currentLevel: Int, delta: Double)
     suspend fun spawn(piece: T): MovingPiece<T>?
-    suspend fun clip()
+    fun clip()
     suspend fun hardDrop()
     suspend fun softDrop(deltaTime: Double)
     suspend fun move(targetRow: Int, targetCol: Int): Boolean

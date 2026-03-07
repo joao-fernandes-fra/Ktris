@@ -113,14 +113,12 @@ class DefaultPieceController<T : Piece>(
         return newPiece
     }
 
-    override suspend fun clip() {
-        if (currentPiece == null) return
-        val piece = currentPiece!!
+    override fun clip() {
+        val piece = currentPiece ?: return
         var targetRow = piece.pieceRow
         while (targetRow != 0 && !canMove(piece, targetRow, piece.pieceCol)) {
             targetRow--
         }
-        updateGhost()
     }
 
     override suspend fun hardDrop() {

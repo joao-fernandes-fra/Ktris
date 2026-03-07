@@ -285,6 +285,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
             val piece = pieceController.currentPiece ?: return
             pieceController.clip()
             boardManager.placePiece(piece)
+            Logger.debug { "Piece placed at board: ${piece.pieceRow}, ${piece.pieceCol}" }
             val fullLines = boardManager.getFullLines()
             val linesCount = fullLines.size
 
