@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.targets.jvm.KotlinJvmTarget
 
 plugins {
     kotlin("multiplatform") version "2.3.10"
@@ -42,6 +41,17 @@ kotlin {
         }
         val jvmMain by getting {
             dependencies {
+            }
+        }
+    }
+}
+
+publishing {
+    publications {
+        withType<MavenPublication> {
+            pom {
+                name.set("Ktris")
+                description.set("A cross-platform Tetris engine")
             }
         }
     }
