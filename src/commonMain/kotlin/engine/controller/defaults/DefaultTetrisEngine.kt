@@ -54,7 +54,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     private var gameState = GameState.ENTRY_DELAY
     private var currentLevel: Int = 1
     private var timeGoalElapsed: Double = 0.0
-
+    protected var freezeLineClears: Int = 0
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
     override val isGoalMet: Boolean get() = gameState == GameState.GOAL_MET
     override val sessionTimeSeconds get() = gameTimers.sessionTimer / 1000.0

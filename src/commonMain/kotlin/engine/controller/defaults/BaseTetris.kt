@@ -14,7 +14,7 @@ import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent.GarbageReceived
 import engine.model.events.GameEvent.LevelUp
 import engine.model.events.GameEvent.LineCleared
-import engine.model.events.InputEvent.CommandInput
+import engine.model.events.InputEvent
 import engine.model.events.InputEvent.DirectionMoveEnd
 import engine.model.events.InputEvent.DirectionMoveStart
 import engine.model.events.InputEvent.DropInput
@@ -36,7 +36,6 @@ open class BaseTetris<T : Piece>(
     context.timeManager,
 ) {
     override val gameId: String = context.gameId
-    private var freezeLineClears: Int = 0
 
     init {
         setupTimeSystem()
@@ -68,7 +67,7 @@ open class BaseTetris<T : Piece>(
     }
 
     private fun setupInputEvents() {
-        EventOrchestrator.subscribeForGameId<CommandInput>(gameId) { onHold() }
+        EventOrchestrator.subscribeForGameId<InputEvent.HoldInput>(gameId) { onHold() }
         subscribeForGame<DirectionMoveStart, Movement>(::onMovement) { it.movement }
         subscribeForGame<DirectionMoveEnd, Movement>(::onMovementRelease) { it.movement }
         subscribeForGame<DropInput, Drop>(::onDrop) { it.dropType }
@@ -82,19 +81,29 @@ open class BaseTetris<T : Piece>(
             { duration -> onTimeState(TimeState.FROZEN, duration) },
             { it.duration }
         )
+        EventOrchestrator.subscribeForGameId<InputEvent.ResetInput>(gameId) { reset() }
     }
 
     override fun start(renderer: GameRenderer<T>) {
+        val targetFrameTime = 16.67
         var lastTime = Clock.System.now()
+        var accumulator = 0.0
 
-        while (!isGameOver || !isGoalMet) {
+        while (!isGameOver && !isGoalMet) {
             val now = Clock.System.now()
-            val delta = now - lastTime
+            val delta = (now - lastTime).toDouble(DurationUnit.MILLISECONDS)
             lastTime = now
-            update(delta.toDouble(DurationUnit.MILLISECONDS))
-            renderer.render(gameStateSnapshot())
+
+            accumulator += delta
+
+            if (accumulator >= targetFrameTime) {
+                update(accumulator)
+                renderer.render(gameStateSnapshot())
+                accumulator = 0.0
+            }
         }
     }
+
 
     private inline fun <reified E : Event, V> subscribeForGame(
         crossinline handler: (V) -> Unit,

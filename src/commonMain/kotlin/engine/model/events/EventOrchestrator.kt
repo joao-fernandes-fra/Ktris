@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 
 
 object EventOrchestrator {
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
 
     private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 64)
     val events: SharedFlow<Event> = _events

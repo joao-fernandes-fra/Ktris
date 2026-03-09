@@ -1,7 +1,6 @@
 package engine.controller
 
 import engine.model.Board
-import engine.model.Command
 import engine.model.Drop
 import engine.model.GameSnapshot
 import engine.model.Movement

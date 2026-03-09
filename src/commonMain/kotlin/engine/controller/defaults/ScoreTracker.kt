@@ -23,21 +23,17 @@ class ScoreTracker(
     }
 
     private fun setupEventListener() {
-        EventOrchestrator.subscribe<LineCleared> { event ->
+        EventOrchestrator.subscribeForGameId<LineCleared>(gameId) { event ->
             recordAction(event.spinType, event.linesCleared.size, event.isEmptyBoard)
         }
-        EventOrchestrator.subscribe<HardDrop> { event ->
+        EventOrchestrator.subscribeForGameId<HardDrop>(gameId) { event ->
             recordDrop(Drop.HARD_DROP, event.distance)
         }
-        EventOrchestrator.subscribe<SoftDrop> { event ->
-            if (event.gameId == gameId) {
-                recordDrop(Drop.SOFT_DROP, event.distance)
-            }
+        EventOrchestrator.subscribeForGameId<SoftDrop>(gameId) { event ->
+            recordDrop(Drop.SOFT_DROP, event.distance)
         }
-        EventOrchestrator.subscribe<InputEvent.CommandInput> { event ->
-            if (event.gameId == gameId) {
-                reset()
-            }
+        EventOrchestrator.subscribeForGameId<InputEvent.ResetInput>(gameId) { _ ->
+            reset()
         }
     }
 

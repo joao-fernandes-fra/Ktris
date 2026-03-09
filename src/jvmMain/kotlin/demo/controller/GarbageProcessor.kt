@@ -1,7 +1,6 @@
 package demo.controller
 
 import demo.model.PendingGarbage
-import engine.model.Command
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
 import engine.model.events.GameId
@@ -59,8 +58,8 @@ class GarbageProcessor(
         EventOrchestrator.subscribe<GameEvent.GameOver> {
             isGameOver = true
         }
-        EventOrchestrator.subscribe<InputEvent.CommandInput> {
-            if (it.command == Command.RESET && isGameOver) {
+        EventOrchestrator.subscribe<InputEvent.ResetInput> {
+            if (isGameOver) {
                 isGameOver = false
                 startProcessing()
             }

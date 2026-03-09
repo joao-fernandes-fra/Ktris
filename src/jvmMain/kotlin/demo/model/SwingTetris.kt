@@ -15,9 +15,11 @@ import engine.model.defaults.Tetromino
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
 import engine.model.events.GameId
+import engine.model.events.InputEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.runBlocking
 import javax.swing.JFrame
 import javax.swing.WindowConstants
 import kotlin.uuid.ExperimentalUuidApi
@@ -36,6 +38,8 @@ class SwingTetris(
     private var frame: JFrame
     private var renderer: SwingRenderer<ProceduralPiece>
     private var garbageProcessor: GarbageProcessor
+
+    private var tetrisGame: BaseTetris<ProceduralPiece>? = null
 
     init {
         Logger.minLevel = Logger.Level.DEBUG
@@ -89,7 +93,11 @@ class SwingTetris(
 
     fun run() {
         val gameContext = GameRegistry.get<ProceduralPiece>(PLAYER_GAME_ID)
-        BaseTetris(gameContext).start(renderer)
+        if (tetrisGame == null) {
+           tetrisGame = BaseTetris(gameContext)
+        }
+        tetrisGame!!.reset()
+        tetrisGame!!.start(renderer)
     }
 
     private fun setUpGarbageListeners() {

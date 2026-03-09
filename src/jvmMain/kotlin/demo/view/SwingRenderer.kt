@@ -6,7 +6,6 @@ import demo.model.PendingGarbage
 import demo.model.PlayerAPMUpdated
 import engine.controller.GameRenderer
 import engine.controller.defaults.ScoreProvider
-import engine.model.Command
 import engine.model.GameSnapshot
 import engine.model.KtrisContext
 import engine.model.Piece
@@ -138,13 +137,11 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
             finishMessage = if (it.goalMet) "VICTORY!" else "GAME OVER"
             repaint()
         }
-        EventOrchestrator.subscribe<InputEvent.CommandInput> {
-            if (it.command == Command.RESET) {
-                gameFinished = false
-                goalMet = false
-                finishMessage = null
-                repaint()
-            }
+        EventOrchestrator.subscribe<InputEvent.ResetInput> {
+            gameFinished = false
+            goalMet = false
+            finishMessage = null
+            repaint()
         }
 
         EventOrchestrator.subscribe<GameEvent.SpinDetected> { event ->
