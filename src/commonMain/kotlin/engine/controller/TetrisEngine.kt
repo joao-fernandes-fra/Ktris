@@ -15,16 +15,16 @@ interface TetrisEngine<T : Piece> : Resetable {
     val isGameOver: Boolean
     val isGoalMet: Boolean
     val sessionTimeSeconds: Double
-     fun start(renderer: GameRenderer<T>)
-     fun levelUp(newLevel: Int): Int
-     fun processGarbage(lines: Int)
-     fun onCommand(command: Command)
-     fun onRotation(rotation: Rotation): Boolean
-     fun onMovement(movement: Movement): Boolean
-     fun onDrop(drop: Drop)
-     fun gameStateSnapshot(): GameSnapshot<T>
-     fun onRotationRelease(rotation: Rotation)
-     fun onMovementRelease(movement: Movement)
-     fun forceBoardState(newState: Board)
-     fun onTimeState(timeState: TimeState, duration: Double)
+    fun start(renderer: GameRenderer<T>)
+    fun levelUp(newLevel: Int): Int
+    fun processGarbage(lines: Int)
+    fun onHold()
+    fun onRotation(rotation: Rotation): Boolean
+    fun onMovement(movement: Movement): Boolean
+    fun onDrop(drop: Drop)
+    fun gameStateSnapshot(): GameSnapshot<T>?
+    fun onRotationRelease(rotation: Rotation)
+    fun onMovementRelease(movement: Movement)
+    fun forceBoardState(newState: Board)
+    fun onTimeState(timeState: TimeState, duration: Double)
 }

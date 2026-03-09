@@ -26,18 +26,30 @@ class SevenBagRandomizer<T : Piece>(
     }
 
     override fun getPreview(count: Int): List<T> {
-        refill()
-        return queue.take(count)
+        if (queue.size < count) {
+            refill()
+        }
+        return try {
+            queue.toList().take(count)
+        } catch (_: Exception) {
+            return emptyList()
+        }
     }
+
 
     private fun refill() {
         while (queue.size <= previewSize) {
             if (currentBag.isEmpty()) {
                 currentBag.addAll(availablePieces.shuffled())
             }
-            queue.add(currentBag.removeAt(0))
+            if (currentBag.isNotEmpty()) {
+                queue.add(currentBag.removeAt(0))
+            } else {
+                break
+            }
         }
     }
+
 
     override fun reset() {
         queue.clear()

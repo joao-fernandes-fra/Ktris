@@ -308,13 +308,12 @@ class GuidelinePieceController<T : Piece>(
     }
 
     override fun reset() {
-        heldPiece = null
         currentPiece = null
+        bagRandomizer.reset()
+        heldPiece = null
         ghostRow = 0
-
         lockResets = 0
         dasState = DasState.IDLE
         canHold = true
-        bagRandomizer.reset()
     }
 }

@@ -63,7 +63,7 @@ class SwingTetris(
         )
 
         val gameScope = game.scope!!
-        ScoreProvider.defaultBuilder(PLAYER_GAME_ID).withScope(gameScope).build()
+        ScoreProvider.defaultBuilder(PLAYER_GAME_ID).build()
         val inputHandler = SwingInputHandler(gameScope)
         renderer = SwingRenderer(game)
 

@@ -4,7 +4,6 @@ import engine.controller.BoardController
 import engine.controller.PieceController
 import engine.controller.TetrisEngine
 import engine.model.Board
-import engine.model.Command
 import engine.model.Drop
 import engine.model.GameGoal
 import engine.model.GameSettings
@@ -21,23 +20,12 @@ import engine.model.Rotation
 import engine.model.SpinType
 import engine.model.TimeState
 import engine.model.defaults.Logger
-import engine.model.events.Event
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent.FreezeLineClear
 import engine.model.events.GameEvent.GameOver
-import engine.model.events.GameEvent.GarbageReceived
-import engine.model.events.GameEvent.LevelUp
 import engine.model.events.GameEvent.LineCleared
 import engine.model.events.GameEvent.PieceLocked
 import engine.model.events.GameEvent.SpinDetected
-import engine.model.events.InputEvent.CommandInput
-import engine.model.events.InputEvent.DirectionMoveEnd
-import engine.model.events.InputEvent.DirectionMoveStart
-import engine.model.events.InputEvent.DropInput
-import engine.model.events.InputEvent.FreezeTime
-import engine.model.events.InputEvent.RotationInputRelease
-import engine.model.events.InputEvent.RotationInputStart
-import engine.model.events.InputEvent.SlowDownTime
 import engine.util.addGarbageIfSupported
 import engine.util.advanceLockIfSupported
 import engine.util.applyGravityIfSupported
@@ -66,7 +54,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
     private var gameState = GameState.ENTRY_DELAY
     private var currentLevel: Int = 1
     private var timeGoalElapsed: Double = 0.0
-    private var freezeLineClears: Int = 0
 
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
     override val isGoalMet: Boolean get() = gameState == GameState.GOAL_MET
@@ -75,52 +62,6 @@ abstract class DefaultTetrisEngine<T : Piece>(
     private val currentDirection: Int? get() = activeDirections.lastOrNull()
     private var rotationLock = false
     private val garbageBuffer = mutableListOf<Int>()
-
-    init {
-        setupTimeSystem()
-        setupInputEvents()
-        setupGameEvents()
-    }
-
-    private fun setupTimeSystem() {
-        timeManager.onFreezeEnded = {
-            freezeLineClears = 0
-            val linesCleared = boardManager.clearFullLines()
-
-            if (linesCleared.isNotEmpty()) {
-                EventOrchestrator.publish(
-                    LineCleared(SpinType.NONE, linesCleared, boardManager.isBoardEmpty, gameId)
-                )
-            }
-            Logger.info { "Freeze ended. Cleared $linesCleared lines immediately." }
-        }
-    }
-
-    private fun setupGameEvents() {
-        subscribeForGame<LevelUp, Int>(::levelUp) { it.newLevel }
-        subscribeForGame<GarbageReceived, Int>({ lines ->
-            processGarbage(lines)
-        }, {
-            it.lines
-        })
-    }
-
-    private fun setupInputEvents() {
-        subscribeForGame<CommandInput, Command>(::onCommand) { it.command }
-        subscribeForGame<DirectionMoveStart, Movement>(::onMovement) { it.movement }
-        subscribeForGame<DirectionMoveEnd, Movement>(::onMovementRelease) { it.movement }
-        subscribeForGame<DropInput, Drop>(::onDrop) { it.dropType }
-        subscribeForGame<RotationInputStart, Rotation>(::onRotation) { it.rotation }
-        subscribeForGame<RotationInputRelease, Rotation>(::onRotationRelease) { it.rotation }
-        subscribeForGame<SlowDownTime, Double>(
-            { duration -> onTimeState(TimeState.SLOWED, duration) },
-            { it.duration }
-        )
-        subscribeForGame<FreezeTime, Double>(
-            { duration -> onTimeState(TimeState.FROZEN, duration) },
-            { it.duration }
-        )
-    }
 
     private fun Movement.direction() = when (this) {
         Movement.MOVE_RIGHT -> 1
@@ -134,8 +75,8 @@ abstract class DefaultTetrisEngine<T : Piece>(
         freezeLineClears = 0
         activeDirections.clear()
         rotationLock = false
-
         garbageBuffer.clear()
+
         boardManager.reset()
         pieceController.reset()
         gameTimers.reset()
@@ -144,7 +85,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         Logger.info { "Engine state reset." }
     }
 
-    open  fun update(deltaTime: Double) {
+    open fun update(deltaTime: Double) {
         this.deltaTime = deltaTime
         if (garbageBuffer.isNotEmpty()) {
             processPendingGarbage()
@@ -179,7 +120,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         }
     }
 
-    private  fun processPendingGarbage() {
+    private fun processPendingGarbage() {
         garbageBuffer.forEach { line ->
             boardManager.addGarbageIfSupported(line, gameSettings.garbageBlockId)
             Logger.info { "Garbage processed: $line for game $gameId" }
@@ -188,23 +129,20 @@ abstract class DefaultTetrisEngine<T : Piece>(
         garbageBuffer.clear()
     }
 
-    override  fun levelUp(newLevel: Int): Int {
+    override fun levelUp(newLevel: Int): Int {
         currentLevel = newLevel
         return currentLevel
     }
 
-    override  fun processGarbage(lines: Int) {
+    override fun processGarbage(lines: Int) {
         garbageBuffer.add(lines)
     }
 
-    override  fun onCommand(command: Command) {
-        when (command) {
-            Command.HOLD -> pieceController.holdIfSupported()
-            Command.RESET -> reset()
-        }
+    override fun onHold() {
+        pieceController.holdIfSupported()
     }
 
-    override  fun gameStateSnapshot(): GameSnapshot<T> {
+    override fun gameStateSnapshot(): GameSnapshot<T> {
         val currentPiece = pieceController.currentPiece
         return GameSnapshot(
             boardManager.board,
@@ -232,7 +170,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         } else null
 
 
-    override  fun onRotation(rotation: Rotation): Boolean {
+    override fun onRotation(rotation: Rotation): Boolean {
         if (rotationLock) return false
         val successfulRotation = pieceController.rotate(rotation)
         val piece = pieceController.currentPiece
@@ -245,11 +183,11 @@ abstract class DefaultTetrisEngine<T : Piece>(
         return successfulRotation
     }
 
-    override  fun onRotationRelease(rotation: Rotation) {
+    override fun onRotationRelease(rotation: Rotation) {
         rotationLock = false
     }
 
-    override  fun onMovement(movement: Movement): Boolean {
+    override fun onMovement(movement: Movement): Boolean {
         val dir = movement.direction()
 
         activeDirections.remove(dir)
@@ -262,28 +200,28 @@ abstract class DefaultTetrisEngine<T : Piece>(
         return successfulMovement
     }
 
-    override  fun onMovementRelease(movement: Movement) {
+    override fun onMovementRelease(movement: Movement) {
         activeDirections.remove(movement.direction())
     }
 
-    override  fun onDrop(drop: Drop) {
+    override fun onDrop(drop: Drop) {
         when (drop) {
             Drop.SOFT_DROP -> pieceController.softDropIfSupported(deltaTime)
             Drop.HARD_DROP -> pieceController.hardDropIfSupported()
         }
     }
 
-    override  fun forceBoardState(newState: Board) {
+    override fun forceBoardState(newState: Board) {
         boardManager.updateBoard(newState)
         pieceController.clearPiece()
         gameState = GameState.ENTRY_DELAY
     }
 
-    override  fun onTimeState(timeState: TimeState, duration: Double) {
+    override fun onTimeState(timeState: TimeState, duration: Double) {
         timeManager.onState(timeState, duration)
     }
 
-    private  fun lockAndProcess() {
+    private fun lockAndProcess() {
         val piece = pieceController.currentPiece ?: return
         pieceController.clipIfSupported()
         boardManager.placePiece(piece)
@@ -343,21 +281,5 @@ abstract class DefaultTetrisEngine<T : Piece>(
                 gameState = GameState.GOAL_MET
             }
         }
-    }
-
-    private inline fun <reified E : Event, V> subscribeForGame(
-        crossinline handler:  (V) -> Unit,
-        crossinline extractor: (E) -> V
-    ) {
-        EventOrchestrator.subscribe<E, V>(
-            { value ->
-                if (value != null) {
-                    handler(value)
-                }
-            },
-            { event ->
-                if (event.gameId == gameId) extractor(event) else null
-            }
-        )
     }
 }
