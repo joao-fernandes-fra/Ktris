@@ -154,7 +154,7 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
         }
     }
 
-    override suspend fun render(state: GameSnapshot<T>) {
+    override fun render(state: GameSnapshot<T>) {
         lastSnapshot = state
         repaint()
     }

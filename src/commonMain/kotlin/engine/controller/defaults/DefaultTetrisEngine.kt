@@ -144,7 +144,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         Logger.info { "Engine state reset." }
     }
 
-    open suspend fun update(deltaTime: Double) {
+    open  fun update(deltaTime: Double) {
         this.deltaTime = deltaTime
         if (garbageBuffer.isNotEmpty()) {
             processPendingGarbage()
@@ -179,7 +179,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         }
     }
 
-    private suspend fun processPendingGarbage() {
+    private  fun processPendingGarbage() {
         garbageBuffer.forEach { line ->
             boardManager.addGarbageIfSupported(line, gameSettings.garbageBlockId)
             Logger.info { "Garbage processed: $line for game $gameId" }
@@ -188,23 +188,23 @@ abstract class DefaultTetrisEngine<T : Piece>(
         garbageBuffer.clear()
     }
 
-    override suspend fun levelUp(newLevel: Int): Int {
+    override  fun levelUp(newLevel: Int): Int {
         currentLevel = newLevel
         return currentLevel
     }
 
-    override suspend fun processGarbage(lines: Int) {
+    override  fun processGarbage(lines: Int) {
         garbageBuffer.add(lines)
     }
 
-    override suspend fun onCommand(command: Command) {
+    override  fun onCommand(command: Command) {
         when (command) {
             Command.HOLD -> pieceController.holdIfSupported()
             Command.RESET -> reset()
         }
     }
 
-    override suspend fun gameStateSnapshot(): GameSnapshot<T> {
+    override  fun gameStateSnapshot(): GameSnapshot<T> {
         val currentPiece = pieceController.currentPiece
         return GameSnapshot(
             boardManager.board,
@@ -232,7 +232,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         } else null
 
 
-    override suspend fun onRotation(rotation: Rotation): Boolean {
+    override  fun onRotation(rotation: Rotation): Boolean {
         if (rotationLock) return false
         val successfulRotation = pieceController.rotate(rotation)
         val piece = pieceController.currentPiece
@@ -245,11 +245,11 @@ abstract class DefaultTetrisEngine<T : Piece>(
         return successfulRotation
     }
 
-    override suspend fun onRotationRelease(rotation: Rotation) {
+    override  fun onRotationRelease(rotation: Rotation) {
         rotationLock = false
     }
 
-    override suspend fun onMovement(movement: Movement): Boolean {
+    override  fun onMovement(movement: Movement): Boolean {
         val dir = movement.direction()
 
         activeDirections.remove(dir)
@@ -262,28 +262,28 @@ abstract class DefaultTetrisEngine<T : Piece>(
         return successfulMovement
     }
 
-    override suspend fun onMovementRelease(movement: Movement) {
+    override  fun onMovementRelease(movement: Movement) {
         activeDirections.remove(movement.direction())
     }
 
-    override suspend fun onDrop(drop: Drop) {
+    override  fun onDrop(drop: Drop) {
         when (drop) {
             Drop.SOFT_DROP -> pieceController.softDropIfSupported(deltaTime)
             Drop.HARD_DROP -> pieceController.hardDropIfSupported()
         }
     }
 
-    override suspend fun forceBoardState(newState: Board) {
+    override  fun forceBoardState(newState: Board) {
         boardManager.updateBoard(newState)
         pieceController.clearPiece()
         gameState = GameState.ENTRY_DELAY
     }
 
-    override suspend fun onTimeState(timeState: TimeState, duration: Double) {
+    override  fun onTimeState(timeState: TimeState, duration: Double) {
         timeManager.onState(timeState, duration)
     }
 
-    private suspend fun lockAndProcess() {
+    private  fun lockAndProcess() {
         val piece = pieceController.currentPiece ?: return
         pieceController.clipIfSupported()
         boardManager.placePiece(piece)
@@ -346,7 +346,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     private inline fun <reified E : Event, V> subscribeForGame(
-        crossinline handler: suspend (V) -> Unit,
+        crossinline handler:  (V) -> Unit,
         crossinline extractor: (E) -> V
     ) {
         EventOrchestrator.subscribe<E, V>(

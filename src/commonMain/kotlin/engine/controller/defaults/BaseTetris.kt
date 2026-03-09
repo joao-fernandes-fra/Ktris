@@ -30,7 +30,7 @@ open class BaseTetris<T : Piece>(
         scope = context.scope ?: CoroutineScope(SupervisorJob() + Dispatchers.Default + GameId(gameId))
     }
 
-    override suspend fun start(renderer: GameRenderer<T>) {
+    override fun start(renderer: GameRenderer<T>) {
         scope.launch {
             var lastTime = Clock.System.now()
             while (isActive) {

@@ -14,19 +14,19 @@ import engine.controller.PieceController
 import engine.controller.SoftDropCapable
 import engine.model.Piece
 
-suspend fun <T : Piece> PieceController<T>?.handleDASIfSupported(delta: Double, currentDirection: Int?) {
+ fun <T : Piece> PieceController<T>?.handleDASIfSupported(delta: Double, currentDirection: Int?) {
     (this as? DasCapable)?.handleDAS(delta, currentDirection)
 }
 
-suspend fun <T : Piece> PieceController<T>?.applyGravityIfSupported(delta: Double) {
+ fun <T : Piece> PieceController<T>?.applyGravityIfSupported(delta: Double) {
     (this as? GravityCapable)?.handleGravity(delta)
 }
 
-suspend fun <T : Piece> PieceController<T>?.clipIfSupported() {
+ fun <T : Piece> PieceController<T>?.clipIfSupported() {
     (this as? ClipCapable)?.clip()
 }
 
-suspend fun <T : Piece> PieceController<T>?.advanceLockIfSupported(delta: Double, onLock: suspend () -> Unit): Boolean {
+ fun <T : Piece> PieceController<T>?.advanceLockIfSupported(delta: Double, onLock:  () -> Unit): Boolean {
     val lockCap = this as? LockDelayCapable
     if (lockCap != null) {
         return lockCap.handleLockDelay(delta, onLock)
@@ -34,7 +34,7 @@ suspend fun <T : Piece> PieceController<T>?.advanceLockIfSupported(delta: Double
     return false
 }
 
-suspend fun <T : Piece> PieceController<T>?.updateGhostIfSupported() {
+ fun <T : Piece> PieceController<T>?.updateGhostIfSupported() {
     (this as? GhostCapable)?.updateGhost()
 }
 
@@ -42,7 +42,7 @@ fun <T : Piece> PieceController<T>?.getGhostRowIfSupported(): Int? {
     return (this as? GhostCapable)?.ghostRow
 }
 
-suspend fun <T : Piece> PieceController<T>?.holdIfSupported() {
+ fun <T : Piece> PieceController<T>?.holdIfSupported() {
     (this as? HoldCapable<T>)?.hold()
 }
 
@@ -50,15 +50,15 @@ fun <T : Piece> PieceController<T>?.getHeldPieceIfSupported(): T? {
     return (this as? HoldCapable<T>)?.heldPiece
 }
 
-suspend fun <T : Piece> PieceController<T>?.hardDropIfSupported() {
+ fun <T : Piece> PieceController<T>?.hardDropIfSupported() {
     (this as? HardDropCapable)?.hardDrop()
 }
 
-suspend fun <T : Piece> PieceController<T>?.softDropIfSupported(deltaTime: Double) {
+ fun <T : Piece> PieceController<T>?.softDropIfSupported(deltaTime: Double) {
     (this as? SoftDropCapable)?.softDrop(deltaTime)
 }
 
-suspend fun <T : Piece> PieceController<T>?.resetDASifSupported() {
+ fun <T : Piece> PieceController<T>?.resetDASifSupported() {
     (this as? DasCapable)?.resetDas()
 }
 

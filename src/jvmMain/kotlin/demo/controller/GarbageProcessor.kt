@@ -104,10 +104,8 @@ class GarbageProcessor(
         EventOrchestrator.publish(GameEvent.GarbageReceived(packet.lines, gameId))
     }
 
-    private suspend fun updatePendingGarbage() {
-        val pendingLines = queueMutex.withLock {
-            garbageQueue.sumOf { it.lines }
-        }
+    private fun updatePendingGarbage() {
+        val pendingLines = garbageQueue.sumOf { it.lines }
         EventOrchestrator.publish(PendingGarbage(pendingLines, gameId))
     }
 }

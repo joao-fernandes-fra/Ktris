@@ -1,6 +1,7 @@
 package engine.controller.defaults
 
 import engine.model.Drop
+import engine.model.Resetable
 import engine.model.ScoringRuleBook
 import engine.model.SpinType
 import engine.model.events.EventOrchestrator
@@ -11,16 +12,12 @@ import engine.model.events.GameEvent.LevelUp
 import engine.model.events.GameEvent.LineCleared
 import engine.model.events.GameEvent.ScoreUpdated
 import engine.model.events.GameEvent.SoftDrop
-import engine.model.events.GameId
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
+import engine.model.events.InputEvent
 
 class ScoreTracker(
     private val ruleBook: ScoringRuleBook,
-    private val scope: CoroutineScope
-) {
-    val gameId: String = scope.coroutineContext[GameId]?.value ?: error("No gameId in context")
-
+    private val gameId: String
+) : Resetable {
     init {
         setupEventListener()
     }
@@ -29,14 +26,17 @@ class ScoreTracker(
         EventOrchestrator.subscribe<LineCleared> { event ->
             recordAction(event.spinType, event.linesCleared.size, event.isEmptyBoard)
         }
-        scope.launch {
-            EventOrchestrator.subscribe<HardDrop> { event ->
-                recordDrop(Drop.HARD_DROP, event.distance)
+        EventOrchestrator.subscribe<HardDrop> { event ->
+            recordDrop(Drop.HARD_DROP, event.distance)
+        }
+        EventOrchestrator.subscribe<SoftDrop> { event ->
+            if (event.gameId == gameId) {
+                recordDrop(Drop.SOFT_DROP, event.distance)
             }
         }
-        scope.launch {
-            EventOrchestrator.subscribe<SoftDrop> { event ->
-                recordDrop(Drop.SOFT_DROP, event.distance)
+        EventOrchestrator.subscribe<InputEvent.CommandInput> { event ->
+            if (event.gameId == gameId) {
+                reset()
             }
         }
     }
@@ -47,7 +47,7 @@ class ScoreTracker(
     var combo: Int = -1; private set
     var b2bCount: Int = -1; private set
 
-    private suspend fun recordAction(action: SpinType, lines: Int, isBoardEmpty: Boolean) {
+    private fun recordAction(action: SpinType, lines: Int, isBoardEmpty: Boolean) {
         val moveType = ruleBook.getMoveType(action, lines)
         var basePoints = ruleBook.getBasePoints(action, lines)
 
@@ -79,7 +79,7 @@ class ScoreTracker(
         )
     }
 
-    private suspend fun handleLevelUp() {
+    private fun handleLevelUp() {
         val newLevel = totalLinesCleared / 10
         if (newLevel > level) {
             EventOrchestrator.publish(LevelUp(newLevel, gameId))
@@ -90,5 +90,13 @@ class ScoreTracker(
     private fun recordDrop(type: Drop, distance: Int) {
         val dropPoints = distance * (ruleBook.dropTables[type] ?: 0.0)
         totalPoints += dropPoints
+    }
+
+    override fun reset() {
+        level = 0
+        totalLinesCleared = 0
+        totalPoints = 0.0
+        combo = -1
+        b2bCount = -1
     }
 }

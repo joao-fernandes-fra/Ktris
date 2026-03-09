@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.launch
 
@@ -22,6 +23,12 @@ object EventOrchestrator {
     inline fun <reified T : Event> subscribe(crossinline callback: suspend (T) -> Unit) {
         scope.launch {
             events.filterIsInstance<T>().collect { callback(it) }
+        }
+    }
+
+    inline fun <reified T : Event> subscribeForGameId(gameId: String, crossinline callback: suspend (T) -> Unit) {
+        scope.launch {
+            events.filterIsInstance<T>().filter { it.gameId == gameId }.collect { callback(it) }
         }
     }
 

@@ -29,8 +29,6 @@ import engine.model.events.GameEvent.PieceHeld
 import engine.model.events.GameEvent.PieceRotated
 import engine.model.events.GameEvent.SoftDrop
 import engine.util.CollisionUtils.checkCollisionWithBoard
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 class GuidelinePieceController<T : Piece>(
     private val board: Board,
@@ -46,10 +44,8 @@ class GuidelinePieceController<T : Piece>(
     }
 
     init {
-        EventOrchestrator.subscribe<GameEvent.LevelUp> {
-            if (it.gameId == gameId) {
-                currentLevel = it.newLevel
-            }
+        EventOrchestrator.subscribeForGameId<GameEvent.LevelUp>(gameId) {
+            currentLevel = it.newLevel
         }
     }
 
@@ -58,7 +54,7 @@ class GuidelinePieceController<T : Piece>(
     override var heldPiece: T? = null
     override var currentPiece: MovingPiece<T>? = null
 
-    override suspend fun getNextPieces(previewSize: Int): List<T> {
+    override fun getNextPieces(previewSize: Int): List<T> {
         return bagRandomizer.getPreview(previewSize)
     }
 
@@ -68,9 +64,8 @@ class GuidelinePieceController<T : Piece>(
     private var dasState: DasState = DasState.IDLE
     private var lockResets: Int = 0
     private var canHold = true
-    private val pieceMutex: Mutex = Mutex()
 
-    override suspend fun handleDAS(delta: Double, currentDirection: Int?) {
+    override fun handleDAS(delta: Double, currentDirection: Int?) {
         val dir = currentDirection ?: return
         gameTimers.dasTimer += delta
 
@@ -97,12 +92,12 @@ class GuidelinePieceController<T : Piece>(
         updateGhost()
     }
 
-    override suspend fun resetDas() {
+    override fun resetDas() {
         dasState = DasState.DELAY
         gameTimers.dasTimer = 0.0
     }
 
-    override suspend fun handleGravity(delta: Double) {
+    override fun handleGravity(delta: Double) {
         val gravitySpeed = globalGameSettings.gravityBase - (currentLevel - 1) * globalGameSettings.gravityIncrement
 
         gameTimers.dropTimer += delta
@@ -118,7 +113,7 @@ class GuidelinePieceController<T : Piece>(
     }
 
 
-    override suspend fun spawn(piece: T?): MovingPiece<T>? {
+    override fun spawn(piece: T?): MovingPiece<T>? {
         val nextPiece = piece ?: bagRandomizer.getNextPiece()
         Logger.debug { "Spawning piece: ${nextPiece.name}" }
         val newPiece = DefaultMovingPiece(
@@ -142,23 +137,21 @@ class GuidelinePieceController<T : Piece>(
         return newPiece
     }
 
-    override suspend fun clip() {
-        pieceMutex.withLock {
-            val piece = currentPiece ?: return
-            var targetRow = piece.pieceRow
+    override fun clip() {
+        val piece = currentPiece ?: return
+        var targetRow = piece.pieceRow
 
-            while (targetRow > 0 && !canPlace(piece, targetRow, piece.pieceCol)) {
-                targetRow--
-            }
+        while (targetRow > 0 && !canPlace(piece, targetRow, piece.pieceCol)) {
+            targetRow--
+        }
 
-            if (targetRow != piece.pieceRow) {
-                piece.pieceRow = targetRow
-                updateGhost()
-            }
+        if (targetRow != piece.pieceRow) {
+            piece.pieceRow = targetRow
+            updateGhost()
         }
     }
 
-    override suspend fun hardDrop() {
+    override fun hardDrop() {
         currentPiece?.let { piece ->
             val distance = ghostRow - piece.pieceRow
             piece.pieceRow = ghostRow
@@ -167,7 +160,7 @@ class GuidelinePieceController<T : Piece>(
         }
     }
 
-    override suspend fun softDrop(deltaTime: Double) {
+    override fun softDrop(deltaTime: Double) {
         Logger.debug { "SOFT_DROP: Configured Delay: ${playerSettings.softDropDelay}" }
         Logger.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Delay: ${playerSettings.softDropDelay}" }
         gameTimers.softDropTimer += deltaTime
@@ -199,7 +192,7 @@ class GuidelinePieceController<T : Piece>(
         }
     }
 
-    override suspend fun move(targetRow: Int, targetCol: Int): Boolean {
+    override fun move(targetRow: Int, targetCol: Int): Boolean {
         if (movePiece(targetRow, targetCol)) {
             lastAction = LastPieceAction.MOVE
             return true
@@ -216,7 +209,7 @@ class GuidelinePieceController<T : Piece>(
         return false
     }
 
-    override suspend fun rotate(rotation: Rotation): Boolean {
+    override fun rotate(rotation: Rotation): Boolean {
         val piece = currentPiece ?: return false
         if (rotation == Rotation.ROTATE_180 && !playerSettings.is180Enabled) return false
 
@@ -249,7 +242,7 @@ class GuidelinePieceController<T : Piece>(
     }
 
 
-    override suspend fun hold() {
+    override fun hold() {
         if (!playerSettings.isHoldEnabled || !canHold || currentPiece == null) return
 
         val pieceToHold = currentPiece!!.piece
@@ -266,7 +259,7 @@ class GuidelinePieceController<T : Piece>(
         canHold = false
     }
 
-    override suspend fun clearPiece() {
+    override fun clearPiece() {
         currentPiece = null
     }
 
@@ -278,7 +271,7 @@ class GuidelinePieceController<T : Piece>(
         }
     }
 
-    override suspend fun handleLockDelay(deltaTime: Double, onLock: suspend () -> Unit): Boolean {
+    override fun handleLockDelay(deltaTime: Double, onLock: () -> Unit): Boolean {
         val piece = currentPiece ?: return false
 
         val isTouchingFloor = !canMove(piece, 1, 0)
@@ -304,7 +297,7 @@ class GuidelinePieceController<T : Piece>(
         return !checkCollisionWithBoard(board, piece.shape, row, col)
     }
 
-    override suspend fun updateGhost() {
+    override fun updateGhost() {
         currentPiece?.let { piece ->
             var testRow = piece.pieceRow
             while (canMove(piece, 1, 0, testRow)) {

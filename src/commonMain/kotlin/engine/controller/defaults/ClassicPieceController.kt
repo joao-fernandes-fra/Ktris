@@ -35,11 +35,11 @@ open class ClassicPieceController<T : Piece>(
 
     private var lockResets: Int = 0
 
-    override suspend fun getNextPieces(previewSize: Int): List<T> {
+    override  fun getNextPieces(previewSize: Int): List<T> {
         return bagRandomizer.getPreview(previewSize)
     }
 
-    override suspend fun spawn(piece: T?): MovingPiece<T>? {
+    override  fun spawn(piece: T?): MovingPiece<T>? {
         val next = piece ?: bagRandomizer.getNextPiece()
         Logger.debug { "Spawning piece: ${next.name}" }
         val mp = DefaultMovingPiece(piece = next, pieceCol = (board.cols / 2) - (next.shape.cols / 2))
@@ -56,7 +56,7 @@ open class ClassicPieceController<T : Piece>(
         return mp
     }
 
-    override suspend fun handleGravity(delta: Double) {
+    override  fun handleGravity(delta: Double) {
         val gravitySpeed = gameSettings.gravityBase - (1 - 1) * gameSettings.gravityIncrement
         gameTimers.dropTimer += delta
         if (gameTimers.dropTimer >= gravitySpeed) {
@@ -69,7 +69,7 @@ open class ClassicPieceController<T : Piece>(
         }
     }
 
-    override suspend fun handleLockDelay(deltaTime: Double, onLock: suspend () -> Unit): Boolean {
+    override  fun handleLockDelay(deltaTime: Double, onLock:  () -> Unit): Boolean {
         val piece = currentPiece ?: return false
         val isTouchingFloor = !canMove(piece, 1, 0)
         val isInsideBlock = checkCollisionWithBoard(board, piece.shape, piece.pieceRow, piece.pieceCol)
@@ -81,7 +81,7 @@ open class ClassicPieceController<T : Piece>(
         return false
     }
 
-    override suspend fun move(targetRow: Int, targetCol: Int): Boolean {
+    override  fun move(targetRow: Int, targetCol: Int): Boolean {
         if (movePiece(targetRow, targetCol)) {
             lastAction = LastPieceAction.MOVE
             return true
@@ -89,7 +89,7 @@ open class ClassicPieceController<T : Piece>(
         return false
     }
 
-    override suspend fun rotate(rotation: Rotation): Boolean {
+    override  fun rotate(rotation: Rotation): Boolean {
         val piece = currentPiece ?: return false
         if (rotation == Rotation.ROTATE_180 && !playerSettings.is180Enabled) return false
         val (candidateShape, _) = piece.projectRotation(rotation)
@@ -118,7 +118,7 @@ open class ClassicPieceController<T : Piece>(
     }
 
 
-    override suspend fun clearPiece() {
+    override  fun clearPiece() {
         currentPiece = null
     }
 
@@ -129,7 +129,7 @@ open class ClassicPieceController<T : Piece>(
         bagRandomizer.reset()
     }
 
-    override suspend fun softDrop(deltaTime: Double) {
+    override  fun softDrop(deltaTime: Double) {
         if (movePiece(1, 0)) {
             gameTimers.dropTimer = 0.0
             EventOrchestrator.publish(GameEvent.SoftDrop(1, gameId))

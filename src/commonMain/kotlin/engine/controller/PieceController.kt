@@ -9,44 +9,44 @@ import engine.model.Rotation
 interface PieceController<T : Piece> : Resetable {
     var currentPiece: MovingPiece<T>?
     var lastAction: LastPieceAction
-    suspend fun getNextPieces(previewSize: Int = 1): List<T>
-    suspend fun spawn(piece: T? = null): MovingPiece<T>?
-    suspend fun move(targetRow: Int, targetCol: Int): Boolean
-    suspend fun rotate(rotation: Rotation): Boolean
-    suspend fun clearPiece()
+     fun getNextPieces(previewSize: Int = 1): List<T>
+     fun spawn(piece: T? = null): MovingPiece<T>?
+     fun move(targetRow: Int, targetCol: Int): Boolean
+     fun rotate(rotation: Rotation): Boolean
+     fun clearPiece()
 }
 
 interface GravityCapable {
-    suspend fun handleGravity(delta: Double)
+     fun handleGravity(delta: Double)
 }
 
 interface DasCapable {
-    suspend fun handleDAS(delta: Double, currentDirection: Int?)
-    suspend fun resetDas()
+     fun handleDAS(delta: Double, currentDirection: Int?)
+     fun resetDas()
 }
 
 interface ClipCapable {
-    suspend fun clip()
+     fun clip()
 }
 
 interface LockDelayCapable {
-    suspend fun handleLockDelay(deltaTime: Double, onLock: suspend () -> Unit): Boolean
+     fun handleLockDelay(deltaTime: Double, onLock:  () -> Unit): Boolean
 }
 
 interface HoldCapable<T : Piece> {
     var heldPiece: T?
-    suspend fun hold()
+     fun hold()
 }
 
 interface GhostCapable {
     var ghostRow: Int
-    suspend fun updateGhost()
+     fun updateGhost()
 }
 
 interface SoftDropCapable {
-    suspend fun softDrop(deltaTime: Double)
+     fun softDrop(deltaTime: Double)
 }
 
 interface HardDropCapable {
-    suspend fun hardDrop()
+     fun hardDrop()
 }

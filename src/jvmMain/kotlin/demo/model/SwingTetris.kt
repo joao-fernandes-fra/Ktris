@@ -3,6 +3,7 @@ package demo.model
 import demo.controller.AttackSimulator
 import demo.controller.GarbageProcessor
 import demo.controller.SwingInputHandler
+import demo.utils.GameSettingsProvider
 import demo.view.SwingRenderer
 import engine.controller.defaults.BaseTetris
 import engine.controller.defaults.GameRegistry
@@ -14,7 +15,6 @@ import engine.model.defaults.Tetromino
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
 import engine.model.events.GameId
-import demo.utils.GameSettingsProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -87,7 +87,7 @@ class SwingTetris(
         setUpGarbageListeners()
     }
 
-    suspend fun run() {
+    fun run() {
         val gameContext = GameRegistry.get<ProceduralPiece>(PLAYER_GAME_ID)
         BaseTetris(gameContext).start(renderer)
     }
