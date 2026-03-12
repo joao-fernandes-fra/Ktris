@@ -6,6 +6,7 @@ import demo.model.PendingGarbage
 import demo.model.PlayerAPMUpdated
 import engine.controller.GameRenderer
 import engine.controller.defaults.ScoreProvider
+import engine.model.GameOverReason
 import engine.model.GameSnapshot
 import engine.model.KtrisContext
 import engine.model.Piece
@@ -535,3 +536,6 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
         return "%02d:%02d".format(minutes, remainingSeconds)
     }
 }
+
+private val GameEvent.GameOver.goalMet: Boolean
+    get() = this.reason == GameOverReason.GOAL_MET

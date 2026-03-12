@@ -31,6 +31,7 @@ interface ClipCapable {
 }
 
 interface LockDelayCapable {
+    val lockResetsRemaining: Int
     fun handleLockDelay(deltaTime: Double, onLock: () -> Unit): Boolean
 }
 
@@ -66,4 +67,5 @@ interface InputBufferCapable {
 
 interface SpinTrackingCapable {
     val lastKickIndex: Int
+    val lastKickWasFinal: Boolean
 }

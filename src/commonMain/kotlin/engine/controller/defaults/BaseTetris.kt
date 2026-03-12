@@ -1,26 +1,22 @@
 package engine.controller.defaults
 
 import engine.model.Drop
+import engine.model.GameState
 import engine.model.KtrisContext
 import engine.model.Movement
 import engine.model.Piece
 import engine.model.Rotation
-import engine.model.SpinType
-import engine.model.TimeState
-import engine.model.defaults.Logger
 import engine.model.events.Event
 import engine.model.events.EventOrchestrator
+import engine.model.events.GameEvent
 import engine.model.events.GameEvent.GarbageReceived
 import engine.model.events.GameEvent.LevelUp
-import engine.model.events.GameEvent.LineCleared
 import engine.model.events.InputEvent
 import engine.model.events.InputEvent.DirectionMoveEnd
 import engine.model.events.InputEvent.DirectionMoveStart
 import engine.model.events.InputEvent.DropInput
-import engine.model.events.InputEvent.FreezeTime
 import engine.model.events.InputEvent.RotationInputRelease
 import engine.model.events.InputEvent.RotationInputStart
-import engine.model.events.InputEvent.SlowDownTime
 
 abstract class BaseTetris<T : Piece>(
     context: KtrisContext<T>
@@ -35,31 +31,13 @@ abstract class BaseTetris<T : Piece>(
     override val gameId: String = context.gameId
 
     init {
-        setupTimeSystem()
         setupInputEvents()
         setupGameEvents()
     }
 
-    private fun setupTimeSystem() {
-        timeManager.onFreezeEnded = {
-            freezeLineClears = 0
-            val linesCleared = boardManager.clearFullLines()
-
-            if (linesCleared.isNotEmpty()) {
-                EventOrchestrator.publish(
-                    LineCleared(
-                        spinType = SpinType.NONE,
-                        linesCleared = linesCleared,
-                        isEmptyBoard = boardManager.isBoardEmpty,
-                        gameId = gameId
-                    )
-                )
-            }
-            Logger.info { "Freeze ended. Cleared $linesCleared lines immediately." }
-        }
-    }
 
     private fun setupGameEvents() {
+        EventOrchestrator.subscribeForGameId<GameEvent.GameOver>(gameId) { gameState = GameState.GAME_OVER }
         subscribeForGame<LevelUp, Int>(::levelUp) { it.newLevel }
         subscribeForGame<GarbageReceived, Int>({ lines ->
             processGarbage(lines)
@@ -75,14 +53,6 @@ abstract class BaseTetris<T : Piece>(
         subscribeForGame<DropInput, Drop>(::onDrop) { it.dropType }
         subscribeForGame<RotationInputStart, Rotation>(::onRotation) { it.rotation }
         subscribeForGame<RotationInputRelease, Rotation>(::onRotationRelease) { it.rotation }
-        subscribeForGame<SlowDownTime, Double>(
-            { duration -> onTimeState(TimeState.SLOWED, duration) },
-            { it.duration }
-        )
-        subscribeForGame<FreezeTime, Double>(
-            { duration -> onTimeState(TimeState.FROZEN, duration) },
-            { it.duration }
-        )
         EventOrchestrator.subscribeForGameId<InputEvent.ResetInput>(gameId) { reset() }
     }
 

@@ -8,6 +8,7 @@ data class GameTimers(
     var arrTimer: Double = 0.0,
     var softDropTimer: Double = 0.0,
     var areTimer: Double = 0.0,
+    var lineClearTimer: Double = 0.0,
     var dasFrameCounter: Int = 0
 ) : Resetable {
     val sessionTimeSeconds get() = sessionTimer / 1000.0
@@ -19,6 +20,7 @@ data class GameTimers(
         arrTimer = 0.0
         softDropTimer = 0.0
         areTimer = 0.0
+        lineClearTimer = 0.0
         dasFrameCounter = 0
     }
 }

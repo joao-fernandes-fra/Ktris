@@ -1,5 +1,6 @@
 package demo.controller
 
+import demo.model.ToggleFreeze
 import engine.model.Drop
 import engine.model.Movement
 import engine.model.Rotation
@@ -12,7 +13,6 @@ import java.awt.event.KeyEvent
 
 class SwingInputHandler(scope: CoroutineScope) : KeyAdapter() {
     private val gameId = scope.coroutineContext[GameId]?.value ?: error("No GameId in scope")
-    private var isFrozen = false
 
     override fun keyPressed(e: KeyEvent?) {
         when (e?.keyCode) {
@@ -24,15 +24,7 @@ class SwingInputHandler(scope: CoroutineScope) : KeyAdapter() {
             KeyEvent.VK_DOWN -> EventOrchestrator.publish(InputEvent.DropInput(Drop.SOFT_DROP, gameId))
             KeyEvent.VK_LEFT -> EventOrchestrator.publish(InputEvent.DirectionMoveStart(Movement.MOVE_LEFT, gameId))
             KeyEvent.VK_RIGHT -> EventOrchestrator.publish(InputEvent.DirectionMoveStart(Movement.MOVE_RIGHT, gameId))
-            KeyEvent.VK_S -> {
-                if (!isFrozen) {
-                    EventOrchestrator.publish(InputEvent.FreezeTime(Double.MAX_VALUE, gameId))
-                } else {
-                    EventOrchestrator.publish(InputEvent.FreezeTime(Double.MIN_VALUE, gameId))
-                }
-                isFrozen = !isFrozen
-            }
-
+            KeyEvent.VK_S -> EventOrchestrator.publish(ToggleFreeze(gameId))
             KeyEvent.VK_R -> EventOrchestrator.publish(InputEvent.ResetInput(gameId))
         }
     }
