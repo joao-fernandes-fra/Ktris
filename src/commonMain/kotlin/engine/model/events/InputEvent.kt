@@ -5,8 +5,6 @@ import engine.model.Movement
 import engine.model.Rotation
 
 object InputEvent {
-    data class SlowDownTime(val duration: Double, override val gameId: String) : Event
-    data class FreezeTime(val duration: Double, override val gameId: String) : Event
     data class DirectionMoveStart(val movement: Movement, override val gameId: String) : Event
     data class DirectionMoveEnd(val movement: Movement, override val gameId: String) : Event
     data class DropInput(val dropType: Drop, override val gameId: String) : Event

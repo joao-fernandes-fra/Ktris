@@ -5,7 +5,6 @@ import engine.controller.BoardController
 import engine.controller.PieceController
 import engine.controller.defaults.TimeManager
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 
 data class KtrisContext<T : Piece>(
     val gameId: String,
@@ -13,7 +12,7 @@ data class KtrisContext<T : Piece>(
     val gameSettings: GameSettings,
     val bagManager: BagRandomizer<T>,
     val gameTimers: GameTimers = GameTimers(),
-    val timeManager: TimeManager = TimeManager(gameSettings),
+    val timeManager: TimeManager = TimeManager(),
     val boardManager: BoardController,
     val pieceController: PieceController<T>,
     val scope: CoroutineScope?
@@ -34,7 +33,7 @@ class KtrisContextBuilder<T : Piece>(
     fun playerSettings(settings: PlayerSettings) = apply { this.playerSettings = settings }
     fun gameSettings(settings: GameSettings) = apply {
         this.gameSettings = settings
-        this.timeManager = TimeManager(settings) // auto-init if provided
+        this.timeManager = TimeManager()
     }
 
     fun bagManager(manager: BagRandomizer<T>) = apply { this.bagManager = manager }
@@ -51,7 +50,7 @@ class KtrisContextBuilder<T : Piece>(
             gameSettings = requireNotNull(gameSettings) { "GameSettings must be set" },
             bagManager = requireNotNull(bagManager) { "BagManager must be set" },
             gameTimers = gameTimers,
-            timeManager = timeManager ?: TimeManager(requireNotNull(gameSettings)),
+            timeManager = timeManager ?: TimeManager(),
             boardManager = requireNotNull(boardManager) { "BoardManager must be set" },
             pieceController = requireNotNull(pieceController) { "PieceController must be set" },
             scope = scope

@@ -40,4 +40,8 @@ object ScoreProvider {
     fun getTracker(gameId: String): ScoreTracker {
         return tracking[gameId] ?: error("No tracker found for $gameId")
     }
+
+    fun nullableTracker(gameId: String): ScoreTracker? {
+        return tracking[gameId]
+    }
 }

@@ -38,6 +38,9 @@ fun <T : Piece> PieceController<T>?.advanceLockIfSupported(delta: Double, onLock
     return false
 }
 
+fun <T : Piece> PieceController<T>?.getLockResetsRemainingIfSupported(): Int =
+    (this as? LockDelayCapable)?.lockResetsRemaining ?: 0
+
 fun <T : Piece> PieceController<T>?.updateGhostIfSupported() {
     (this as? GhostCapable)?.updateGhost()
 }
@@ -88,3 +91,10 @@ fun <T : Piece> PieceController<T>?.tickInputBufferIfSupported(delta: Double) {
 
 fun <T : Piece> PieceController<T>?.getLastKickIndexIfSupported(): Int =
     (this as? SpinTrackingCapable)?.lastKickIndex ?: 0
+
+fun <T : Piece> PieceController<T>?.getLastKickWasFinalIfSupported(): Boolean =
+    (this as? SpinTrackingCapable)?.lastKickWasFinal ?: false
+
+fun <T : Piece> PieceController<T>?.clearActionBufferIfSupported() {
+    (this as? InitialActionsCapable)?.clearActionBuffer()
+}

@@ -5,6 +5,9 @@ import demo.controller.GarbageProcessor
 import engine.controller.GameRenderer
 import engine.controller.defaults.BaseTetris
 import engine.model.KtrisContext
+import engine.model.SpinType
+import engine.model.TimeState
+import engine.model.defaults.Logger
 import engine.model.defaults.ProceduralPiece
 import engine.model.events.EventOrchestrator
 import engine.model.events.GameEvent
@@ -22,6 +25,32 @@ class SwingTetris(context: KtrisContext<ProceduralPiece>) : BaseTetris<Procedura
 
     private var isCheeseGame: Boolean = false
     private lateinit var garbageProcessor: GarbageProcessor
+
+    init {
+        EventOrchestrator.subscribeForGameId<ToggleFreeze>(gameId) {
+            if (timeManager.isFrozen) {
+                timeManager.transition(TimeState.Normal)
+            } else timeManager.transition(TimeState.Frozen())
+        }
+        timeManager.onStateChanged = { from, to ->
+            if (from is TimeState.Frozen && to is TimeState.Normal) {
+                freezeLineClears = 0
+                val linesCleared = boardManager.clearFullLines()
+
+                if (linesCleared.isNotEmpty()) {
+                    EventOrchestrator.publish(
+                        GameEvent.LineCleared(
+                            spinType = SpinType.NONE,
+                            linesCleared = linesCleared,
+                            isEmptyBoard = boardManager.isBoardEmpty,
+                            gameId = gameId
+                        )
+                    )
+                }
+                Logger.info { "Freeze ended. Cleared $linesCleared lines immediately." }
+            }
+        }
+    }
 
     fun initialize(isCheeseGame: Boolean, enemyApm: Int?, gameScope: CoroutineScope) {
         this.isCheeseGame = isCheeseGame

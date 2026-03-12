@@ -1,60 +1,69 @@
 package engine.controller.defaults
 
-import engine.model.defaults.Logger
-import engine.model.GameSettings
 import engine.model.Resetable
 import engine.model.TimeState
+import engine.model.defaults.Logger
 
-class TimeManager(private val settings: GameSettings) : Resetable {
-    var mode: TimeState = TimeState.NORMAL
+class TimeManager : Resetable {
+
+    var state: TimeState = TimeState.Normal
         private set
 
-    var onFreezeEnded: (() -> Unit)? = null
+    var onStateChanged: ((from: TimeState, to: TimeState) -> Unit)? = null
 
-    private var modeDuration: Double = 0.0
-
-    fun onState(state: TimeState, duration: Double) {
-        when (state) {
-            TimeState.NORMAL -> resetState()
-            TimeState.FROZEN -> freezeTime(duration)
-            TimeState.SLOWED -> slowDownTime(duration)
+    val isFrozen: Boolean get() = state is TimeState.Frozen
+    val stateProgress: Double?
+        get() {
+            val s = state
+            val total = when (s) {
+                is TimeState.Slowed -> s.durationMs ?: return null
+                is TimeState.Frozen -> s.durationMs ?: return null
+                is TimeState.Normal -> return null
+            }
+            return (1.0 - (remainingMs / total)).coerceIn(0.0, 1.0)
         }
-    }
 
-    private fun freezeTime(duration: Double) {
-        Logger.info { "Freezing time: $duration" }
-        mode = TimeState.FROZEN
-        modeDuration = duration
-    }
+    var remainingMs: Double = 0.0
+        private set
 
-    private fun resetState() {
-        mode = TimeState.NORMAL
-        onFreezeEnded?.invoke()
-        Logger.info { "Returning to normal state: $mode" }
-    }
-
-    fun slowDownTime(duration: Double) {
-        mode = TimeState.SLOWED
-        modeDuration = duration
+    fun transition(newState: TimeState) {
+        val previous = state
+        state = newState
+        remainingMs = when (newState) {
+            is TimeState.Slowed -> newState.durationMs ?: Double.MAX_VALUE
+            is TimeState.Frozen -> newState.durationMs ?: Double.MAX_VALUE
+            is TimeState.Normal -> 0.0
+        }
+        if (previous != newState) {
+            onStateChanged?.invoke(previous, newState)
+            Logger.info { "TimeManager: $previous → $newState" }
+        }
     }
 
     fun tick(deltaTime: Double): Double {
-        if (mode == TimeState.NORMAL) return deltaTime
+        return when (val s = state) {
+            is TimeState.Normal -> deltaTime
 
-        if (mode == TimeState.SLOWED) {
-            return deltaTime * settings.slowDownMultiplier
+            is TimeState.Slowed -> {
+                if (s.durationMs != null) {
+                    remainingMs -= deltaTime
+                    if (remainingMs <= 0.0) transition(TimeState.Normal)
+                }
+                deltaTime * s.multiplier
+            }
+
+            is TimeState.Frozen -> {
+                if (s.durationMs != null) {
+                    remainingMs -= deltaTime
+                    if (remainingMs <= 0.0) transition(TimeState.Normal)
+                }
+                0.0
+            }
         }
-
-        modeDuration -= deltaTime
-        if (modeDuration <= 0) {
-            resetState()
-        }
-
-        return 0.0
     }
 
     override fun reset() {
-        mode = TimeState.NORMAL
-        modeDuration = 0.0
+        state = TimeState.Normal
+        remainingMs = 0.0
     }
 }

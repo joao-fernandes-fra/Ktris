@@ -16,6 +16,7 @@ import engine.controller.SpinTrackingCapable
 import engine.model.Board
 import engine.model.DasPreservation
 import engine.model.DasState
+import engine.model.GameOverReason
 import engine.model.GameSettings
 import engine.model.GameTimers
 import engine.model.LastPieceAction
@@ -32,6 +33,7 @@ import engine.model.events.GameEvent.NewPiece
 import engine.model.events.GameEvent.PieceHeld
 import engine.model.events.GameEvent.PieceRotated
 import engine.model.events.GameEvent.SoftDrop
+import engine.model.events.MoveSource
 import engine.util.CollisionUtils.checkCollisionWithBoard
 
 class GuidelinePieceController<T : Piece>(
@@ -65,6 +67,7 @@ class GuidelinePieceController<T : Piece>(
 
     private var dasState: DasState = DasState.IDLE
     private var lockResets: Int = 0
+    private var lowestRow: Int = Int.MAX_VALUE
     private var canHold = true
     private var bufferedRotation: Rotation? = null
     private var rotationBufferTimer: Double = 0.0
@@ -76,6 +79,8 @@ class GuidelinePieceController<T : Piece>(
     override val rotationBufferWindow: Double = ROTATION_BUFFER_WINDOW
     override var holdBuffered: Boolean = false
     override var lastKickIndex = 0
+    override var lastKickWasFinal = false
+    override val lockResetsRemaining: Int get() = playerSettings.maxLockResets - lockResets
 
     override fun getNextPieces(previewSize: Int): List<T> {
         return bagRandomizer.getPreview(previewSize)
@@ -96,12 +101,17 @@ class GuidelinePieceController<T : Piece>(
             }
 
             DasState.REPEAT -> {
-                while (gameTimers.dasTimer >= playerSettings.arrDelay) {
-                    if (!movePiece(0, dir)) {
-                        gameTimers.dasTimer = 0.0
-                        break
+                if (playerSettings.arrDelay <= 0.0) {
+                    while (movePiece(0, dir, MoveSource.PLAYER)) { /* move until blocked */ }
+                    gameTimers.dasTimer = 0.0
+                } else {
+                    while (gameTimers.dasTimer >= playerSettings.arrDelay) {
+                        if (!movePiece(0, dir, MoveSource.PLAYER)) {
+                            gameTimers.dasTimer = 0.0
+                            break
+                        }
+                        gameTimers.dasTimer -= playerSettings.arrDelay
                     }
-                    gameTimers.dasTimer -= playerSettings.arrDelay
                 }
             }
         }
@@ -129,7 +139,7 @@ class GuidelinePieceController<T : Piece>(
 
         gameTimers.dropTimer += delta
         if (gameTimers.dropTimer >= gravitySpeed) {
-            if (movePiece(1, 0)) {
+            if (movePiece(1, 0, MoveSource.GRAVITY)) {
                 gameTimers.lockTimer = 0.0
                 gameTimers.dropTimer -= gravitySpeed
             } else {
@@ -149,13 +159,14 @@ class GuidelinePieceController<T : Piece>(
         )
 
         if (checkCollisionWithBoard(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
-            EventOrchestrator.publish(GameOver(false, globalGameSettings.goalType, gameId))
+            EventOrchestrator.publish(GameOver(GameOverReason.BLOCK_OUT, globalGameSettings.goalType, gameId))
             return null
         }
 
         currentPiece = newPiece
         canHold = true
         lastAction = LastPieceAction.NONE
+        lowestRow = Int.MIN_VALUE
         lockResets = 0
         gameTimers.lockTimer = 0.0
 
@@ -212,7 +223,7 @@ class GuidelinePieceController<T : Piece>(
         gameTimers.softDropTimer += deltaTime
         var dropLines = 0
         if (playerSettings.softDropDelay <= SOFT_DROP_PRECISION_EPSILON) {
-            while (movePiece(1, 0)) {
+            while (movePiece(1, 0, MoveSource.SOFT_DROP)) {
                 dropLines++
                 gameTimers.dropTimer = 0.0
 
@@ -220,7 +231,7 @@ class GuidelinePieceController<T : Piece>(
         } else {
             while (gameTimers.softDropTimer >= playerSettings.softDropDelay) {
                 Logger.debug { "SOFT_DROP: Dropping Piece with delay: ${playerSettings.softDropDelay}" }
-                if (movePiece(1, 0)) {
+                if (movePiece(1, 0, MoveSource.SOFT_DROP)) {
                     dropLines++
                     gameTimers.dropTimer = 0.0
 
@@ -239,17 +250,21 @@ class GuidelinePieceController<T : Piece>(
     }
 
     override fun move(targetRow: Int, targetCol: Int): Boolean {
-        if (movePiece(targetRow, targetCol)) {
+        if (movePiece(targetRow, targetCol, MoveSource.PLAYER)) {
             lastAction = LastPieceAction.MOVE
             return true
         }
         return false
     }
 
-    private fun movePiece(targetRow: Int, targetCol: Int): Boolean {
+    private fun movePiece(targetRow: Int, targetCol: Int, source: MoveSource): Boolean {
         val moving = currentPiece ?: return false
         if (canMove(moving, targetRow, targetCol)) {
             moving.move(moving.pieceRow + targetRow, moving.pieceCol + targetCol)
+            checkLowestRow(moving)
+            EventOrchestrator.publish(
+                GameEvent.PieceMoved(targetRow, targetCol, moving.pieceRow, moving.pieceCol, source, gameId)
+            )
             return true
         }
         return false
@@ -265,14 +280,15 @@ class GuidelinePieceController<T : Piece>(
         val currentCenterRow = piece.pieceRow + centerRowOffset
         val currentCenterCol = piece.pieceCol + centerColOffset
 
-        for ((index, kick) in kickOffsets.withIndex()) {  // ← withIndex to track which kick succeeded
+        for ((index, kick) in kickOffsets.withIndex()) {
             val (deltaCol, deltaRow) = kick
             val newCenterRow = currentCenterRow + deltaRow
             val newCenterCol = currentCenterCol + deltaCol
             val (topLeftRow, topLeftCol) = getTopLeftFromCenter(newCenterRow, newCenterCol, piece.piece)
 
             if (!checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)) {
-                lastKickIndex = index  // ← record successful kick
+                lastKickIndex = index
+                lastKickWasFinal = index == kickOffsets.size - 1
                 piece.rotateShape(candidateShape, topLeftRow, topLeftCol, rotation)
                 gameTimers.lockTimer = 0.0
                 resetLockTimer()
@@ -283,6 +299,7 @@ class GuidelinePieceController<T : Piece>(
                 return true
             }
         }
+        lastKickWasFinal = false
         lastKickIndex = 0
         bufferedRotation = rotation
         rotationBufferTimer = 0.0
@@ -296,7 +313,10 @@ class GuidelinePieceController<T : Piece>(
 
 
     override fun hold() {
-        if (!playerSettings.isHoldEnabled || !canHold || currentPiece == null) return
+        if (!playerSettings.isHoldEnabled || !canHold || currentPiece == null) {
+            clearActionBuffer()
+            return
+        }
 
         val pieceToHold = currentPiece!!.piece
         if (heldPiece == null) {
@@ -314,13 +334,13 @@ class GuidelinePieceController<T : Piece>(
 
     override fun clearPiece() {
         currentPiece = null
+        clearActionBuffer()
     }
 
     private fun resetLockTimer() {
         if (lockResets < playerSettings.maxLockResets) {
             gameTimers.lockTimer = 0.0
             lockResets++
-            Logger.debug { "Lock timer resets $lockResets" }
         }
     }
 
@@ -365,13 +385,13 @@ class GuidelinePieceController<T : Piece>(
         bagRandomizer.reset()
         heldPiece = null
         ghostRow = 0
+        lowestRow = Int.MIN_VALUE
         lockResets = 0
         dasState = DasState.IDLE
         canHold = true
-        bufferedRotation = null
-        holdBuffered = false
-        rotationBufferTimer = 0.0
         lastKickIndex = 0
+        lastKickWasFinal = false
+        clearActionBuffer()
     }
 
     override fun bufferRotation(rotation: Rotation) {
@@ -395,6 +415,16 @@ class GuidelinePieceController<T : Piece>(
                 bufferedRotation = null
                 rotationBufferTimer = 0.0
             }
+        }
+    }
+
+    private fun checkLowestRow(piece: MovingPiece<T>) {
+        val currentBottom = piece.pieceRow + piece.shape.rows - 1
+        if (currentBottom > lowestRow) {
+            lowestRow = currentBottom
+            lockResets = 0
+            gameTimers.lockTimer = 0.0
+            Logger.debug { "New lowest row $lowestRow — lock resets refreshed" }
         }
     }
 }

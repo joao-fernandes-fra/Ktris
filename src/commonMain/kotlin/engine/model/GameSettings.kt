@@ -32,6 +32,8 @@ data class PlayerSettings(
     val lockDelay: Double = 500.0,
     val softDropDelay: Double = 33.0,
     val maxLockResets: Int = 15,
+    val lineClearDelay: Double = 0.0,
+    val finalKickSpinBehavior: FinalKickSpinBehavior = FinalKickSpinBehavior.NORMAL,
 
     val isHoldEnabled: Boolean = true,
     val isGhostEnabled: Boolean = true,

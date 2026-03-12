@@ -25,5 +25,5 @@ interface TetrisEngine<T : Piece> : Resetable {
     fun onRotationRelease(rotation: Rotation)
     fun onMovementRelease(movement: Movement)
     fun forceBoardState(newState: Board)
-    fun onTimeState(timeState: TimeState, duration: Double)
+    fun onTimeState(timeState: TimeState)
 }
