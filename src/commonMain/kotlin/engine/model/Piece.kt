@@ -1,8 +1,5 @@
 package engine.model
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 enum class SpinType {
     NONE,
     MINI,
@@ -23,5 +20,5 @@ interface Piece {
 
     fun getKickTable(rotation: Rotation, rotationState: Int): List<Pair<Int, Int>>
 
-    fun getSpinType(board: Board, row: Int, col: Int, rotationState: Int): SpinType = SpinType.NONE
+    fun getSpinType(board: Board, row: Int, col: Int, rotationState: Int, kickIndex: Int = 0): SpinType = SpinType.NONE
 }

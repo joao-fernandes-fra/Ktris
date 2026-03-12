@@ -1,8 +1,5 @@
 package engine.model
 
-import kotlinx.serialization.Serializable
-
-@Serializable
 data class Matrix(
     val rows: Int,
     val cols: Int,

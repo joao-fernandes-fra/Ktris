@@ -29,15 +29,19 @@ import engine.model.events.GameEvent.SpinDetected
 import engine.util.addGarbageIfSupported
 import engine.util.advanceLockIfSupported
 import engine.util.applyGravityIfSupported
+import engine.util.bufferHoldIfSupported
+import engine.util.bufferRotationIfSupported
 import engine.util.clipIfSupported
 import engine.util.collapseIfSupported
 import engine.util.getGhostRowIfSupported
 import engine.util.getHeldPieceIfSupported
+import engine.util.getLastKickIndexIfSupported
 import engine.util.handleDASIfSupported
 import engine.util.hardDropIfSupported
 import engine.util.holdIfSupported
 import engine.util.resetDASifSupported
 import engine.util.softDropIfSupported
+import engine.util.tickInputBufferIfSupported
 import engine.util.updateGhostIfSupported
 import kotlin.math.absoluteValue
 
@@ -110,6 +114,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
             GameState.PLAYING -> {
                 gameTimers.sessionTimer += deltaTime
+                pieceController.tickInputBufferIfSupported(deltaTime)
                 pieceController.handleDASIfSupported(deltaTime, currentDirection)
                 pieceController.applyGravityIfSupported(gravityDelta)
                 pieceController.advanceLockIfSupported(deltaTime, ::lockAndProcess)
@@ -139,6 +144,10 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     override fun onHold() {
+        if (gameState == GameState.ENTRY_DELAY) {
+            pieceController.bufferHoldIfSupported()
+            return
+        }
         pieceController.holdIfSupported()
     }
 
@@ -172,12 +181,19 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override fun onRotation(rotation: Rotation): Boolean {
         if (rotationLock) return false
+        if (gameState == GameState.ENTRY_DELAY) {
+            pieceController.bufferRotationIfSupported(rotation)
+            return false
+        }
         val successfulRotation = pieceController.rotate(rotation)
         val piece = pieceController.currentPiece
         if (piece != null) {
             val spinType = getSpinType(piece)
             if (spinType != SpinType.NONE) EventOrchestrator.publish(SpinDetected(spinType, gameId))
-            Logger.debug { "Processing Rotation [$rotation] for piece [${pieceController.currentPiece?.piece?.name}]: $successfulRotation | SpinType [$spinType]" }
+            Logger.debug { "Processing Rotation [$rotation] for piece [${piece.piece.name}]: $successfulRotation | SpinType [$spinType]" }
+        }
+        if (successfulRotation && playerSettings.dasCutOnRotation) {
+            pieceController.resetDASifSupported()
         }
         rotationLock = successfulRotation
         return successfulRotation
@@ -242,11 +258,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         } else {
             boardManager.clearFullLines()
             EventOrchestrator.publish(
-                LineCleared(
-                    spinType,
-                    fullLines,
-                    boardManager.isBoardEmpty, gameId
-                )
+                LineCleared(piece.piece, spinType, fullLines, boardManager.isBoardEmpty, gameId)
             )
         }
 
@@ -257,12 +269,17 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     private fun getSpinType(pieceState: MovingPiece<T>): SpinType {
-        if (!playerSettings.isSpinEnabled || pieceController.lastAction != LastPieceAction.ROTATE) return SpinType.NONE
+        if (!gameSettings.isSpinEnabled) return SpinType.NONE
+        if (pieceController.lastAction != LastPieceAction.ROTATE) return SpinType.NONE
+
+        val kickIndex = pieceController.getLastKickIndexIfSupported()
+
         return pieceState.piece.getSpinType(
             boardManager.board,
             pieceState.pieceRow,
             pieceState.pieceCol,
-            pieceState.rotationState
+            pieceState.rotationState,
+            kickIndex
         )
     }
 
