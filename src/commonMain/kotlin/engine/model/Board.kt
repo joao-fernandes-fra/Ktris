@@ -27,7 +27,10 @@ data class Board(
     val rows get() = contents.rows
     val cols get() = contents.cols
 
-    fun isOccupied(row: Int, col: Int): Boolean = contents[row, col] != EMPTY_BLOCK_VALUE
+    fun isOccupied(row: Int, col: Int): Boolean {
+        if (row !in 0 until rows || col !in 0 until cols) return true
+        return this[row, col] != 0
+    }
 
     val isEmpty: Boolean get() = contents.isEmpty()
     val visibleRows: Int get() = rows - bufferSize

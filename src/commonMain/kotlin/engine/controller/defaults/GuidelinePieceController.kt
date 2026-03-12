@@ -7,10 +7,14 @@ import engine.controller.GhostCapable
 import engine.controller.GravityCapable
 import engine.controller.HardDropCapable
 import engine.controller.HoldCapable
+import engine.controller.InitialActionsCapable
+import engine.controller.InputBufferCapable
 import engine.controller.LockDelayCapable
 import engine.controller.PieceController
 import engine.controller.SoftDropCapable
+import engine.controller.SpinTrackingCapable
 import engine.model.Board
+import engine.model.DasPreservation
 import engine.model.DasState
 import engine.model.GameSettings
 import engine.model.GameTimers
@@ -37,10 +41,20 @@ class GuidelinePieceController<T : Piece>(
     private val globalGameSettings: GameSettings,
     private val gameTimers: GameTimers,
     private val gameId: String
-) : PieceController<T>, DasCapable, GravityCapable, SoftDropCapable, HardDropCapable, HoldCapable<T>,
-    ClipCapable, LockDelayCapable, GhostCapable {
+) : PieceController<T>, DasCapable,
+    GravityCapable,
+    SoftDropCapable,
+    HardDropCapable,
+    HoldCapable<T>,
+    InitialActionsCapable,
+    InputBufferCapable,
+    ClipCapable,
+    LockDelayCapable,
+    GhostCapable,
+    SpinTrackingCapable {
     companion object {
         private const val SOFT_DROP_PRECISION_EPSILON = 0.001f
+        private const val ROTATION_BUFFER_WINDOW = 133.0
     }
 
     init {
@@ -49,21 +63,23 @@ class GuidelinePieceController<T : Piece>(
         }
     }
 
+    private var dasState: DasState = DasState.IDLE
+    private var lockResets: Int = 0
+    private var canHold = true
+    private var bufferedRotation: Rotation? = null
+    private var rotationBufferTimer: Double = 0.0
     private var currentLevel = 0
-
     override var heldPiece: T? = null
     override var currentPiece: MovingPiece<T>? = null
+    override var ghostRow: Int = 0
+    override var lastAction: LastPieceAction = LastPieceAction.NONE
+    override val rotationBufferWindow: Double = ROTATION_BUFFER_WINDOW
+    override var holdBuffered: Boolean = false
+    override var lastKickIndex = 0
 
     override fun getNextPieces(previewSize: Int): List<T> {
         return bagRandomizer.getPreview(previewSize)
     }
-
-    override var ghostRow: Int = 0
-    override var lastAction: LastPieceAction = LastPieceAction.NONE
-
-    private var dasState: DasState = DasState.IDLE
-    private var lockResets: Int = 0
-    private var canHold = true
 
     override fun handleDAS(delta: Double, currentDirection: Int?) {
         val dir = currentDirection ?: return
@@ -95,6 +111,17 @@ class GuidelinePieceController<T : Piece>(
     override fun resetDas() {
         dasState = DasState.DELAY
         gameTimers.dasTimer = 0.0
+    }
+
+    override fun preserveDas() {
+        when (playerSettings.dasPreservation) {
+            DasPreservation.FULL -> {}
+            DasPreservation.CHARGE_ONLY -> {
+                if (dasState == DasState.REPEAT) dasState = DasState.DELAY
+            }
+
+            DasPreservation.RESET -> resetDas()
+        }
     }
 
     override fun handleGravity(delta: Double) {
@@ -131,6 +158,25 @@ class GuidelinePieceController<T : Piece>(
         lastAction = LastPieceAction.NONE
         lockResets = 0
         gameTimers.lockTimer = 0.0
+
+        preserveDas()
+
+        if (holdBuffered && playerSettings.isHoldEnabled) {
+            holdBuffered = false
+            bufferedRotation = null
+            rotationBufferTimer = 0.0
+            updateGhost()
+            EventOrchestrator.publish(NewPiece(newPiece.piece, gameId))
+            hold()
+            return currentPiece
+        }
+
+        val irs = bufferedRotation
+        if (irs != null) {
+            bufferedRotation = null
+            rotationBufferTimer = 0.0
+            rotate(irs)
+        }
 
         updateGhost()
         EventOrchestrator.publish(NewPiece(newPiece.piece, gameId))
@@ -213,26 +259,33 @@ class GuidelinePieceController<T : Piece>(
         val piece = currentPiece ?: return false
         if (rotation == Rotation.ROTATE_180 && !playerSettings.is180Enabled) return false
 
-        val (candidateShape, newRotationState) = piece.projectRotation(rotation)
-        val kickOffsets = piece.piece.getKickTable(rotation, newRotationState)
+        val (candidateShape, _) = piece.projectRotation(rotation)
+        val kickOffsets = piece.piece.getKickTable(rotation, piece.rotationState)
         val (centerRowOffset, centerColOffset) = piece.piece.getRotationCenter()
         val currentCenterRow = piece.pieceRow + centerRowOffset
         val currentCenterCol = piece.pieceCol + centerColOffset
-        for ((deltaCol, deltaRow) in kickOffsets) {
+
+        for ((index, kick) in kickOffsets.withIndex()) {  // ← withIndex to track which kick succeeded
+            val (deltaCol, deltaRow) = kick
             val newCenterRow = currentCenterRow + deltaRow
             val newCenterCol = currentCenterCol + deltaCol
             val (topLeftRow, topLeftCol) = getTopLeftFromCenter(newCenterRow, newCenterCol, piece.piece)
-            val hasCollision = checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)
 
-            if (!hasCollision) {
+            if (!checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)) {
+                lastKickIndex = index  // ← record successful kick
                 piece.rotateShape(candidateShape, topLeftRow, topLeftCol, rotation)
                 gameTimers.lockTimer = 0.0
                 resetLockTimer()
                 lastAction = LastPieceAction.ROTATE
+                bufferedRotation = null
+                rotationBufferTimer = 0.0
                 EventOrchestrator.publish(PieceRotated(piece.piece, piece.rotationState, gameId))
                 return true
             }
         }
+        lastKickIndex = 0
+        bufferedRotation = rotation
+        rotationBufferTimer = 0.0
         return false
     }
 
@@ -315,5 +368,33 @@ class GuidelinePieceController<T : Piece>(
         lockResets = 0
         dasState = DasState.IDLE
         canHold = true
+        bufferedRotation = null
+        holdBuffered = false
+        rotationBufferTimer = 0.0
+        lastKickIndex = 0
+    }
+
+    override fun bufferRotation(rotation: Rotation) {
+        bufferedRotation = rotation
+    }
+
+    override fun bufferHold() {
+        holdBuffered = true
+    }
+
+    override fun clearActionBuffer() {
+        bufferedRotation = null
+        holdBuffered = false
+        rotationBufferTimer = 0.0
+    }
+
+    override fun tickInputBuffer(delta: Double) {
+        if (bufferedRotation != null) {
+            rotationBufferTimer += delta
+            if (rotationBufferTimer >= ROTATION_BUFFER_WINDOW) {
+                bufferedRotation = null
+                rotationBufferTimer = 0.0
+            }
+        }
     }
 }

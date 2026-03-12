@@ -1,6 +1,5 @@
 package engine.controller.defaults
 
-import engine.controller.GameRenderer
 import engine.model.Drop
 import engine.model.KtrisContext
 import engine.model.Movement
@@ -22,10 +21,8 @@ import engine.model.events.InputEvent.FreezeTime
 import engine.model.events.InputEvent.RotationInputRelease
 import engine.model.events.InputEvent.RotationInputStart
 import engine.model.events.InputEvent.SlowDownTime
-import kotlin.time.Clock
-import kotlin.time.DurationUnit
 
-open class BaseTetris<T : Piece>(
+abstract class BaseTetris<T : Piece>(
     context: KtrisContext<T>
 ) : DefaultTetrisEngine<T>(
     context.playerSettings,
@@ -50,7 +47,12 @@ open class BaseTetris<T : Piece>(
 
             if (linesCleared.isNotEmpty()) {
                 EventOrchestrator.publish(
-                    LineCleared(SpinType.NONE, linesCleared, boardManager.isBoardEmpty, gameId)
+                    LineCleared(
+                        spinType = SpinType.NONE,
+                        linesCleared = linesCleared,
+                        isEmptyBoard = boardManager.isBoardEmpty,
+                        gameId = gameId
+                    )
                 )
             }
             Logger.info { "Freeze ended. Cleared $linesCleared lines immediately." }
@@ -83,27 +85,6 @@ open class BaseTetris<T : Piece>(
         )
         EventOrchestrator.subscribeForGameId<InputEvent.ResetInput>(gameId) { reset() }
     }
-
-    override fun start(renderer: GameRenderer<T>) {
-        val targetFrameTime = 16.67
-        var lastTime = Clock.System.now()
-        var accumulator = 0.0
-
-        while (!isGameOver && !isGoalMet) {
-            val now = Clock.System.now()
-            val delta = (now - lastTime).toDouble(DurationUnit.MILLISECONDS)
-            lastTime = now
-
-            accumulator += delta
-
-            if (accumulator >= targetFrameTime) {
-                update(accumulator)
-                renderer.render(gameStateSnapshot())
-                accumulator = 0.0
-            }
-        }
-    }
-
 
     private inline fun <reified E : Event, V> subscribeForGame(
         crossinline handler: (V) -> Unit,

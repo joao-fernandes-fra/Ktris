@@ -13,7 +13,7 @@ object GameEvent {
     data class HardDrop(var distance: Int, override val gameId: String) : Event
     data class SoftDrop(var distance: Int, override val gameId: String) : Event
     data class PieceLocked(val linesCleared: Boolean, override val gameId: String) : Event
-    data class LineCleared(val spinType: SpinType, val linesCleared: Set<Int>, val isEmptyBoard: Boolean, override val gameId: String) : Event
+    data class LineCleared(val piece: Piece? = null, val spinType: SpinType, val linesCleared: Set<Int>, val isEmptyBoard: Boolean, override val gameId: String) : Event
     data class FreezeLineClear(val linesCleared: Int, val spinType: SpinType, override val gameId: String) : Event
     data class ScoreUpdated(val totalLines: Int, val currentPoints: Double, val pointsEarned: Double, val moveType: MoveType, override val gameId: String) : Event
     data class SpinDetected(val spinType: SpinType, override val gameId: String) : Event

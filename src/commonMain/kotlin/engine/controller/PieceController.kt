@@ -9,44 +9,61 @@ import engine.model.Rotation
 interface PieceController<T : Piece> : Resetable {
     var currentPiece: MovingPiece<T>?
     var lastAction: LastPieceAction
-     fun getNextPieces(previewSize: Int = 1): List<T>
-     fun spawn(piece: T? = null): MovingPiece<T>?
-     fun move(targetRow: Int, targetCol: Int): Boolean
-     fun rotate(rotation: Rotation): Boolean
-     fun clearPiece()
+    fun getNextPieces(previewSize: Int = 1): List<T>
+    fun spawn(piece: T? = null): MovingPiece<T>?
+    fun move(targetRow: Int, targetCol: Int): Boolean
+    fun rotate(rotation: Rotation): Boolean
+    fun clearPiece()
 }
 
 interface GravityCapable {
-     fun handleGravity(delta: Double)
+    fun handleGravity(delta: Double)
 }
 
 interface DasCapable {
-     fun handleDAS(delta: Double, currentDirection: Int?)
-     fun resetDas()
+    fun handleDAS(delta: Double, currentDirection: Int?)
+    fun resetDas()
+    fun preserveDas()
 }
 
 interface ClipCapable {
-     fun clip()
+    fun clip()
 }
 
 interface LockDelayCapable {
-     fun handleLockDelay(deltaTime: Double, onLock:  () -> Unit): Boolean
+    fun handleLockDelay(deltaTime: Double, onLock: () -> Unit): Boolean
 }
 
 interface HoldCapable<T : Piece> {
     var heldPiece: T?
-     fun hold()
+    var holdBuffered: Boolean
+    fun hold()
 }
 
 interface GhostCapable {
     var ghostRow: Int
-     fun updateGhost()
+    fun updateGhost()
 }
 
 interface SoftDropCapable {
-     fun softDrop(deltaTime: Double)
+    fun softDrop(deltaTime: Double)
 }
 
 interface HardDropCapable {
-     fun hardDrop()
+    fun hardDrop()
+}
+
+interface InitialActionsCapable {
+    fun bufferRotation(rotation: Rotation)
+    fun bufferHold()
+    fun clearActionBuffer()
+}
+
+interface InputBufferCapable {
+    val rotationBufferWindow: Double
+    fun tickInputBuffer(delta: Double)
+}
+
+interface SpinTrackingCapable {
+    val lastKickIndex: Int
 }

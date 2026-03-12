@@ -1,15 +1,11 @@
 package engine.model.defaults
 
-import kotlinx.serialization.Serializable
 import engine.model.Matrix
 import engine.model.MovingPiece
 import engine.model.Piece
 import engine.model.Rotation
 
 
-
-
-@Serializable
 data class DefaultMovingPiece<T : Piece>(
     override var piece: T,
     override var pieceRow: Int = 0,

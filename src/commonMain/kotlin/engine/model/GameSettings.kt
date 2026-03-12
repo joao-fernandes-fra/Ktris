@@ -4,6 +4,8 @@ enum class GameGoal {
     LINES, TIME, NONE
 }
 
+enum class DasPreservation { FULL, CHARGE_ONLY, RESET }
+
 data class GameSettings(
     val boardRows: Int = 20,
     val boardCols: Int = 10,
@@ -14,8 +16,8 @@ data class GameSettings(
     val levelCap: Int = 99,
 
     val shouldCollapseOnFreeze: Boolean = true,
-    val bagMultiplier: Int = 1,
     val slowDownMultiplier: Double = 2.0,
+    val isSpinEnabled: Boolean = true,
 
     val goalType: GameGoal = GameGoal.NONE,
     val goalValue: Double = 0.0,
@@ -33,8 +35,9 @@ data class PlayerSettings(
 
     val isHoldEnabled: Boolean = true,
     val isGhostEnabled: Boolean = true,
-    val isSpinEnabled: Boolean = true,
     val is180Enabled: Boolean = false,
 
     val previewSize: Int = 5,
+    val dasPreservation: DasPreservation = DasPreservation.FULL,
+    val dasCutOnRotation: Boolean = false,
 )

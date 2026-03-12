@@ -1,45 +1,32 @@
 package engine.model.events
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.launch
-
 
 object EventOrchestrator {
-    val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
-
-    private val _events = MutableSharedFlow<Event>(extraBufferCapacity = 64)
-    val events: SharedFlow<Event> = _events
+    val listeners = mutableListOf<(Event) -> Unit>()
 
     fun publish(event: Event) {
-        _events.tryEmit(event)
+        listeners.toList().forEach { it(event) }
     }
 
-    inline fun <reified T : Event> subscribe(crossinline callback: suspend (T) -> Unit) {
-        scope.launch {
-            events.filterIsInstance<T>().collect { callback(it) }
-        }
+    inline fun <reified T : Event> subscribe(crossinline callback: (T) -> Unit) {
+        listeners.add { if (it is T) callback(it) }
     }
 
-    inline fun <reified T : Event> subscribeForGameId(gameId: String, crossinline callback: suspend (T) -> Unit) {
-        scope.launch {
-            events.filterIsInstance<T>().filter { it.gameId == gameId }.collect { callback(it) }
-        }
+    inline fun <reified T : Event> subscribeForGameId(
+        gameId: String,
+        crossinline callback: (T) -> Unit
+    ) {
+        listeners.add { if (it is T && it.gameId == gameId) callback(it) }
     }
 
     inline fun <reified T : Event, M> subscribe(
-        crossinline callback: suspend (M?) -> Any?, crossinline extractor: suspend (T) -> M?
+        crossinline callback: (M?) -> Unit,
+        crossinline extractor: (T) -> M?
     ) {
-        scope.launch {
-            events.filterIsInstance<T>().collect {
-                callback(extractor(it))
-            }
-        }
+        listeners.add { if (it is T) callback(extractor(it)) }
     }
 
+    fun unsubscribeAll() {
+        listeners.clear()
+    }
 }
