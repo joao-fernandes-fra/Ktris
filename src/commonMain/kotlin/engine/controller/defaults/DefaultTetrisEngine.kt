@@ -216,7 +216,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         val piece = pieceController.currentPiece
         if (piece != null) {
             val spinType = getSpinType(piece)
-            if (spinType != SpinType.NONE) EventOrchestrator.publish(SpinDetected(spinType, gameId))
+            if (spinType != SpinType.NONE) EventOrchestrator.publish(SpinDetected(piece, spinType, gameId))
             Logger.debug { "Processing Rotation [$rotation] for piece [${piece.piece.name}]: $successfulRotation | SpinType [$spinType]" }
         }
         if (successfulRotation && playerSettings.dasCutOnRotation) {
@@ -292,7 +292,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
         }
 
         val spinType = getSpinType(piece)
-        if (spinType != SpinType.NONE) EventOrchestrator.publish(SpinDetected(spinType, gameId))
+        if (spinType != SpinType.NONE)  EventOrchestrator.publish(SpinDetected(piece, spinType, gameId))
         EventOrchestrator.publish(
             PieceLocked(
                 fullLines.isNotEmpty(),

@@ -3,6 +3,7 @@ package engine.model.events
 import engine.model.GameGoal
 import engine.model.GameOverReason
 import engine.model.MoveType
+import engine.model.MovingPiece
 import engine.model.Piece
 import engine.model.SpinType
 
@@ -53,7 +54,7 @@ object GameEvent {
         override val gameId: String
     ) : Event
 
-    data class SpinDetected(val spinType: SpinType, override val gameId: String) : Event
+    data class SpinDetected(val piece: MovingPiece<*>, val spinType: SpinType, override val gameId: String) : Event
     data class LevelUp(val newLevel: Int, override val gameId: String) : Event
     data class ComboTriggered(val comboCount: Int, override val gameId: String) : Event
     data class BackToBackTrigger(val backToBackCount: Int, override val gameId: String) : Event
