@@ -5,14 +5,13 @@ import engine.model.Resetable
 import engine.model.ScoringRuleBook
 import engine.model.SpinType
 import engine.model.events.EventOrchestrator
-import engine.model.events.GameEvent.BackToBackTrigger
-import engine.model.events.GameEvent.ComboTriggered
-import engine.model.events.GameEvent.HardDrop
-import engine.model.events.GameEvent.LevelUp
-import engine.model.events.GameEvent.LineCleared
-import engine.model.events.GameEvent.ScoreUpdated
-import engine.model.events.GameEvent.SoftDrop
-import engine.model.events.InputEvent
+import engine.model.events.DefaultGameEvents.BackToBackTrigger
+import engine.model.events.DefaultGameEvents.ComboTriggered
+import engine.model.events.DefaultGameEvents.HardDrop
+import engine.model.events.DefaultGameEvents.LevelUp
+import engine.model.events.DefaultGameEvents.LineCleared
+import engine.model.events.DefaultGameEvents.ScoreUpdated
+import engine.model.events.DefaultGameEvents.SoftDrop
 
 class ScoreTracker(
     private val ruleBook: ScoringRuleBook,
@@ -38,9 +37,6 @@ class ScoreTracker(
         }
         EventOrchestrator.subscribeForGameId<SoftDrop>(gameId) { event ->
             recordDrop(Drop.SOFT_DROP, event.distance)
-        }
-        EventOrchestrator.subscribeForGameId<InputEvent.ResetInput>(gameId) {
-            reset()
         }
         EventOrchestrator.subscribeForGameId<LevelUp>(gameId) { event ->
             level = event.newLevel

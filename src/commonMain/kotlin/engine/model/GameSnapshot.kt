@@ -16,7 +16,8 @@ data class GameSnapshot<T : Piece>(
 data class HUDInfo(
     val combo: Int?,
     val b2bCount: Int?,
-    val lockResetsRemaining: Int?
+    val lockResetsRemaining: Int?,
+    val sessionTimeSeconds: Double?,
 )
 
 data class PieceState<T : Piece>(

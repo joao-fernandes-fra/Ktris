@@ -9,16 +9,15 @@ import engine.model.Resetable
 import engine.model.Rotation
 import engine.model.TimeState
 
-interface TetrisEngine<T : Piece> : Resetable {
+interface GameEngine<T : Piece> : Resetable {
     val gameId: String
     val isGameOver: Boolean
     val isGoalMet: Boolean
     val sessionTimeSeconds: Double
-    fun start(renderer: GameRenderer<T>)
     fun levelUp(newLevel: Int): Int
     fun processGarbage(lines: Int)
-    fun onHold()
-    fun onRotation(rotation: Rotation): Boolean
+    fun onHold(isFreshPress: Boolean = true)
+    fun onRotation(rotation: Rotation, isFreshPress: Boolean = true): Boolean
     fun onMovement(movement: Movement): Boolean
     fun onDrop(drop: Drop)
     fun gameStateSnapshot(): GameSnapshot<T>?
@@ -26,4 +25,5 @@ interface TetrisEngine<T : Piece> : Resetable {
     fun onMovementRelease(movement: Movement)
     fun forceBoardState(newState: Board)
     fun onTimeState(timeState: TimeState)
+    fun update(deltaTime: Double)
 }

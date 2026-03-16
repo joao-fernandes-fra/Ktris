@@ -7,37 +7,34 @@ import engine.controller.PieceController
 import engine.controller.SoftDropCapable
 import engine.model.Board
 import engine.model.GameOverReason
-import engine.model.GameSettings
-import engine.model.GameTimers
 import engine.model.LastPieceAction
+import engine.model.MatchConfig
 import engine.model.MovingPiece
 import engine.model.Piece
-import engine.model.PlayerSettings
+import engine.model.PieceTimers
+import engine.model.PlayerConfig
 import engine.model.Rotation
 import engine.model.defaults.DefaultMovingPiece
 import engine.model.defaults.Logger
+import engine.model.events.DefaultGameEvents
+import engine.model.events.DefaultGameEvents.PieceRotated
 import engine.model.events.EventOrchestrator
-import engine.model.events.GameEvent
-import engine.model.events.GameEvent.PieceRotated
 import engine.util.CollisionUtils.checkCollisionWithBoard
 
-//TODO validate this class later on / should allow extension for extra implementation
 open class ClassicPieceController<T : Piece>(
     protected val board: Board,
     protected val bagRandomizer: BagRandomizer<T>,
-    protected val playerSettings: PlayerSettings,
-    protected val gameSettings: GameSettings,
-    protected val gameTimers: GameTimers,
+    protected val gameSettings: MatchConfig,
     protected val gameId: String
 ) : PieceController<T>, GravityCapable, LockDelayCapable, SoftDropCapable {
-
+    protected val gameTimers: PieceTimers = PieceTimers()
     override var currentPiece: MovingPiece<T>? = null
     override var lastAction: LastPieceAction = LastPieceAction.NONE
 
     private var lockResets: Int = 0
 
     override val lockResetsRemaining: Int
-        get() = playerSettings.maxLockResets - lockResets
+        get() = gameSettings.gravity.maxLockResets - lockResets
 
     override fun getNextPieces(previewSize: Int): List<T> {
         return bagRandomizer.getPreview(previewSize)
@@ -49,19 +46,24 @@ open class ClassicPieceController<T : Piece>(
         val mp = DefaultMovingPiece(piece = next, pieceCol = (board.cols / 2) - (next.shape.cols / 2))
 
         if (checkCollisionWithBoard(board, mp.shape, mp.pieceRow, mp.pieceCol)) {
-            EventOrchestrator.publish(GameEvent.GameOver(GameOverReason.BLOCK_OUT, gameSettings.goalType, gameId))
+            EventOrchestrator.publish(
+                DefaultGameEvents.GameOver(
+                    GameOverReason.BLOCK_OUT,
+                    gameSettings.objective.goalType,
+                    gameId
+                )
+            )
             return null
         }
 
         currentPiece = mp
         lockResets = 0
         gameTimers.lockTimer = 0.0
-        EventOrchestrator.publish(GameEvent.NewPiece(mp.piece, gameId))
+        EventOrchestrator.publish(DefaultGameEvents.NewPiece(mp.piece, gameId))
         return mp
     }
 
-    override fun handleGravity(delta: Double) {
-        val gravitySpeed = gameSettings.gravityBase - (1 - 1) * gameSettings.gravityIncrement
+    override fun handleGravity(delta: Double, gravitySpeed: Double) {
         gameTimers.dropTimer += delta
         if (gameTimers.dropTimer >= gravitySpeed) {
             if (movePiece(1, 0)) {
@@ -95,7 +97,7 @@ open class ClassicPieceController<T : Piece>(
 
     override fun rotate(rotation: Rotation): Boolean {
         val piece = currentPiece ?: return false
-        if (rotation == Rotation.ROTATE_180 && !playerSettings.is180Enabled) return false
+        if (rotation == Rotation.ROTATE_180 && !gameSettings.gameplay.is180Enabled) return false
         val (candidateShape, _) = piece.projectRotation(rotation)
         val topLeftRow = piece.pieceRow
         val topLeftCol = piece.pieceCol
@@ -134,10 +136,10 @@ open class ClassicPieceController<T : Piece>(
         bagRandomizer.reset()
     }
 
-    override fun softDrop(deltaTime: Double) {
+    override fun softDrop(deltaTime: Double, gravitySpeed: Double) {
         if (movePiece(1, 0)) {
             gameTimers.dropTimer = 0.0
-            EventOrchestrator.publish(GameEvent.SoftDrop(1, gameId))
+            EventOrchestrator.publish(DefaultGameEvents.SoftDrop(1, gameId))
         }
     }
 }

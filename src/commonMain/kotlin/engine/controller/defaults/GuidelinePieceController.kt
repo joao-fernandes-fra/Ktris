@@ -14,34 +14,34 @@ import engine.controller.PieceController
 import engine.controller.SoftDropCapable
 import engine.controller.SpinTrackingCapable
 import engine.model.Board
+import engine.model.BufferMode
 import engine.model.DasPreservation
 import engine.model.DasState
 import engine.model.GameOverReason
-import engine.model.GameSettings
-import engine.model.GameTimers
 import engine.model.LastPieceAction
+import engine.model.MatchConfig
 import engine.model.MovingPiece
 import engine.model.Piece
-import engine.model.PlayerSettings
+import engine.model.PieceTimers
+import engine.model.PlayerConfig
 import engine.model.Rotation
 import engine.model.defaults.DefaultMovingPiece
 import engine.model.defaults.Logger
+import engine.model.events.DefaultGameEvents
+import engine.model.events.DefaultGameEvents.GameOver
+import engine.model.events.DefaultGameEvents.NewPiece
+import engine.model.events.DefaultGameEvents.PieceHeld
+import engine.model.events.DefaultGameEvents.PieceRotated
+import engine.model.events.DefaultGameEvents.SoftDrop
 import engine.model.events.EventOrchestrator
-import engine.model.events.GameEvent
-import engine.model.events.GameEvent.GameOver
-import engine.model.events.GameEvent.NewPiece
-import engine.model.events.GameEvent.PieceHeld
-import engine.model.events.GameEvent.PieceRotated
-import engine.model.events.GameEvent.SoftDrop
 import engine.model.events.MoveSource
 import engine.util.CollisionUtils.checkCollisionWithBoard
 
 class GuidelinePieceController<T : Piece>(
     private val board: Board,
     private val bagRandomizer: BagRandomizer<T>,
-    private val playerSettings: PlayerSettings,
-    private val globalGameSettings: GameSettings,
-    private val gameTimers: GameTimers,
+    private val playerSettings: PlayerConfig,
+    private val gameSettings: MatchConfig,
     private val gameId: String
 ) : PieceController<T>, DasCapable,
     GravityCapable,
@@ -55,23 +55,16 @@ class GuidelinePieceController<T : Piece>(
     GhostCapable,
     SpinTrackingCapable {
     companion object {
-        private const val SOFT_DROP_PRECISION_EPSILON = 0.001f
         private const val ROTATION_BUFFER_WINDOW = 133.0
     }
 
-    init {
-        EventOrchestrator.subscribeForGameId<GameEvent.LevelUp>(gameId) {
-            currentLevel = it.newLevel
-        }
-    }
-
+    private val gameTimers: PieceTimers = PieceTimers()
     private var dasState: DasState = DasState.IDLE
     private var lockResets: Int = 0
     private var lowestRow: Int = Int.MAX_VALUE
     private var canHold = true
     private var bufferedRotation: Rotation? = null
     private var rotationBufferTimer: Double = 0.0
-    private var currentLevel = 0
     override var heldPiece: T? = null
     override var currentPiece: MovingPiece<T>? = null
     override var ghostRow: Int = 0
@@ -80,7 +73,7 @@ class GuidelinePieceController<T : Piece>(
     override var holdBuffered: Boolean = false
     override var lastKickIndex = 0
     override var lastKickWasFinal = false
-    override val lockResetsRemaining: Int get() = playerSettings.maxLockResets - lockResets
+    override val lockResetsRemaining: Int get() = gameSettings.gravity.maxLockResets - lockResets
 
     override fun getNextPieces(previewSize: Int): List<T> {
         return bagRandomizer.getPreview(previewSize)
@@ -92,25 +85,34 @@ class GuidelinePieceController<T : Piece>(
 
         when (dasState) {
             DasState.IDLE -> return
+            DasState.DCD -> {
+                gameTimers.dcdTimer += delta
+                if (gameTimers.dcdTimer >= playerSettings.handling.dcdDelay) {
+                    dasState = DasState.DELAY
+                    gameTimers.dcdTimer = 0.0
+                    gameTimers.dasTimer = 0.0
+                }
+            }
 
             DasState.DELAY -> {
-                if (gameTimers.dasTimer >= playerSettings.dasDelay) {
+                if (gameTimers.dasTimer >= playerSettings.handling.dasDelay) {
                     dasState = DasState.REPEAT
-                    gameTimers.dasTimer -= playerSettings.dasDelay
+                    gameTimers.dasTimer -= playerSettings.handling.dasDelay
                 }
             }
 
             DasState.REPEAT -> {
-                if (playerSettings.arrDelay <= 0.0) {
-                    while (movePiece(0, dir, MoveSource.PLAYER)) { /* move until blocked */ }
+                if (playerSettings.handling.arrDelay <= 0.0) {
+                    while (movePiece(0, dir, MoveSource.PLAYER)) { /* move until blocked */
+                    }
                     gameTimers.dasTimer = 0.0
                 } else {
-                    while (gameTimers.dasTimer >= playerSettings.arrDelay) {
+                    while (gameTimers.dasTimer >= playerSettings.handling.arrDelay) {
                         if (!movePiece(0, dir, MoveSource.PLAYER)) {
                             gameTimers.dasTimer = 0.0
                             break
                         }
-                        gameTimers.dasTimer -= playerSettings.arrDelay
+                        gameTimers.dasTimer -= playerSettings.handling.arrDelay
                     }
                 }
             }
@@ -119,12 +121,13 @@ class GuidelinePieceController<T : Piece>(
     }
 
     override fun resetDas() {
-        dasState = DasState.DELAY
+        dasState = if (playerSettings.handling.dcdDelay > 0.0) DasState.DCD else DasState.DELAY
         gameTimers.dasTimer = 0.0
+        gameTimers.dcdTimer = 0.0
     }
 
     override fun preserveDas() {
-        when (playerSettings.dasPreservation) {
+        when (playerSettings.handling.dasPreservation) {
             DasPreservation.FULL -> {}
             DasPreservation.CHARGE_ONLY -> {
                 if (dasState == DasState.REPEAT) dasState = DasState.DELAY
@@ -134,9 +137,7 @@ class GuidelinePieceController<T : Piece>(
         }
     }
 
-    override fun handleGravity(delta: Double) {
-        val gravitySpeed = globalGameSettings.gravityBase - (currentLevel - 1) * globalGameSettings.gravityIncrement
-
+    override fun handleGravity(delta: Double, gravitySpeed: Double) {
         gameTimers.dropTimer += delta
         if (gameTimers.dropTimer >= gravitySpeed) {
             if (movePiece(1, 0, MoveSource.GRAVITY)) {
@@ -159,7 +160,7 @@ class GuidelinePieceController<T : Piece>(
         )
 
         if (checkCollisionWithBoard(board, newPiece.shape, newPiece.pieceRow, newPiece.pieceCol)) {
-            EventOrchestrator.publish(GameOver(GameOverReason.BLOCK_OUT, globalGameSettings.goalType, gameId))
+            EventOrchestrator.publish(GameOver(GameOverReason.BLOCK_OUT, gameSettings.objective.goalType, gameId))
             return null
         }
 
@@ -172,7 +173,7 @@ class GuidelinePieceController<T : Piece>(
 
         preserveDas()
 
-        if (holdBuffered && playerSettings.isHoldEnabled) {
+        if (holdBuffered && gameSettings.gameplay.isHoldEnabled) {
             holdBuffered = false
             bufferedRotation = null
             rotationBufferTimer = 0.0
@@ -212,36 +213,36 @@ class GuidelinePieceController<T : Piece>(
         currentPiece?.let { piece ->
             val distance = ghostRow - piece.pieceRow
             piece.pieceRow = ghostRow
-            gameTimers.lockTimer = playerSettings.lockDelay
-            EventOrchestrator.publish(GameEvent.HardDrop(distance, gameId))
+            lastAction = LastPieceAction.MOVE
+            gameTimers.lockTimer = gameSettings.gravity.lockDelay
+            EventOrchestrator.publish(DefaultGameEvents.HardDrop(distance, gameId))
         }
     }
 
-    override fun softDrop(deltaTime: Double) {
-        Logger.debug { "SOFT_DROP: Configured Delay: ${playerSettings.softDropDelay}" }
-        Logger.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Delay: ${playerSettings.softDropDelay}" }
-        gameTimers.softDropTimer += deltaTime
+    override fun softDrop(deltaTime: Double, gravitySpeed: Double) {
+        Logger.debug { "SOFT_DROP: Configured factor: ${playerSettings.handling.softDropFactor}" }
+        Logger.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Factor: ${playerSettings.handling.softDropFactor}x" }
+        val softDropSpeed = if (playerSettings.handling.softDropFactor <= 0.0) 0.0
+        else gravitySpeed / playerSettings.handling.softDropFactor
         var dropLines = 0
-        if (playerSettings.softDropDelay <= SOFT_DROP_PRECISION_EPSILON) {
+        if (softDropSpeed <= 0.0) {
             while (movePiece(1, 0, MoveSource.SOFT_DROP)) {
                 dropLines++
-                gameTimers.dropTimer = 0.0
-
             }
-        } else {
-            while (gameTimers.softDropTimer >= playerSettings.softDropDelay) {
-                Logger.debug { "SOFT_DROP: Dropping Piece with delay: ${playerSettings.softDropDelay}" }
-                if (movePiece(1, 0, MoveSource.SOFT_DROP)) {
-                    dropLines++
-                    gameTimers.dropTimer = 0.0
+            return
+        }
 
-                    gameTimers.softDropTimer -= playerSettings.softDropDelay
-                } else {
-                    Logger.debug { "SOFT_DROP: Movement blocked (Hit floor/stack)" }
-                    gameTimers.softDropTimer = 0.0
-                    break
-                }
+        if (gameTimers.softDropTimer == 0.0) gameTimers.softDropTimer = softDropSpeed
+
+        gameTimers.softDropTimer += deltaTime
+        while (gameTimers.softDropTimer >= softDropSpeed) {
+            if (!movePiece(1, 0, MoveSource.SOFT_DROP)) {
+                gameTimers.softDropTimer = 0.0
+                break
             }
+            dropLines++
+            gameTimers.dropTimer = 0.0
+            gameTimers.softDropTimer -= softDropSpeed
         }
 
         if (dropLines > 0) {
@@ -262,9 +263,10 @@ class GuidelinePieceController<T : Piece>(
         if (canMove(moving, targetRow, targetCol)) {
             moving.move(moving.pieceRow + targetRow, moving.pieceCol + targetCol)
             checkLowestRow(moving)
-            EventOrchestrator.publish(
-                GameEvent.PieceMoved(targetRow, targetCol, moving.pieceRow, moving.pieceCol, source, gameId)
-            )
+            if (source == MoveSource.PLAYER || source == MoveSource.SOFT_DROP) {
+                lastAction = LastPieceAction.MOVE
+            }
+            DefaultGameEvents.PieceMoved(targetRow, targetCol, moving.pieceRow, moving.pieceCol, source, gameId)
             return true
         }
         return false
@@ -272,7 +274,7 @@ class GuidelinePieceController<T : Piece>(
 
     override fun rotate(rotation: Rotation): Boolean {
         val piece = currentPiece ?: return false
-        if (rotation == Rotation.ROTATE_180 && !playerSettings.is180Enabled) return false
+        if (rotation == Rotation.ROTATE_180 && !gameSettings.gameplay.is180Enabled) return false
 
         val (candidateShape, _) = piece.projectRotation(rotation)
         val kickOffsets = piece.piece.getKickTable(rotation, piece.rotationState)
@@ -313,11 +315,10 @@ class GuidelinePieceController<T : Piece>(
 
 
     override fun hold() {
-        if (!playerSettings.isHoldEnabled || !canHold || currentPiece == null) {
+        if (!gameSettings.gameplay.isHoldEnabled || !canHold || currentPiece == null) {
             clearActionBuffer()
             return
         }
-
         val pieceToHold = currentPiece!!.piece
         if (heldPiece == null) {
             heldPiece = pieceToHold
@@ -327,9 +328,8 @@ class GuidelinePieceController<T : Piece>(
             heldPiece = pieceToHold
             spawn(next)
         }
-        Logger.info { "Piece held: ${heldPiece?.name}" }
         EventOrchestrator.publish(PieceHeld(heldPiece!!, gameId))
-        canHold = false
+        if (!gameSettings.gameplay.infiniteHold) canHold = false
     }
 
     override fun clearPiece() {
@@ -338,9 +338,10 @@ class GuidelinePieceController<T : Piece>(
     }
 
     private fun resetLockTimer() {
-        if (lockResets < playerSettings.maxLockResets) {
+        val underCap = lockResets < gameSettings.gravity.maxLockResets
+        if (gameSettings.gameplay.infiniteMovement || underCap) {
             gameTimers.lockTimer = 0.0
-            lockResets++
+            if (!gameSettings.gameplay.infiniteMovement) lockResets++
         }
     }
 
@@ -352,7 +353,7 @@ class GuidelinePieceController<T : Piece>(
 
         if (isTouchingFloor || isInsideBlock) {
             gameTimers.lockTimer += deltaTime
-            if (gameTimers.lockTimer >= playerSettings.lockDelay || isInsideBlock) {
+            if (gameTimers.lockTimer >= gameSettings.gravity.lockDelay || isInsideBlock) {
                 onLock()
                 return true
             }
@@ -394,12 +395,20 @@ class GuidelinePieceController<T : Piece>(
         clearActionBuffer()
     }
 
-    override fun bufferRotation(rotation: Rotation) {
-        bufferedRotation = rotation
+    override fun bufferRotation(rotation: Rotation, isFreshPress: Boolean) {
+        when (playerSettings.handling.irsMode) {
+            BufferMode.OFF -> return
+            BufferMode.TAP -> if (isFreshPress) bufferedRotation = rotation
+            BufferMode.HOLD -> bufferedRotation = rotation
+        }
     }
 
-    override fun bufferHold() {
-        holdBuffered = true
+    override fun bufferHold(isFreshPress: Boolean) {
+        when (playerSettings.handling.ihsMode) {
+            BufferMode.OFF -> return
+            BufferMode.TAP -> if (isFreshPress) holdBuffered = true
+            BufferMode.HOLD -> holdBuffered = true
+        }
     }
 
     override fun clearActionBuffer() {

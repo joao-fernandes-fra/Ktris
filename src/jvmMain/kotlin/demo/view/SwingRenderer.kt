@@ -14,9 +14,8 @@ import engine.model.PieceState
 import engine.model.SpinType
 import engine.model.defaults.Logger
 import engine.model.defaults.Tetromino
+import engine.model.events.DefaultGameEvents
 import engine.model.events.EventOrchestrator
-import engine.model.events.GameEvent
-import engine.model.events.InputEvent
 import engine.model.toPieceState
 import java.awt.BasicStroke
 import java.awt.Color
@@ -32,7 +31,6 @@ import kotlin.math.sin
 class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRenderer<T> {
     private val gameId = gameContext.gameId
     private val scoreTracker = ScoreProvider.getTracker(gameId)
-    private val timerManager = gameContext.gameTimers
 
     companion object {
         private const val SCREEN_HEIGHT = 720
@@ -96,7 +94,7 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
     }
 
     private fun subscribeToGameEvents() {
-        EventOrchestrator.subscribe<GameEvent.LineCleared> { event ->
+        EventOrchestrator.subscribe<DefaultGameEvents.LineCleared> { event ->
             if (event.linesCleared.isNotEmpty()) {
                 if (event.isEmptyBoard) {
                     queueMessage("ALL CLEAR!", MessagePriority.HIGH)
@@ -105,17 +103,17 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
             }
         }
 
-        EventOrchestrator.subscribe<GameEvent.ScoreUpdated> { event ->
+        EventOrchestrator.subscribe<DefaultGameEvents.ScoreUpdated> { event ->
             val moveType = event.moveType
             if (moveType.isSpecial) {
                 queueMessage(moveType.displayName, MessagePriority.MEDIUM)
             }
         }
 
-        EventOrchestrator.subscribe<GameEvent.ComboTriggered> { event ->
+        EventOrchestrator.subscribe<DefaultGameEvents.ComboTriggered> { event ->
             queueMessage("COMBO x${event.comboCount}", MessagePriority.HIGH)
         }
-        EventOrchestrator.subscribe<GameEvent.BackToBackTrigger> { event ->
+        EventOrchestrator.subscribe<DefaultGameEvents.BackToBackTrigger> { event ->
             queueMessage("B2B x${event.backToBackCount}", MessagePriority.MEDIUM)
         }
 
@@ -132,20 +130,14 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
             }
         }
 
-        EventOrchestrator.subscribe<GameEvent.GameOver> {
+        EventOrchestrator.subscribe<DefaultGameEvents.GameOver> {
             gameFinished = true
             goalMet = it.goalMet
             finishMessage = if (it.goalMet) "VICTORY!" else "GAME OVER"
             repaint()
         }
-        EventOrchestrator.subscribe<InputEvent.ResetInput> {
-            gameFinished = false
-            goalMet = false
-            finishMessage = null
-            repaint()
-        }
 
-        EventOrchestrator.subscribe<GameEvent.SpinDetected> { event ->
+        EventOrchestrator.subscribe<DefaultGameEvents.SpinDetected> { event ->
             lastSpinPieceState = lastSnapshot?.currentPiece
             lastSpinType = event.spinType
             spinEffectStartTime = System.currentTimeMillis()
@@ -500,7 +492,7 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
         currentY += HUD_LINE_HEIGHT
         drawHUDLine(graphics, "TIME", hudX + HUD_PADDING, currentY)
         currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, formatTime(timerManager.sessionTimeSeconds), hudX + HUD_PADDING, currentY)
+        drawHUDLine(graphics, formatTime(lastSnapshot?.hudInfo?.sessionTimeSeconds ?: 0.0), hudX + HUD_PADDING, currentY)
         if (playerAPM > 0f) {
             currentY += HUD_LINE_HEIGHT
             drawHUDLine(graphics, "APM", hudX + HUD_PADDING, currentY)
@@ -537,5 +529,5 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
     }
 }
 
-private val GameEvent.GameOver.goalMet: Boolean
+private val DefaultGameEvents.GameOver.goalMet: Boolean
     get() = this.reason == GameOverReason.GOAL_MET

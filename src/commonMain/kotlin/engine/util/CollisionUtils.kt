@@ -2,6 +2,7 @@ package engine.util
 
 import engine.model.Board
 import engine.model.Matrix
+import engine.model.MovingPiece
 
 object CollisionUtils {
     fun checkCollisionWithBoard(
@@ -31,5 +32,14 @@ object CollisionUtils {
             }
         }
         return false
+    }
+
+    fun isImmobile(board: Board, piece: MovingPiece<*>): Boolean {
+        val shape = piece.shape
+        val row = piece.pieceRow
+        val col = piece.pieceCol
+        return listOf(0 to -1, 0 to 1, 1 to 0, -1 to 0).all { (dr, dc) ->
+            checkCollisionWithBoard(board, shape, row + dr, col + dc)
+        }
     }
 }

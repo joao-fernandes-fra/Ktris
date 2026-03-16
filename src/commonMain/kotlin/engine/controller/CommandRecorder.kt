@@ -1,7 +1,7 @@
 package engine.controller
 
-import engine.model.events.Event
+import engine.model.events.GameEvent
 
 interface CommandRecorder {
-    fun record(command: Event, timestamp: Float)
+    fun record(command: GameEvent, timestamp: Float)
 }

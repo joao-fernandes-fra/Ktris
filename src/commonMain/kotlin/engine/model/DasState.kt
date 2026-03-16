@@ -1,3 +1,3 @@
 package engine.model
 
-enum class DasState { IDLE, DELAY, REPEAT }
+enum class DasState { IDLE, DCD, DELAY, REPEAT }

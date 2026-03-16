@@ -3,15 +3,14 @@ package demo.model
 import demo.controller.AttackSimulator
 import demo.controller.GarbageProcessor
 import engine.controller.GameRenderer
-import engine.controller.defaults.BaseTetris
+import engine.controller.defaults.DefaultGameEngine
 import engine.model.KtrisContext
 import engine.model.SpinType
 import engine.model.TimeState
 import engine.model.defaults.Logger
 import engine.model.defaults.ProceduralPiece
+import engine.model.events.DefaultGameEvents
 import engine.model.events.EventOrchestrator
-import engine.model.events.GameEvent
-import engine.model.events.GameId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -21,7 +20,15 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
-class SwingTetris(context: KtrisContext<ProceduralPiece>) : BaseTetris<ProceduralPiece>(context) {
+class SwingTetris(
+    context: KtrisContext<ProceduralPiece>,
+    override val gameId: String = context.gameId
+) : DefaultGameEngine<ProceduralPiece>(
+    context.playerSettings,
+    context.gameSettings,
+    context.boardManager,
+    context.pieceController
+) {
 
     private var isCheeseGame: Boolean = false
     private lateinit var garbageProcessor: GarbageProcessor
@@ -39,7 +46,7 @@ class SwingTetris(context: KtrisContext<ProceduralPiece>) : BaseTetris<Procedura
 
                 if (linesCleared.isNotEmpty()) {
                     EventOrchestrator.publish(
-                        GameEvent.LineCleared(
+                        DefaultGameEvents.LineCleared(
                             spinType = SpinType.NONE,
                             linesCleared = linesCleared,
                             isEmptyBoard = boardManager.isBoardEmpty,
@@ -54,16 +61,16 @@ class SwingTetris(context: KtrisContext<ProceduralPiece>) : BaseTetris<Procedura
 
     fun initialize(isCheeseGame: Boolean, enemyApm: Int?, gameScope: CoroutineScope) {
         this.isCheeseGame = isCheeseGame
-        garbageProcessor = GarbageProcessor(gameScope)
+        garbageProcessor = GarbageProcessor(gameScope, 20, PLAYER_GAME_ID)
         setUpGarbageListeners()
 
         if (isCheeseGame && enemyApm != null) {
-            val enemyScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + GameId(ENEMY_GAME_ID))
+            val enemyScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
             AttackSimulator(enemyScope, enemyApm).startProcess()
         }
     }
 
-    override fun start(renderer: GameRenderer<ProceduralPiece>) {
+    fun start(renderer: GameRenderer<ProceduralPiece>) {
         val targetFrameTime = 16.67
         var lastTime = Clock.System.now()
         var accumulator = 0.0
@@ -85,7 +92,7 @@ class SwingTetris(context: KtrisContext<ProceduralPiece>) : BaseTetris<Procedura
     }
 
     private fun setUpGarbageListeners() {
-        EventOrchestrator.subscribe<GameEvent.LineCleared, Int>({ totalLines ->
+        EventOrchestrator.subscribe<DefaultGameEvents.LineCleared, Int>({ totalLines ->
             if (totalLines != null && totalLines > 0) {
                 garbageProcessor.sendGarbage(totalLines, "all")
             }

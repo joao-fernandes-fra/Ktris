@@ -4,8 +4,7 @@ import demo.model.PlayerAPMUpdated
 import demo.model.SwingTetris.Companion.ENEMY_GAME_ID
 import demo.model.SwingTetris.Companion.PLAYER_GAME_ID
 import engine.model.events.EventOrchestrator
-import engine.model.events.GameEvent
-import engine.model.events.InputEvent
+import engine.model.events.DefaultGameEvents
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -28,7 +27,7 @@ class AttackSimulator(
             while (isActive && !isGameOver) {
                 val lines = (1..4).random()
                 EventOrchestrator.publish(
-                    GameEvent.GarbageSent(
+                    DefaultGameEvents.GarbageSent(
                         lines = lines,
                         distributionMode = "all",
                         gameId = ENEMY_GAME_ID
@@ -51,7 +50,7 @@ class AttackSimulator(
     }
 
     private fun setupListeners() {
-        EventOrchestrator.subscribe<GameEvent.GarbageSent, GameEvent.GarbageSent>(
+        EventOrchestrator.subscribe<DefaultGameEvents.GarbageSent, DefaultGameEvents.GarbageSent>(
             { event ->
                 if (event != null && event.gameId != ENEMY_GAME_ID) {
                     receivedGarbageCount += event.lines
@@ -59,14 +58,8 @@ class AttackSimulator(
             },
             { it }
         )
-        EventOrchestrator.subscribe<GameEvent.GameOver> {
+        EventOrchestrator.subscribe<DefaultGameEvents.GameOver> {
             isGameOver = true
-        }
-        EventOrchestrator.subscribe<InputEvent.ResetInput> {
-            if (isGameOver) {
-                isGameOver = false
-                startProcess()
-            }
         }
     }
 }
