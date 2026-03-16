@@ -14,6 +14,7 @@ import engine.model.events.EventOrchestrator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import javax.swing.Timer
 import kotlin.time.Clock
 import kotlin.time.DurationUnit
 import kotlin.uuid.ExperimentalUuidApi
@@ -76,7 +77,7 @@ class SwingTetris(
         var lastTime = Clock.System.now()
         var accumulator = 0.0
 
-        val timer = javax.swing.Timer(targetFrameTime.toInt()) { _ ->
+        val timer = Timer(targetFrameTime.toInt()) { _ ->
             if (isGameOver || isGoalMet) return@Timer
             val now = Clock.System.now()
             val delta = (now - lastTime).toDouble(DurationUnit.MILLISECONDS)
@@ -93,11 +94,14 @@ class SwingTetris(
     }
 
     private fun setUpGarbageListeners() {
-        EventOrchestrator.subscribe<DefaultGameEvents.LineCleared, Int>({ totalLines ->
-            if (totalLines != null && totalLines > 0) {
-                garbageProcessor.sendGarbage(totalLines, "all")
+        EventOrchestrator.subscribeForGameId<DefaultGameEvents.LineCleared>(gameId) { event ->
+            if (event.linesCleared.isNotEmpty()) {
+                garbageProcessor.sendGarbage(event.linesCleared.size, "all")
             }
-        }, { event -> if (event.gameId == PLAYER_GAME_ID) event.linesCleared.size else null })
+        }
+        EventOrchestrator.subscribeForGameId<DefaultGameEvents.GarbageReceived>(gameId) { event ->
+            processGarbage(event.lines)
+        }
     }
 
     companion object {
