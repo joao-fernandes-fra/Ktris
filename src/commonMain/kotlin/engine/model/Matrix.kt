@@ -41,17 +41,6 @@ data class Matrix(
         return this
     }
 
-    fun flipRows(): Matrix {
-        for (r in 0 until rows / 2) {
-            for (c in 0 until cols) {
-                val temp = this[r, c]
-                this[r, c] = this[rows - 1 - r, c]
-                this[rows - 1 - r, c] = temp
-            }
-        }
-        return this
-    }
-
     fun reverseRows(): Matrix {
         for (r in 0 until rows) {
             for (c in 0 until cols / 2) {
@@ -77,14 +66,5 @@ data class Matrix(
                 if (0 != this[r, c])
                     return false
         return true
-    }
-
-    fun getRow(row: Int): List<Int> {
-        val result = ArrayList<Int>()
-        for (c in 0..<cols) {
-            val value = this[row, c] ?: return result
-            result.add(value)
-        }
-        return result
     }
 }

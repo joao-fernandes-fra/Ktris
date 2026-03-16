@@ -22,8 +22,8 @@ fun <T : Piece> PieceController<T>?.handleDASIfSupported(delta: Double, currentD
     (this as? DasCapable)?.handleDAS(delta, currentDirection)
 }
 
-fun <T : Piece> PieceController<T>?.applyGravityIfSupported(delta: Double) {
-    (this as? GravityCapable)?.handleGravity(delta)
+fun <T : Piece> PieceController<T>?.applyGravityIfSupported(delta: Double, gravitySpeed: Double) {
+    (this as? GravityCapable)?.handleGravity(delta, gravitySpeed)
 }
 
 fun <T : Piece> PieceController<T>?.clipIfSupported() {
@@ -61,8 +61,8 @@ fun <T : Piece> PieceController<T>?.hardDropIfSupported() {
     (this as? HardDropCapable)?.hardDrop()
 }
 
-fun <T : Piece> PieceController<T>?.softDropIfSupported(deltaTime: Double) {
-    (this as? SoftDropCapable)?.softDrop(deltaTime)
+fun <T : Piece> PieceController<T>?.softDropIfSupported(deltaTime: Double, gravitySpeed: Double) {
+    (this as? SoftDropCapable)?.softDrop(deltaTime, gravitySpeed)
 }
 
 fun <T : Piece> PieceController<T>?.resetDASifSupported() {
@@ -77,12 +77,12 @@ fun BoardController.collapseIfSupported() {
     (this as? CollapseCapable)?.collapseFullLines()
 }
 
-fun <T : Piece> PieceController<T>?.bufferRotationIfSupported(rotation: Rotation) {
-    (this as? InitialActionsCapable)?.bufferRotation(rotation)
+fun <T : Piece> PieceController<T>?.bufferRotationIfSupported(rotation: Rotation, isFreshPress: Boolean = true) {
+    (this as? InitialActionsCapable)?.bufferRotation(rotation, isFreshPress)
 }
 
-fun <T : Piece> PieceController<T>?.bufferHoldIfSupported() {
-    (this as? InitialActionsCapable)?.bufferHold()
+fun <T : Piece> PieceController<T>?.bufferHoldIfSupported(isFreshPress: Boolean = true) {
+    (this as? InitialActionsCapable)?.bufferHold(isFreshPress)
 }
 
 fun <T : Piece> PieceController<T>?.tickInputBufferIfSupported(delta: Double) {

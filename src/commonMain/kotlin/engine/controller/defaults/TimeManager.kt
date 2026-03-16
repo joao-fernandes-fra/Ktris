@@ -2,7 +2,7 @@ package engine.controller.defaults
 
 import engine.model.Resetable
 import engine.model.TimeState
-import engine.model.defaults.Logger
+import engine.util.Logger
 
 class TimeManager : Resetable {
 

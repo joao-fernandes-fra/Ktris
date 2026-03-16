@@ -17,7 +17,7 @@ interface PieceController<T : Piece> : Resetable {
 }
 
 interface GravityCapable {
-    fun handleGravity(delta: Double)
+    fun handleGravity(delta: Double, gravitySpeed: Double)
 }
 
 interface DasCapable {
@@ -47,7 +47,7 @@ interface GhostCapable {
 }
 
 interface SoftDropCapable {
-    fun softDrop(deltaTime: Double)
+    fun softDrop(deltaTime: Double, gravitySpeed: Double)
 }
 
 interface HardDropCapable {
@@ -55,8 +55,8 @@ interface HardDropCapable {
 }
 
 interface InitialActionsCapable {
-    fun bufferRotation(rotation: Rotation)
-    fun bufferHold()
+    fun bufferRotation(rotation: Rotation, isFreshPress: Boolean = true)
+    fun bufferHold(isFreshPress: Boolean = true)
     fun clearActionBuffer()
 }
 

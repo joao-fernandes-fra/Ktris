@@ -13,6 +13,7 @@ open class ProceduralPiece(
     override val name: String,
     protected val kicks: SRSKicks = SRSKicks.STANDARD,
 ) : Piece {
+    override val isSpinEligible: Boolean = false
     override fun getRotationCenter(): Pair<Int, Int> {
         return Pair(1, 1)
     }
@@ -40,10 +41,7 @@ open class ProceduralPiece(
 
         val currentShape = getRotationsState(rotationState)
         val blockedDirections = listOf(
-            0 to -1,
-            0 to 1,
-            -1 to 0,
-            1 to 0
+            0 to -1, 0 to 1, -1 to 0, 1 to 0
         ).count { (dRow, dCol) -> isBlocked(board, currentShape, row + dRow, col + dCol) }
 
         return when {
@@ -68,9 +66,9 @@ open class ProceduralPiece(
 }
 
 class ProceduralIPiece(var _id: Int, var _shape: Matrix, var _name: String) : ProceduralPiece(
-    _id, _shape, _name,
-    SRSKicks.I_PIECE
+    _id, _shape, _name, SRSKicks.I_PIECE
 ) {
+    override val isSpinEligible: Boolean = false
     override fun getRotationCenter(): Pair<Int, Int> {
         return Pair(1, 2)
     }
@@ -81,6 +79,7 @@ class ProceduralIPiece(var _id: Int, var _shape: Matrix, var _name: String) : Pr
 }
 
 class ProceduralTPiece(_id: Int, _shape: Matrix, _name: String) : ProceduralPiece(_id, _shape, _name) {
+    override val isSpinEligible: Boolean = true
     override fun getSpinType(board: Board, row: Int, col: Int, rotationState: Int, kickIndex: Int): SpinType {
         val (centerRelRow, centerRelCol) = getRotationCenter()
         val centerRow = row + centerRelRow

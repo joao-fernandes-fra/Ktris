@@ -1,8 +1,7 @@
-package engine.controller.defaults
+package engine.controller.defaults.board
 
 import engine.controller.BoardController
 import engine.model.Board
-import engine.model.Board.Companion.EMPTY_BLOCK_VALUE
 import engine.model.Matrix
 import engine.model.MovingPiece
 
@@ -12,7 +11,7 @@ open class DefaultBoardController(
     bufferHeight: Int
 ) : BoardController {
 
-    override val board: Board = Board(rows, cols, bufferHeight, EMPTY_BLOCK_VALUE)
+    override val board: Board = Board(rows, cols, bufferHeight, Board.Companion.EMPTY_BLOCK_VALUE)
     override var linesCleared: Int = 0
     override val isBoardEmpty get() = board.isEmpty
 
@@ -42,7 +41,7 @@ open class DefaultBoardController(
             }
         }
         for (c in 0 until board.cols) {
-            board[0, c] = EMPTY_BLOCK_VALUE
+            board[0, c] = Board.Companion.EMPTY_BLOCK_VALUE
         }
     }
 
@@ -58,7 +57,7 @@ open class DefaultBoardController(
         val shape = piece.shape
         for (r in 0 until shape.rows) {
             for (c in 0 until shape.cols) {
-                if (shape[r, c] != EMPTY_BLOCK_VALUE) {
+                if (shape[r, c] != Board.Companion.EMPTY_BLOCK_VALUE) {
                     board[piece.pieceRow + r, piece.pieceCol + c] = shape[r, c]
                 }
             }
@@ -66,7 +65,7 @@ open class DefaultBoardController(
     }
 
     override fun reset() {
-        board.contents = Matrix(board.rows, board.cols, EMPTY_BLOCK_VALUE)
+        board.contents = Matrix(board.rows, board.cols, Board.Companion.EMPTY_BLOCK_VALUE)
         linesCleared = 0
     }
 }

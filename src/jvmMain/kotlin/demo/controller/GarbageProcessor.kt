@@ -1,10 +1,8 @@
 package demo.controller
 
 import demo.model.PendingGarbage
+import engine.model.events.DefaultGameEvents
 import engine.model.events.EventOrchestrator
-import engine.model.events.GameEvent
-import engine.model.events.GameId
-import engine.model.events.InputEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -16,13 +14,13 @@ private const val GARBAGE_ENTRANCE_DELAY = 1000L
 
 class GarbageProcessor(
     private val scope: CoroutineScope,
-    private val delayMillis: Long = GARBAGE_ENTRANCE_DELAY
+    private val delayMillis: Long = GARBAGE_ENTRANCE_DELAY,
+    private val gameId: String
 ) {
     private data class GarbagePacket(val lines: Int, val scheduledAt: Long)
 
     private val queueMutex = Mutex()
     private val garbageQueue = ArrayDeque<GarbagePacket>()
-    private val gameId = scope.coroutineContext[GameId]?.value ?: error("No GameId in scope")
     private var isGameOver: Boolean = false
 
     init {
@@ -51,18 +49,12 @@ class GarbageProcessor(
 
 
     private fun setupSubscribers() {
-        EventOrchestrator.subscribe<GameEvent.GarbageSent, Int>(
+        EventOrchestrator.subscribe<DefaultGameEvents.GarbageSent, Int>(
             { lines -> lines?.let { receiveGarbage(it) } },
             { event -> if (event.gameId != gameId) event.lines else null }
         )
-        EventOrchestrator.subscribe<GameEvent.GameOver> {
+        EventOrchestrator.subscribe<DefaultGameEvents.GameOver> {
             isGameOver = true
-        }
-        EventOrchestrator.subscribe<InputEvent.ResetInput> {
-            if (isGameOver) {
-                isGameOver = false
-                startProcessing()
-            }
         }
     }
 
@@ -93,14 +85,14 @@ class GarbageProcessor(
             }
 
             if (remaining > 0) {
-                EventOrchestrator.publish(GameEvent.GarbageSent(remaining, distributionMode, gameId))
+                EventOrchestrator.publish(DefaultGameEvents.GarbageSent(remaining, distributionMode, gameId))
             }
             updatePendingGarbage()
         }
     }
 
     private fun applyGarbage(packet: GarbagePacket) {
-        EventOrchestrator.publish(GameEvent.GarbageReceived(packet.lines, gameId))
+        EventOrchestrator.publish(DefaultGameEvents.GarbageReceived(packet.lines, gameId))
     }
 
     private fun updatePendingGarbage() {

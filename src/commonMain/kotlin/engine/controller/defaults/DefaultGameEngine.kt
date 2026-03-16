@@ -1,34 +1,39 @@
 package engine.controller.defaults
 
 import engine.controller.BoardController
+import engine.controller.GameEngine
 import engine.controller.PieceController
-import engine.controller.TetrisEngine
+import engine.controller.defaults.scoring.ScoringEngine
+import engine.controller.defaults.scoring.ScoringResult
 import engine.model.Board
 import engine.model.Drop
-import engine.model.FinalKickSpinBehavior
+import engine.model.EngineTimers
 import engine.model.GameGoal
 import engine.model.GameOverReason
-import engine.model.GameSettings
 import engine.model.GameSnapshot
 import engine.model.GameState
-import engine.model.GameTimers
+import engine.model.GameStats
 import engine.model.HUDInfo
 import engine.model.LastPieceAction
+import engine.model.MatchConfig
 import engine.model.Movement
 import engine.model.MovingPiece
 import engine.model.Piece
 import engine.model.PieceState
-import engine.model.PlayerSettings
+import engine.model.PlayerConfig
 import engine.model.Rotation
+import engine.model.SpinMode
 import engine.model.SpinType
 import engine.model.TimeState
-import engine.model.defaults.Logger
+import engine.model.events.DefaultGameEvents
+import engine.util.Logger
+import engine.model.events.DefaultGameEvents.FreezeLineClear
+import engine.model.events.DefaultGameEvents.GameOver
+import engine.model.events.DefaultGameEvents.LineCleared
+import engine.model.events.DefaultGameEvents.PieceLocked
+import engine.model.events.DefaultGameEvents.SpinDetected
 import engine.model.events.EventOrchestrator
-import engine.model.events.GameEvent.FreezeLineClear
-import engine.model.events.GameEvent.GameOver
-import engine.model.events.GameEvent.LineCleared
-import engine.model.events.GameEvent.PieceLocked
-import engine.model.events.GameEvent.SpinDetected
+import engine.util.CollisionUtils
 import engine.util.addGarbageIfSupported
 import engine.util.advanceLockIfSupported
 import engine.util.applyGravityIfSupported
@@ -40,7 +45,6 @@ import engine.util.collapseIfSupported
 import engine.util.getGhostRowIfSupported
 import engine.util.getHeldPieceIfSupported
 import engine.util.getLastKickIndexIfSupported
-import engine.util.getLastKickWasFinalIfSupported
 import engine.util.getLockResetsRemainingIfSupported
 import engine.util.handleDASIfSupported
 import engine.util.hardDropIfSupported
@@ -52,17 +56,18 @@ import engine.util.updateGhostIfSupported
 import kotlin.math.absoluteValue
 
 
-abstract class DefaultTetrisEngine<T : Piece>(
-    protected val playerSettings: PlayerSettings,
-    protected val gameSettings: GameSettings,
+abstract class DefaultGameEngine<T : Piece>(
+    protected val playerSettings: PlayerConfig,
+    protected val gameSettings: MatchConfig,
     protected val boardManager: BoardController,
     protected val pieceController: PieceController<T>,
-    protected val gameTimers: GameTimers = GameTimers(),
-    protected val timeManager: TimeManager = TimeManager(),
-) : TetrisEngine<T> {
+    protected val scoringEngine: ScoringEngine,
+) : GameEngine<T> {
+    protected val gameTimers: EngineTimers = EngineTimers()
+    protected val timeManager: TimeManager = TimeManager()
+    protected val stats = GameStats()
     protected var deltaTime: Double = 0.0
     protected var gameState = GameState.ENTRY_DELAY
-    protected var currentLevel: Int = 1
     protected var timeGoalElapsed: Double = 0.0
     protected var freezeLineClears: Int = 0
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
@@ -73,6 +78,8 @@ abstract class DefaultTetrisEngine<T : Piece>(
     protected var rotationLock = false
     protected val garbageBuffer = mutableListOf<Int>()
     protected val pendingClearLines = mutableSetOf<Int>()
+    protected val gravitySpeed get() = gameSettings.gravity.levelHandler.gravitySpeed(stats.level)
+    protected var pieceHasMoved = false
 
     protected fun Movement.direction() = when (this) {
         Movement.MOVE_RIGHT -> 1
@@ -81,22 +88,21 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override fun reset() {
         gameState = GameState.ENTRY_DELAY
-        currentLevel = 1
         timeGoalElapsed = 0.0
         freezeLineClears = 0
         activeDirections.clear()
         rotationLock = false
         garbageBuffer.clear()
-
+        stats.reset()
         boardManager.reset()
         pieceController.reset()
         gameTimers.reset()
         timeManager.reset()
-
+        pieceHasMoved = false
         Logger.info { "Engine state reset." }
     }
 
-    open fun update(deltaTime: Double) {
+    override fun update(deltaTime: Double) {
         this.deltaTime = deltaTime
         if (garbageBuffer.isNotEmpty()) {
             processPendingGarbage()
@@ -109,7 +115,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
             GameState.LINE_CLEAR_DELAY -> {
                 gameTimers.sessionTimer += deltaTime
                 gameTimers.lineClearTimer += deltaTime
-                if (gameTimers.lineClearTimer >= playerSettings.lineClearDelay) {
+                if (gameTimers.lineClearTimer >= gameSettings.gameplay.lineClearDelay) {
                     pendingClearLines.clear()
                     gameTimers.lineClearTimer = 0.0
                     gameState = GameState.ENTRY_DELAY
@@ -120,9 +126,10 @@ abstract class DefaultTetrisEngine<T : Piece>(
             GameState.ENTRY_DELAY -> {
                 gameTimers.sessionTimer += deltaTime
                 gameTimers.areTimer += deltaTime
-                if (gameTimers.areTimer >= playerSettings.entryDelay) {
+                if (gameTimers.areTimer >= gameSettings.gameplay.entryDelay) {
                     gameTimers.areTimer = 0.0
                     val spawnedPiece = pieceController.spawn()
+                    pieceHasMoved = false
                     gameState = if (spawnedPiece == null) {
                         pieceController.clearActionBufferIfSupported()
                         GameState.GAME_OVER
@@ -134,7 +141,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
                 gameTimers.sessionTimer += deltaTime
                 pieceController.tickInputBufferIfSupported(deltaTime)
                 pieceController.handleDASIfSupported(deltaTime, currentDirection)
-                pieceController.applyGravityIfSupported(gravityDelta)
+                pieceController.applyGravityIfSupported(gravityDelta, gravitySpeed)
                 pieceController.advanceLockIfSupported(deltaTime, ::lockAndProcess)
             }
 
@@ -145,25 +152,20 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     private fun processPendingGarbage() {
         garbageBuffer.forEach { line ->
-            boardManager.addGarbageIfSupported(line, gameSettings.garbageBlockId)
+            boardManager.addGarbageIfSupported(line, gameSettings.garbage.garbageBlockId)
             Logger.info { "Garbage processed: $line for game $gameId" }
         }
         pieceController.clipIfSupported()
         garbageBuffer.clear()
     }
 
-    override fun levelUp(newLevel: Int): Int {
-        currentLevel = newLevel
-        return currentLevel
-    }
-
     override fun processGarbage(lines: Int) {
         garbageBuffer.add(lines)
     }
 
-    override fun onHold() {
+    override fun onHold(isFreshPress: Boolean) {
         if (gameState == GameState.ENTRY_DELAY) {
-            pieceController.bufferHoldIfSupported()
+            pieceController.bufferHoldIfSupported(isFreshPress)
             return
         }
         pieceController.holdIfSupported()
@@ -175,29 +177,29 @@ abstract class DefaultTetrisEngine<T : Piece>(
             boardManager.board,
             currentPiece = currentPiece?.let {
                 PieceState(
-                    it.shape,
-                    it.pieceRow,
-                    it.pieceCol,
-                    it.piece
+                    it.shape, it.pieceRow, it.pieceCol, it.piece
                 )
             },
             ghostPiece = snapShotGhost(currentPiece),
-            nextPieces = pieceController.getNextPieces(playerSettings.previewSize),
+            nextPieces = pieceController.getNextPieces(gameSettings.gameplay.previewSize),
             holdPiece = pieceController.getHeldPieceIfSupported(),
             gameState = gameState,
             pendingClearLines = pendingClearLines,
             timeState = timeManager.state,
             timeStateProgress = timeManager.stateProgress,
             hudInfo = HUDInfo(
-                combo = ScoreProvider.nullableTracker(gameId)?.combo,
-                b2bCount = ScoreProvider.nullableTracker(gameId)?.b2bCount,
-                lockResetsRemaining = pieceController.getLockResetsRemainingIfSupported()
+                combo = stats.combo,
+                b2bCount = stats.combo,
+                lockResetsRemaining = pieceController.getLockResetsRemainingIfSupported(),
+                sessionTimeSeconds = sessionTimeSeconds,
+                totalLinesCleared = stats.totalLinesCleared,
+                currentLevel = stats.level
             )
         )
     }
 
     private fun snapShotGhost(currentPiece: MovingPiece<T>?): PieceState<T>? =
-        if (playerSettings.isGhostEnabled) pieceController.getGhostRowIfSupported()?.let { ghostRow ->
+        if (gameSettings.gameplay.isGhostEnabled) pieceController.getGhostRowIfSupported()?.let { ghostRow ->
             currentPiece?.let {
                 PieceState(
                     currentPiece.shape, ghostRow, currentPiece.pieceCol, currentPiece.piece
@@ -206,10 +208,10 @@ abstract class DefaultTetrisEngine<T : Piece>(
         } else null
 
 
-    override fun onRotation(rotation: Rotation): Boolean {
+    override fun onRotation(rotation: Rotation, isFreshPress: Boolean): Boolean {
         if (rotationLock) return false
         if (gameState == GameState.ENTRY_DELAY) {
-            pieceController.bufferRotationIfSupported(rotation)
+            pieceController.bufferRotationIfSupported(rotation, isFreshPress)
             return false
         }
         val successfulRotation = pieceController.rotate(rotation)
@@ -219,7 +221,7 @@ abstract class DefaultTetrisEngine<T : Piece>(
             if (spinType != SpinType.NONE) EventOrchestrator.publish(SpinDetected(spinType, gameId))
             Logger.debug { "Processing Rotation [$rotation] for piece [${piece.piece.name}]: $successfulRotation | SpinType [$spinType]" }
         }
-        if (successfulRotation && playerSettings.dasCutOnRotation) {
+        if (successfulRotation && playerSettings.handling.dasCutOnRotation) {
             pieceController.resetDASifSupported()
         }
         rotationLock = successfulRotation
@@ -231,12 +233,14 @@ abstract class DefaultTetrisEngine<T : Piece>(
     }
 
     override fun onMovement(movement: Movement): Boolean {
+        pieceHasMoved = true
         val dir = movement.direction()
-
         activeDirections.remove(dir)
         activeDirections.add(dir)
 
-        pieceController.resetDASifSupported()
+        if (playerSettings.handling.cancelDasOnDirectionChange) {
+            pieceController.resetDASifSupported()
+        }
         return pieceController.move(0, dir)
     }
 
@@ -253,8 +257,15 @@ abstract class DefaultTetrisEngine<T : Piece>(
 
     override fun onDrop(drop: Drop) {
         when (drop) {
-            Drop.SOFT_DROP -> pieceController.softDropIfSupported(deltaTime)
-            Drop.HARD_DROP -> pieceController.hardDropIfSupported()
+            Drop.SOFT_DROP -> {
+                pieceHasMoved = true
+                pieceController.softDropIfSupported(deltaTime, gravitySpeed)
+            }
+
+            Drop.HARD_DROP -> {
+                if (playerSettings.handling.preventAccidentalHardDrop && !pieceHasMoved) return
+                pieceController.hardDropIfSupported()
+            }
         }
     }
 
@@ -276,14 +287,14 @@ abstract class DefaultTetrisEngine<T : Piece>(
         val isLockOut = piece.pieceRow + piece.shape.rows - 1 < boardManager.board.bufferSize
         if (isLockOut) {
             gameState = GameState.GAME_OVER
-            EventOrchestrator.publish(GameOver(GameOverReason.LOCK_OUT, gameSettings.goalType, gameId))
+            EventOrchestrator.publish(GameOver(GameOverReason.LOCK_OUT, gameSettings.objective.goalType, gameId))
             return
         }
         Logger.debug { "Piece placed at board: ${piece.pieceRow}, ${piece.pieceCol}" }
         val fullLines = boardManager.getFullLines()
         val linesCount = fullLines.size
 
-        gameState = if (playerSettings.lineClearDelay > 0.0 && linesCount > 0) {
+        gameState = if (gameSettings.gameplay.lineClearDelay > 0.0 && linesCount > 0) {
             pendingClearLines.addAll(fullLines)
             GameState.LINE_CLEAR_DELAY
         } else {
@@ -295,17 +306,12 @@ abstract class DefaultTetrisEngine<T : Piece>(
         if (spinType != SpinType.NONE) EventOrchestrator.publish(SpinDetected(spinType, gameId))
         EventOrchestrator.publish(
             PieceLocked(
-                fullLines.isNotEmpty(),
-                piece.piece,
-                piece.pieceRow,
-                piece.pieceCol,
-                piece.rotationState,
-                gameId
+                fullLines.isNotEmpty(), piece.piece, piece.pieceRow, piece.pieceCol, piece.rotationState, gameId
             )
         )
         if (timeManager.isFrozen) {
             freezeLineClears = (freezeLineClears - linesCount).absoluteValue
-            if (gameSettings.shouldCollapseOnFreeze) boardManager.collapseIfSupported()
+            if (gameSettings.gravity.shouldCollapseOnFreeze) boardManager.collapseIfSupported()
             if (freezeLineClears > 0) EventOrchestrator.publish(
                 FreezeLineClear(linesCount, spinType, gameId)
             )
@@ -315,57 +321,88 @@ abstract class DefaultTetrisEngine<T : Piece>(
                 LineCleared(piece.piece, spinType, fullLines, boardManager.isBoardEmpty, gameId)
             )
         }
-
+        val result = scoringEngine.calculate(spinType, linesCount, stats, boardManager.isBoardEmpty, piece.piece.name)
+        EventOrchestrator.publish(
+            DefaultGameEvents.ScoreUpdated(
+                result.linesCleared, result.pointsAwarded, result.moveType, gameId
+            )
+        )
+        stats.updateFrom(result)
+        checkLevelUp()
         Logger.debug { "Piece locked. Cleared $linesCount lines. Spin: $spinType. BoardEmpty: ${boardManager.isBoardEmpty}" }
         pieceController.clearPiece()
     }
 
     private fun getSpinType(pieceState: MovingPiece<T>): SpinType {
-        if (!gameSettings.isSpinEnabled) return SpinType.NONE
-        if (pieceController.lastAction != LastPieceAction.ROTATE) return SpinType.NONE
+        val mode = gameSettings.gameplay.spinDetection
+        if (mode == SpinMode.NONE) return SpinType.NONE
+        if (mode != SpinMode.STUPID && pieceController.lastAction != LastPieceAction.ROTATE) return SpinType.NONE
+        if (pieceState.pieceRow < boardManager.board.bufferSize) return SpinType.NONE
 
+        val isEligible = pieceState.piece.isSpinEligible
+        val immobile = CollisionUtils.isImmobile(boardManager.board, pieceState)
         val kickIndex = pieceController.getLastKickIndexIfSupported()
-        val kickWasFinal = pieceController.getLastKickWasFinalIfSupported()
 
-        if (kickWasFinal) {
-            return when (playerSettings.finalKickSpinBehavior) {
-                FinalKickSpinBehavior.NO_SPIN -> SpinType.NONE
-                FinalKickSpinBehavior.ALWAYS_MINI -> SpinType.MINI
-                FinalKickSpinBehavior.NORMAL -> {
-                    pieceState.piece.getSpinType(
-                        boardManager.board,
-                        pieceState.pieceRow,
-                        pieceState.pieceCol,
-                        pieceState.rotationState,
-                        kickIndex
-                    )
-                }
-            }
+        val standardDetection = {
+            pieceState.piece.getSpinType(
+                boardManager.board, pieceState.pieceRow, pieceState.pieceCol, pieceState.rotationState, kickIndex
+            )
         }
 
-        return pieceState.piece.getSpinType(
-            boardManager.board,
-            pieceState.pieceRow,
-            pieceState.pieceCol,
-            pieceState.rotationState,
-            kickIndex
-        )
+        return when (mode) {
+            SpinMode.NONE -> SpinType.NONE
+            SpinMode.STUPID -> SpinType.FULL
+            SpinMode.PIECE_DEFINED -> if (isEligible) standardDetection() else SpinType.NONE
+            SpinMode.PIECE_DEFINED_PLUS -> when {
+                !isEligible -> SpinType.NONE
+                immobile -> SpinType.FULL
+                else -> standardDetection()
+            }
+
+            SpinMode.ALL -> standardDetection()
+            SpinMode.ALL_PLUS -> if (immobile) SpinType.FULL else standardDetection()
+            SpinMode.ALL_MINI -> when {
+                isEligible -> standardDetection()
+                else -> if (standardDetection() != SpinType.NONE) SpinType.MINI else SpinType.NONE
+            }
+
+            SpinMode.ALL_MINI_PLUS -> when {
+                isEligible && immobile -> SpinType.FULL
+                isEligible -> standardDetection()
+                immobile -> SpinType.MINI
+                else -> if (standardDetection() != SpinType.NONE) SpinType.MINI else SpinType.NONE
+            }
+        }
+    }
+
+    private fun checkLevelUp() {
+        val newLevel = gameSettings.gravity.levelHandler.levelForLines(stats.totalLinesCleared, stats.level)
+        if (newLevel > stats.level) {
+            stats.level = newLevel
+            EventOrchestrator.publish(DefaultGameEvents.LevelUp(newLevel, gameId))
+        }
     }
 
     private fun checkWinCondition() {
-        if (gameSettings.goalType == GameGoal.TIME) {
+        if (gameSettings.objective.goalType == GameGoal.TIME) {
             val elapsedSeconds = gameTimers.sessionTimeSeconds
 
-            if (elapsedSeconds >= gameSettings.goalValue) {
-                EventOrchestrator.publish(GameOver(GameOverReason.GOAL_MET, gameSettings.goalType, gameId))
+            if (elapsedSeconds >= gameSettings.objective.goalValue) {
+                EventOrchestrator.publish(GameOver(GameOverReason.GOAL_MET, gameSettings.objective.goalType, gameId))
                 gameState = GameState.GOAL_MET
             }
         }
-        if (gameSettings.goalType == GameGoal.LINES) {
-            if (boardManager.linesCleared >= gameSettings.goalValue) {
-                EventOrchestrator.publish(GameOver(GameOverReason.GOAL_MET, gameSettings.goalType, gameId))
+        if (gameSettings.objective.goalType == GameGoal.LINES) {
+            if (boardManager.linesCleared >= gameSettings.objective.goalValue) {
+                EventOrchestrator.publish(GameOver(GameOverReason.GOAL_MET, gameSettings.objective.goalType, gameId))
                 gameState = GameState.GOAL_MET
             }
         }
     }
+}
+
+private fun GameStats.updateFrom(result: ScoringResult) {
+    this.combo = result.newCombo
+    this.b2bCount = result.newB2b
+    this.totalLinesCleared += result.linesCleared
 }

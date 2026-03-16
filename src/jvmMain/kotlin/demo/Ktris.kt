@@ -5,11 +5,15 @@ import demo.model.SwingTetris
 import demo.model.SwingTetris.Companion.PLAYER_GAME_ID
 import demo.utils.GameSettingsProvider
 import demo.view.SwingRenderer
-import engine.controller.defaults.GameRegistry
-import engine.controller.defaults.ScoreProvider
+import demo.utils.GameRegistry
+import engine.model.BoardConfig
 import engine.model.GameGoal
-import engine.model.defaults.Logger
+import engine.model.ObjectiveConfig
+import engine.util.Logger
 import engine.model.defaults.Tetromino
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
 import javax.swing.WindowConstants
@@ -20,7 +24,6 @@ import kotlin.uuid.ExperimentalUuidApi
 fun main(args: Array<String>) {
     Logger.minLevel = Logger.Level.DEBUG
 
-    ScoreProvider.defaultBuilder(PLAYER_GAME_ID).build()
     val (playerSettings, gameSettings) = when {
         args.contains("expert") -> GameSettingsProvider.expert()
         args.contains("pro") -> GameSettingsProvider.pro()
@@ -28,9 +31,12 @@ fun main(args: Array<String>) {
     }
 
     val resolvedSettings = if (args.contains("4way"))
-        gameSettings.copy(goalType = GameGoal.TIME, goalValue = 120.0, boardCols = 4)
+        gameSettings.copy(
+            board = BoardConfig(cols = 4),
+            objective = ObjectiveConfig(goalType = GameGoal.TIME, goalValue = 120.0)
+        )
     else
-        gameSettings.copy(goalType = GameGoal.TIME, goalValue = 120.0)
+        gameSettings.copy(objective = ObjectiveConfig(goalType = GameGoal.TIME, goalValue = 120.0))
 
     val isCheeseGame = args.contains("versus")
     val enemyApm = if (isCheeseGame) when {
@@ -40,10 +46,10 @@ fun main(args: Array<String>) {
     } else null
 
     val context = GameRegistry.getDefaultContext(resolvedSettings, playerSettings, Tetromino.pieces, PLAYER_GAME_ID)
-    val gameScope = context.scope!!
+    val gameScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     val engine = SwingTetris(context)
     val renderer = SwingRenderer(context)
-    val inputHandler = SwingInputHandler(gameScope)
+    val inputHandler = SwingInputHandler(engine)
 
     engine.initialize(isCheeseGame, enemyApm, gameScope)
 
