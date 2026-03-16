@@ -5,13 +5,11 @@ import demo.model.SwingTetris
 import demo.model.SwingTetris.Companion.PLAYER_GAME_ID
 import demo.utils.GameSettingsProvider
 import demo.view.SwingRenderer
-import engine.controller.defaults.GameRegistry
-import engine.controller.defaults.ScoreProvider
-import engine.model.Board
+import demo.utils.GameRegistry
 import engine.model.BoardConfig
 import engine.model.GameGoal
 import engine.model.ObjectiveConfig
-import engine.model.defaults.Logger
+import engine.util.Logger
 import engine.model.defaults.Tetromino
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +24,6 @@ import kotlin.uuid.ExperimentalUuidApi
 fun main(args: Array<String>) {
     Logger.minLevel = Logger.Level.DEBUG
 
-    ScoreProvider.defaultBuilder(PLAYER_GAME_ID).build()
     val (playerSettings, gameSettings) = when {
         args.contains("expert") -> GameSettingsProvider.expert()
         args.contains("pro") -> GameSettingsProvider.pro()

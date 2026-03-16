@@ -3,6 +3,8 @@ package engine.controller.defaults
 import engine.controller.BoardController
 import engine.controller.GameEngine
 import engine.controller.PieceController
+import engine.controller.defaults.scoring.ScoringEngine
+import engine.controller.defaults.scoring.ScoringResult
 import engine.model.Board
 import engine.model.Drop
 import engine.model.EngineTimers
@@ -10,6 +12,7 @@ import engine.model.GameGoal
 import engine.model.GameOverReason
 import engine.model.GameSnapshot
 import engine.model.GameState
+import engine.model.GameStats
 import engine.model.HUDInfo
 import engine.model.LastPieceAction
 import engine.model.MatchConfig
@@ -22,7 +25,8 @@ import engine.model.Rotation
 import engine.model.SpinMode
 import engine.model.SpinType
 import engine.model.TimeState
-import engine.model.defaults.Logger
+import engine.model.events.DefaultGameEvents
+import engine.util.Logger
 import engine.model.events.DefaultGameEvents.FreezeLineClear
 import engine.model.events.DefaultGameEvents.GameOver
 import engine.model.events.DefaultGameEvents.LineCleared
@@ -56,13 +60,14 @@ abstract class DefaultGameEngine<T : Piece>(
     protected val playerSettings: PlayerConfig,
     protected val gameSettings: MatchConfig,
     protected val boardManager: BoardController,
-    protected val pieceController: PieceController<T>
+    protected val pieceController: PieceController<T>,
+    protected val scoringEngine: ScoringEngine,
 ) : GameEngine<T> {
     protected val gameTimers: EngineTimers = EngineTimers()
     protected val timeManager: TimeManager = TimeManager()
+    protected val stats = GameStats()
     protected var deltaTime: Double = 0.0
     protected var gameState = GameState.ENTRY_DELAY
-    protected var currentLevel: Int = 1
     protected var timeGoalElapsed: Double = 0.0
     protected var freezeLineClears: Int = 0
     override val isGameOver: Boolean get() = gameState == GameState.GAME_OVER
@@ -73,7 +78,7 @@ abstract class DefaultGameEngine<T : Piece>(
     protected var rotationLock = false
     protected val garbageBuffer = mutableListOf<Int>()
     protected val pendingClearLines = mutableSetOf<Int>()
-    protected val gravitySpeed get() = gameSettings.gravity.gravityBase - (currentLevel - 1) * gameSettings.gravity.gravityIncrement
+    protected val gravitySpeed get() = gameSettings.gravity.levelHandler.gravitySpeed(stats.level)
     protected var pieceHasMoved = false
 
     protected fun Movement.direction() = when (this) {
@@ -83,13 +88,12 @@ abstract class DefaultGameEngine<T : Piece>(
 
     override fun reset() {
         gameState = GameState.ENTRY_DELAY
-        currentLevel = 1
         timeGoalElapsed = 0.0
         freezeLineClears = 0
         activeDirections.clear()
         rotationLock = false
         garbageBuffer.clear()
-
+        stats.reset()
         boardManager.reset()
         pieceController.reset()
         gameTimers.reset()
@@ -155,11 +159,6 @@ abstract class DefaultGameEngine<T : Piece>(
         garbageBuffer.clear()
     }
 
-    override fun levelUp(newLevel: Int): Int {
-        currentLevel = newLevel
-        return currentLevel
-    }
-
     override fun processGarbage(lines: Int) {
         garbageBuffer.add(lines)
     }
@@ -178,10 +177,7 @@ abstract class DefaultGameEngine<T : Piece>(
             boardManager.board,
             currentPiece = currentPiece?.let {
                 PieceState(
-                    it.shape,
-                    it.pieceRow,
-                    it.pieceCol,
-                    it.piece
+                    it.shape, it.pieceRow, it.pieceCol, it.piece
                 )
             },
             ghostPiece = snapShotGhost(currentPiece),
@@ -192,10 +188,12 @@ abstract class DefaultGameEngine<T : Piece>(
             timeState = timeManager.state,
             timeStateProgress = timeManager.stateProgress,
             hudInfo = HUDInfo(
-                combo = ScoreProvider.nullableTracker(gameId)?.combo,
-                b2bCount = ScoreProvider.nullableTracker(gameId)?.b2bCount,
+                combo = stats.combo,
+                b2bCount = stats.combo,
                 lockResetsRemaining = pieceController.getLockResetsRemainingIfSupported(),
-                sessionTimeSeconds = sessionTimeSeconds
+                sessionTimeSeconds = sessionTimeSeconds,
+                totalLinesCleared = stats.totalLinesCleared,
+                currentLevel = stats.level
             )
         )
     }
@@ -308,12 +306,7 @@ abstract class DefaultGameEngine<T : Piece>(
         if (spinType != SpinType.NONE) EventOrchestrator.publish(SpinDetected(spinType, gameId))
         EventOrchestrator.publish(
             PieceLocked(
-                fullLines.isNotEmpty(),
-                piece.piece,
-                piece.pieceRow,
-                piece.pieceCol,
-                piece.rotationState,
-                gameId
+                fullLines.isNotEmpty(), piece.piece, piece.pieceRow, piece.pieceCol, piece.rotationState, gameId
             )
         )
         if (timeManager.isFrozen) {
@@ -328,7 +321,14 @@ abstract class DefaultGameEngine<T : Piece>(
                 LineCleared(piece.piece, spinType, fullLines, boardManager.isBoardEmpty, gameId)
             )
         }
-
+        val result = scoringEngine.calculate(spinType, linesCount, stats, boardManager.isBoardEmpty, piece.piece.name)
+        EventOrchestrator.publish(
+            DefaultGameEvents.ScoreUpdated(
+                result.linesCleared, result.pointsAwarded, result.moveType, gameId
+            )
+        )
+        stats.updateFrom(result)
+        checkLevelUp()
         Logger.debug { "Piece locked. Cleared $linesCount lines. Spin: $spinType. BoardEmpty: ${boardManager.isBoardEmpty}" }
         pieceController.clearPiece()
     }
@@ -345,8 +345,7 @@ abstract class DefaultGameEngine<T : Piece>(
 
         val standardDetection = {
             pieceState.piece.getSpinType(
-                boardManager.board, pieceState.pieceRow,
-                pieceState.pieceCol, pieceState.rotationState, kickIndex
+                boardManager.board, pieceState.pieceRow, pieceState.pieceCol, pieceState.rotationState, kickIndex
             )
         }
 
@@ -376,6 +375,14 @@ abstract class DefaultGameEngine<T : Piece>(
         }
     }
 
+    private fun checkLevelUp() {
+        val newLevel = gameSettings.gravity.levelHandler.levelForLines(stats.totalLinesCleared, stats.level)
+        if (newLevel > stats.level) {
+            stats.level = newLevel
+            EventOrchestrator.publish(DefaultGameEvents.LevelUp(newLevel, gameId))
+        }
+    }
+
     private fun checkWinCondition() {
         if (gameSettings.objective.goalType == GameGoal.TIME) {
             val elapsedSeconds = gameTimers.sessionTimeSeconds
@@ -392,4 +399,10 @@ abstract class DefaultGameEngine<T : Piece>(
             }
         }
     }
+}
+
+private fun GameStats.updateFrom(result: ScoringResult) {
+    this.combo = result.newCombo
+    this.b2bCount = result.newB2b
+    this.totalLinesCleared += result.linesCleared
 }

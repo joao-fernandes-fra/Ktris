@@ -14,7 +14,7 @@ object GameSettingsProvider {
             dasDelay = 133.0,
             arrDelay = 16.0,
         )
-    ) to MatchConfig(gravity = GravityConfig(lockDelay = 350.0, gravityBase = 500.0))
+    ) to MatchConfig(gravity = GravityConfig(lockDelay = 350.0))
 
     fun pro() = PlayerConfig(
         HandlingConfig(
@@ -22,7 +22,7 @@ object GameSettingsProvider {
             arrDelay = 16.0,
         )
     ) to MatchConfig(
-        gravity = GravityConfig(lockDelay = 200.0, gravityBase = 150.0),
+        gravity = GravityConfig(lockDelay = 200.0),
         gameplay = GameplayConfig(entryDelay = 0.0)
     )
 }

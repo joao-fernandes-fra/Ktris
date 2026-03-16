@@ -1,4 +1,4 @@
-package engine.model.defaults
+package engine.util
 
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone

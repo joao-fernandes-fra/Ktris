@@ -1,4 +1,4 @@
-package engine.controller.defaults
+package engine.controller.defaults.piece
 
 import engine.controller.BagRandomizer
 import engine.controller.GravityCapable
@@ -12,10 +12,9 @@ import engine.model.MatchConfig
 import engine.model.MovingPiece
 import engine.model.Piece
 import engine.model.PieceTimers
-import engine.model.PlayerConfig
 import engine.model.Rotation
 import engine.model.defaults.DefaultMovingPiece
-import engine.model.defaults.Logger
+import engine.util.Logger
 import engine.model.events.DefaultGameEvents
 import engine.model.events.DefaultGameEvents.PieceRotated
 import engine.model.events.EventOrchestrator

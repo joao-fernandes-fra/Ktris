@@ -5,14 +5,13 @@ import demo.model.MessagePriority
 import demo.model.PendingGarbage
 import demo.model.PlayerAPMUpdated
 import engine.controller.GameRenderer
-import engine.controller.defaults.ScoreProvider
 import engine.model.GameOverReason
 import engine.model.GameSnapshot
 import engine.model.KtrisContext
 import engine.model.Piece
 import engine.model.PieceState
 import engine.model.SpinType
-import engine.model.defaults.Logger
+import engine.util.Logger
 import engine.model.defaults.Tetromino
 import engine.model.events.DefaultGameEvents
 import engine.model.events.EventOrchestrator
@@ -28,9 +27,8 @@ import javax.swing.JPanel
 import kotlin.math.min
 import kotlin.math.sin
 
-class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRenderer<T> {
+class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPanel(), GameRenderer<T> {
     private val gameId = gameContext.gameId
-    private val scoreTracker = ScoreProvider.getTracker(gameId)
 
     companion object {
         private const val SCREEN_HEIGHT = 720
@@ -482,17 +480,22 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
 
         drawHUDLine(graphics, "SCORE", hudX + HUD_PADDING, currentY)
         currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, scoreTracker.totalPoints.toInt().toString(), hudX + HUD_PADDING, currentY)
+        drawHUDLine(graphics, gameContext.scoreTracker?.totalPoints?.toString(), hudX + HUD_PADDING, currentY)
 
         currentY += HUD_LINE_HEIGHT
         drawHUDLine(graphics, "LINES", hudX + HUD_PADDING, currentY)
         currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, scoreTracker.totalLinesCleared.toString(), hudX + HUD_PADDING, currentY)
+        drawHUDLine(graphics, lastSnapshot?.hudInfo?.totalLinesCleared?.toString(), hudX + HUD_PADDING, currentY)
 
         currentY += HUD_LINE_HEIGHT
         drawHUDLine(graphics, "TIME", hudX + HUD_PADDING, currentY)
         currentY += HUD_LINE_HEIGHT
-        drawHUDLine(graphics, formatTime(lastSnapshot?.hudInfo?.sessionTimeSeconds ?: 0.0), hudX + HUD_PADDING, currentY)
+        drawHUDLine(
+            graphics,
+            formatTime(lastSnapshot?.hudInfo?.sessionTimeSeconds ?: 0.0),
+            hudX + HUD_PADDING,
+            currentY
+        )
         if (playerAPM > 0f) {
             currentY += HUD_LINE_HEIGHT
             drawHUDLine(graphics, "APM", hudX + HUD_PADDING, currentY)
@@ -502,8 +505,8 @@ class SwingRenderer<T : Piece>(gameContext: KtrisContext<T>) : JPanel(), GameRen
         return currentY
     }
 
-    private fun drawHUDLine(graphics: Graphics2D, text: String, x: Int, y: Int) {
-        graphics.drawString(text, x, y)
+    private fun drawHUDLine(graphics: Graphics2D, text: String?, x: Int, y: Int) {
+        graphics.drawString(text ?: "", x, y)
     }
 
     private fun getTetrominoColor(id: Int): Color = when (id) {

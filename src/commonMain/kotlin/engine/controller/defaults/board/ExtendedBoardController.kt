@@ -1,11 +1,10 @@
-package engine.controller.defaults
+package engine.controller.defaults.board
 
 import engine.controller.CollapseCapable
 import engine.controller.GarbageCapable
-import engine.model.Board.Companion.EMPTY_BLOCK_VALUE
+import engine.model.Board
 
-
-class GuidelineBoardController(rows: Int, cols: Int, bufferHeight: Int) :
+class ExtendedBoardController(rows: Int, cols: Int, bufferHeight: Int) :
     DefaultBoardController(rows, cols, bufferHeight), CollapseCapable, GarbageCapable {
     companion object {
         private const val PENDING_BLOCK_ID = -1
@@ -33,7 +32,7 @@ class GuidelineBoardController(rows: Int, cols: Int, bufferHeight: Int) :
         repeat(lines) {
             shiftBoardUp()
             for (c in 0 until board.cols) {
-                board[board.rows - 1, c] = if (c == holeCol) EMPTY_BLOCK_VALUE else garbageBlockId
+                board[board.rows - 1, c] = if (c == holeCol) Board.Companion.EMPTY_BLOCK_VALUE else garbageBlockId
             }
         }
     }

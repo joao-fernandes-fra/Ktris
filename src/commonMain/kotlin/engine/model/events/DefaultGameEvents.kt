@@ -2,6 +2,7 @@ package engine.model.events
 
 import engine.model.GameGoal
 import engine.model.GameOverReason
+import engine.model.MoveSource
 import engine.model.MoveType
 import engine.model.Piece
 import engine.model.SpinType
@@ -47,7 +48,6 @@ object DefaultGameEvents {
     data class FreezeLineClear(val linesCleared: Int, val spinType: SpinType, override val gameId: String) : GameEvent
     data class ScoreUpdated(
         val totalLines: Int,
-        val currentPoints: Double,
         val pointsEarned: Double,
         val moveType: MoveType,
         override val gameId: String

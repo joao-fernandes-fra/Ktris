@@ -7,7 +7,7 @@ import engine.controller.defaults.DefaultGameEngine
 import engine.model.KtrisContext
 import engine.model.SpinType
 import engine.model.TimeState
-import engine.model.defaults.Logger
+import engine.util.Logger
 import engine.model.defaults.ProceduralPiece
 import engine.model.events.DefaultGameEvents
 import engine.model.events.EventOrchestrator
@@ -27,7 +27,8 @@ class SwingTetris(
     context.playerSettings,
     context.gameSettings,
     context.boardManager,
-    context.pieceController
+    context.pieceController,
+    context.scoringEngine
 ) {
 
     private var isCheeseGame: Boolean = false

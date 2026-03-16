@@ -14,7 +14,6 @@ interface GameEngine<T : Piece> : Resetable {
     val isGameOver: Boolean
     val isGoalMet: Boolean
     val sessionTimeSeconds: Double
-    fun levelUp(newLevel: Int): Int
     fun processGarbage(lines: Int)
     fun onHold(isFreshPress: Boolean = true)
     fun onRotation(rotation: Rotation, isFreshPress: Boolean = true): Boolean

@@ -1,4 +1,4 @@
-package engine.controller.defaults
+package engine.controller.defaults.piece
 
 import engine.controller.BagRandomizer
 import engine.controller.ClipCapable
@@ -16,7 +16,6 @@ import engine.controller.SpinTrackingCapable
 import engine.model.Board
 import engine.model.BufferMode
 import engine.model.DasPreservation
-import engine.model.DasState
 import engine.model.GameOverReason
 import engine.model.LastPieceAction
 import engine.model.MatchConfig
@@ -26,7 +25,7 @@ import engine.model.PieceTimers
 import engine.model.PlayerConfig
 import engine.model.Rotation
 import engine.model.defaults.DefaultMovingPiece
-import engine.model.defaults.Logger
+import engine.util.Logger
 import engine.model.events.DefaultGameEvents
 import engine.model.events.DefaultGameEvents.GameOver
 import engine.model.events.DefaultGameEvents.NewPiece
@@ -34,7 +33,7 @@ import engine.model.events.DefaultGameEvents.PieceHeld
 import engine.model.events.DefaultGameEvents.PieceRotated
 import engine.model.events.DefaultGameEvents.SoftDrop
 import engine.model.events.EventOrchestrator
-import engine.model.events.MoveSource
+import engine.model.MoveSource
 import engine.util.CollisionUtils.checkCollisionWithBoard
 
 class GuidelinePieceController<T : Piece>(

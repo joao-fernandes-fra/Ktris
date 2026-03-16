@@ -1,5 +1,8 @@
 package engine.model
 
+import engine.controller.LevelHandler
+import engine.controller.defaults.gravity.GuidelineLevelHandler
+
 data class BoardConfig(
     val rows: Int = 20,
     val cols: Int = 10,
@@ -20,13 +23,10 @@ data class HandlingConfig(
 )
 
 data class GravityConfig(
-    val gravityBase: Double = 1000.0,
-    val gravityIncrement: Double = 0.8,
-    val levelCap: Int = 99,
+    val levelHandler: LevelHandler = GuidelineLevelHandler(),
     val lockDelay: Double = 500.0,
     val maxLockResets: Int = 15,
     val shouldCollapseOnFreeze: Boolean = true,
-    val slowDownMultiplier: Double = 2.0,
 )
 
 data class ObjectiveConfig(
@@ -52,7 +52,6 @@ data class GameplayConfig(
     val previewSize: Int = 5,
     val entryDelay: Double = 0.0,
     val lineClearDelay: Double = 0.0,
-    val finalKickSpinBehavior: FinalKickSpinBehavior = FinalKickSpinBehavior.NORMAL,
 )
 
 

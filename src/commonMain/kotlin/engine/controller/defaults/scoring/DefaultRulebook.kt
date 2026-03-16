@@ -1,4 +1,4 @@
-package engine.controller.defaults
+package engine.controller.defaults.scoring
 
 import engine.model.Drop
 import engine.model.MoveType
