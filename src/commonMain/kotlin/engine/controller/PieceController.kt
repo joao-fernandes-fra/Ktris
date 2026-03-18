@@ -67,5 +67,4 @@ interface InputBufferCapable {
 
 interface SpinTrackingCapable {
     val lastKickIndex: Int
-    val lastKickWasFinal: Boolean
 }

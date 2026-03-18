@@ -71,7 +71,6 @@ class GuidelinePieceController<T : Piece>(
     override val rotationBufferWindow: Double = ROTATION_BUFFER_WINDOW
     override var holdBuffered: Boolean = false
     override var lastKickIndex = 0
-    override var lastKickWasFinal = false
     override val lockResetsRemaining: Int get() = gameSettings.gravity.maxLockResets - lockResets
 
     override fun getNextPieces(previewSize: Int): List<T> {
@@ -289,7 +288,6 @@ class GuidelinePieceController<T : Piece>(
 
             if (!checkCollisionWithBoard(board, candidateShape, topLeftRow, topLeftCol)) {
                 lastKickIndex = index
-                lastKickWasFinal = index == kickOffsets.size - 1
                 piece.rotateShape(candidateShape, topLeftRow, topLeftCol, rotation)
                 gameTimers.lockTimer = 0.0
                 resetLockTimer()
@@ -300,7 +298,6 @@ class GuidelinePieceController<T : Piece>(
                 return true
             }
         }
-        lastKickWasFinal = false
         lastKickIndex = 0
         bufferedRotation = rotation
         rotationBufferTimer = 0.0
@@ -390,7 +387,6 @@ class GuidelinePieceController<T : Piece>(
         dasState = DasState.IDLE
         canHold = true
         lastKickIndex = 0
-        lastKickWasFinal = false
         clearActionBuffer()
     }
 

@@ -28,7 +28,8 @@ object GameRegistry {
         gameId: String
     ): KtrisContext<T> {
         val bagRandomizer = SevenBagRandomizer(availablePieces)
-        val boardController = ExtendedBoardController(global.board.rows, global.board.cols, global.board.bufferZone)
+        val boardController =
+            ExtendedBoardController(global.board.rows, global.board.cols, global.board.bufferZone, global.garbage)
         val pieceController = GuidelinePieceController(
             boardController.board,
             bagRandomizer,

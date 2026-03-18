@@ -3,8 +3,12 @@ package engine.controller.defaults.board
 import engine.controller.CollapseCapable
 import engine.controller.GarbageCapable
 import engine.model.Board
+import engine.model.GarbageConfig
 
-class ExtendedBoardController(rows: Int, cols: Int, bufferHeight: Int) :
+class ExtendedBoardController(
+    rows: Int, cols: Int, bufferHeight: Int,
+    private val garbageConfig: GarbageConfig
+) :
     DefaultBoardController(rows, cols, bufferHeight), CollapseCapable, GarbageCapable {
     companion object {
         private const val PENDING_BLOCK_ID = -1
@@ -16,7 +20,7 @@ class ExtendedBoardController(rows: Int, cols: Int, bufferHeight: Int) :
             clearRow(it)
         }
 
-        fullLines.forEach {
+        fullLines.forEach { _ ->
             shiftBoardUp()
             for (c in 0 until board.cols) {
                 board[board.rows - 1, c] = PENDING_BLOCK_ID
@@ -27,12 +31,17 @@ class ExtendedBoardController(rows: Int, cols: Int, bufferHeight: Int) :
     override fun addGarbage(lines: Int, garbageBlockId: Int) {
         if (lines <= 0) return
 
-        val holeCol = (0 until board.cols).random()
+        val messiness = garbageConfig.messiness
+        var holeCol = (0 until board.cols).random()
 
         repeat(lines) {
+            if ((0..99).random() < messiness) {
+                holeCol = (0 until board.cols).random()
+            }
+
             shiftBoardUp()
             for (c in 0 until board.cols) {
-                board[board.rows - 1, c] = if (c == holeCol) Board.Companion.EMPTY_BLOCK_VALUE else garbageBlockId
+                board[board.rows - 1, c] = if (c == holeCol) Board.EMPTY_BLOCK_VALUE else garbageBlockId
             }
         }
     }

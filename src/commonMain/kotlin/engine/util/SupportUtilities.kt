@@ -92,9 +92,6 @@ fun <T : Piece> PieceController<T>?.tickInputBufferIfSupported(delta: Double) {
 fun <T : Piece> PieceController<T>?.getLastKickIndexIfSupported(): Int =
     (this as? SpinTrackingCapable)?.lastKickIndex ?: 0
 
-fun <T : Piece> PieceController<T>?.getLastKickWasFinalIfSupported(): Boolean =
-    (this as? SpinTrackingCapable)?.lastKickWasFinal ?: false
-
 fun <T : Piece> PieceController<T>?.clearActionBufferIfSupported() {
     (this as? InitialActionsCapable)?.clearActionBuffer()
 }

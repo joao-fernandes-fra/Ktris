@@ -17,7 +17,7 @@ data class HandlingConfig(
     val dasCutOnRotation: Boolean = false,
     val dasPreservation: DasPreservation = DasPreservation.FULL,
     val cancelDasOnDirectionChange: Boolean = true,
-    val preventAccidentalHardDrop: Boolean = false,
+    val preventAccidentalHardDrop: Boolean = true,
     val irsMode: BufferMode = BufferMode.HOLD,
     val ihsMode: BufferMode = BufferMode.HOLD,
 )

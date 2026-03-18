@@ -79,7 +79,7 @@ abstract class DefaultGameEngine<T : Piece>(
     protected val garbageBuffer = mutableListOf<Int>()
     protected val pendingClearLines = mutableSetOf<Int>()
     protected val gravitySpeed get() = gameSettings.gravity.levelHandler.gravitySpeed(stats.level)
-    protected var pieceHasMoved = false
+    protected var bufferedPieceFrame = false
 
     protected fun Movement.direction() = when (this) {
         Movement.MOVE_RIGHT -> 1
@@ -98,7 +98,7 @@ abstract class DefaultGameEngine<T : Piece>(
         pieceController.reset()
         gameTimers.reset()
         timeManager.reset()
-        pieceHasMoved = false
+        bufferedPieceFrame = false
         Logger.info { "Engine state reset." }
     }
 
@@ -129,7 +129,7 @@ abstract class DefaultGameEngine<T : Piece>(
                 if (gameTimers.areTimer >= gameSettings.gameplay.entryDelay) {
                     gameTimers.areTimer = 0.0
                     val spawnedPiece = pieceController.spawn()
-                    pieceHasMoved = false
+                    bufferedPieceFrame = true
                     gameState = if (spawnedPiece == null) {
                         pieceController.clearActionBufferIfSupported()
                         GameState.GAME_OVER
@@ -143,6 +143,7 @@ abstract class DefaultGameEngine<T : Piece>(
                 pieceController.handleDASIfSupported(deltaTime, currentDirection)
                 pieceController.applyGravityIfSupported(gravityDelta, gravitySpeed)
                 pieceController.advanceLockIfSupported(deltaTime, ::lockAndProcess)
+                bufferedPieceFrame = false
             }
 
             GameState.GAME_OVER -> {}
@@ -160,7 +161,17 @@ abstract class DefaultGameEngine<T : Piece>(
     }
 
     override fun processGarbage(lines: Int) {
-        garbageBuffer.add(lines)
+        if (lines <= 0) return
+
+        val cap = gameSettings.garbage.cap
+        if (cap > 0) {
+            val pending = garbageBuffer.sum()
+            val allowed = (cap - pending).coerceAtLeast(0)
+            if (allowed <= 0) return
+            garbageBuffer.add(lines.coerceAtMost(allowed))
+        } else {
+            garbageBuffer.add(lines)
+        }
     }
 
     override fun onHold(isFreshPress: Boolean) {
@@ -233,7 +244,7 @@ abstract class DefaultGameEngine<T : Piece>(
     }
 
     override fun onMovement(movement: Movement): Boolean {
-        pieceHasMoved = true
+        bufferedPieceFrame = true
         val dir = movement.direction()
         activeDirections.remove(dir)
         activeDirections.add(dir)
@@ -258,12 +269,12 @@ abstract class DefaultGameEngine<T : Piece>(
     override fun onDrop(drop: Drop) {
         when (drop) {
             Drop.SOFT_DROP -> {
-                pieceHasMoved = true
+                bufferedPieceFrame = true
                 pieceController.softDropIfSupported(deltaTime, gravitySpeed)
             }
 
             Drop.HARD_DROP -> {
-                if (playerSettings.handling.preventAccidentalHardDrop && !pieceHasMoved) return
+                if (playerSettings.handling.preventAccidentalHardDrop && bufferedPieceFrame) return
                 pieceController.hardDropIfSupported()
             }
         }
