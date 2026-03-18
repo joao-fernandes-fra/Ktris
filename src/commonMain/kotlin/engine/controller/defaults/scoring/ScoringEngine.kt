@@ -19,9 +19,11 @@ class ScoringEngine(private val ruleBook: ScoringRuleBook) {
         var basePoints = ruleBook.getBasePoints(spinType, lines)
         val isDifficult = ruleBook.isDifficult(spinType, lines)
 
-        val newB2b = if (isDifficult) stats.b2bCount + 1
-        else if (lines > 0) -1
-        else stats.b2bCount
+        val newB2b = when {
+            isDifficult -> stats.b2bCount + 1
+            lines > 0 -> -1
+            else -> stats.b2bCount
+        }
 
         if (isDifficult && newB2b > 0) basePoints *= ruleBook.b2bMultiplier
 

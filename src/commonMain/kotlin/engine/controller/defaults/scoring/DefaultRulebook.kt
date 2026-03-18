@@ -60,7 +60,7 @@ open class DefaultRulebook : ScoringRuleBook {
     override fun isDifficult(spinType: SpinType, lines: Int) = when (spinType) {
         SpinType.FULL -> true
         SpinType.MINI -> lines >= 1
-        SpinType.NONE -> lines == 4
+        SpinType.NONE -> lines >= 4
     }
 
     override fun getMoveType(spinType: SpinType, lines: Int, pieceName: String): MoveType =

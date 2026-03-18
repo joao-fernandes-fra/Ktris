@@ -1,7 +1,7 @@
 package engine.model
 
 import engine.controller.LevelHandler
-import engine.controller.defaults.gravity.GuidelineLevelHandler
+import engine.controller.defaults.gravity.DefaultLevelHandler
 
 data class BoardConfig(
     val rows: Int = 20,
@@ -23,7 +23,7 @@ data class HandlingConfig(
 )
 
 data class GravityConfig(
-    val levelHandler: LevelHandler = GuidelineLevelHandler(),
+    val levelHandler: LevelHandler = DefaultLevelHandler(),
     val lockDelay: Double = 500.0,
     val maxLockResets: Int = 15,
     val shouldCollapseOnFreeze: Boolean = true,

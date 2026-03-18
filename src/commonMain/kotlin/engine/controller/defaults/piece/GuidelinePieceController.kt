@@ -220,14 +220,12 @@ class GuidelinePieceController<T : Piece>(
     override fun softDrop(deltaTime: Double, gravitySpeed: Double) {
         Logger.debug { "SOFT_DROP: Configured factor: ${playerSettings.handling.softDropFactor}" }
         Logger.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Factor: ${playerSettings.handling.softDropFactor}x" }
-        val softDropSpeed = if (playerSettings.handling.softDropFactor <= 0.0) 0.0
-        else gravitySpeed / playerSettings.handling.softDropFactor
+        val softDropSpeed = gravitySpeed / playerSettings.handling.softDropFactor
         var dropLines = 0
-        if (softDropSpeed <= 0.0) {
+        if (softDropSpeed == Double.MAX_VALUE) {
             while (movePiece(1, 0, MoveSource.SOFT_DROP)) {
                 dropLines++
             }
-            return
         }
 
         if (gameTimers.softDropTimer == 0.0) gameTimers.softDropTimer = softDropSpeed

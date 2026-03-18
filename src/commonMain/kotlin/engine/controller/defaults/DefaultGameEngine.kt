@@ -79,7 +79,11 @@ abstract class DefaultGameEngine<T : Piece>(
     protected val garbageBuffer = mutableListOf<Int>()
     protected val pendingClearLines = mutableSetOf<Int>()
     protected val gravitySpeed get() = gameSettings.gravity.levelHandler.gravitySpeed(stats.level)
-    protected var bufferedPieceFrame = false
+    protected var blockedHardDropFrame = 0
+
+    companion object {
+        private const val HARD_DROP_FRAME_GUARD_LIMIT = 2
+    }
 
     protected fun Movement.direction() = when (this) {
         Movement.MOVE_RIGHT -> 1
@@ -98,7 +102,7 @@ abstract class DefaultGameEngine<T : Piece>(
         pieceController.reset()
         gameTimers.reset()
         timeManager.reset()
-        bufferedPieceFrame = false
+        blockedHardDropFrame = HARD_DROP_FRAME_GUARD_LIMIT
         Logger.info { "Engine state reset." }
     }
 
@@ -129,7 +133,7 @@ abstract class DefaultGameEngine<T : Piece>(
                 if (gameTimers.areTimer >= gameSettings.gameplay.entryDelay) {
                     gameTimers.areTimer = 0.0
                     val spawnedPiece = pieceController.spawn()
-                    bufferedPieceFrame = true
+                    blockedHardDropFrame = HARD_DROP_FRAME_GUARD_LIMIT
                     gameState = if (spawnedPiece == null) {
                         pieceController.clearActionBufferIfSupported()
                         GameState.GAME_OVER
@@ -143,7 +147,7 @@ abstract class DefaultGameEngine<T : Piece>(
                 pieceController.handleDASIfSupported(deltaTime, currentDirection)
                 pieceController.applyGravityIfSupported(gravityDelta, gravitySpeed)
                 pieceController.advanceLockIfSupported(deltaTime, ::lockAndProcess)
-                bufferedPieceFrame = false
+                if (blockedHardDropFrame > 0) blockedHardDropFrame--
             }
 
             GameState.GAME_OVER -> {}
@@ -244,7 +248,6 @@ abstract class DefaultGameEngine<T : Piece>(
     }
 
     override fun onMovement(movement: Movement): Boolean {
-        bufferedPieceFrame = true
         val dir = movement.direction()
         activeDirections.remove(dir)
         activeDirections.add(dir)
@@ -269,12 +272,11 @@ abstract class DefaultGameEngine<T : Piece>(
     override fun onDrop(drop: Drop) {
         when (drop) {
             Drop.SOFT_DROP -> {
-                bufferedPieceFrame = true
                 pieceController.softDropIfSupported(deltaTime, gravitySpeed)
             }
 
             Drop.HARD_DROP -> {
-                if (playerSettings.handling.preventAccidentalHardDrop && bufferedPieceFrame) return
+                if (playerSettings.handling.preventAccidentalHardDrop && blockedHardDropFrame > 0) return
                 pieceController.hardDropIfSupported()
             }
         }
@@ -339,6 +341,7 @@ abstract class DefaultGameEngine<T : Piece>(
             )
         )
         stats.updateFrom(result)
+        Logger.debug { stats.toString() }
         checkLevelUp()
         Logger.debug { "Piece locked. Cleared $linesCount lines. Spin: $spinType. BoardEmpty: ${boardManager.isBoardEmpty}" }
         pieceController.clearPiece()
