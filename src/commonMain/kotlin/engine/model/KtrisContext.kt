@@ -34,7 +34,7 @@ class KtrisContextBuilder(
     fun bagManager(manager: PieceRandomizer) = apply { this.bagManager = manager }
     fun boardManager(manager: BoardController) = apply { this.boardManager = manager }
     fun pieceController(controller: PieceController) = apply { this.pieceController = controller }
-    fun scoringEngine(engine: DefaultScoreEngine) = apply { this.scoringEngine = engine }
+    fun scoringEngine(engine: ScoreEngine) = apply { this.scoringEngine = engine }
     fun scoreTracker(tracker: ScoreTracker) = apply { this.scoreTracker = tracker }
 
     fun build(): KtrisContext {
