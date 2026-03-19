@@ -42,17 +42,8 @@ class GuidelinePieceController<T : Piece>(
     private val playerSettings: PlayerConfig,
     private val gameSettings: MatchConfig,
     private val gameId: String
-) : PieceController<T>, DasCapable,
-    GravityCapable,
-    SoftDropCapable,
-    HardDropCapable,
-    HoldCapable<T>,
-    InitialActionsCapable,
-    InputBufferCapable,
-    ClipCapable,
-    LockDelayCapable,
-    GhostCapable,
-    SpinTrackingCapable {
+) : PieceController<T>, DasCapable, GravityCapable, SoftDropCapable, HardDropCapable, HoldCapable<T>,
+    InitialActionsCapable, InputBufferCapable, ClipCapable, LockDelayCapable, GhostCapable, SpinTrackingCapable {
     companion object {
         private const val ROTATION_BUFFER_WINDOW = 133.0
     }
@@ -218,27 +209,30 @@ class GuidelinePieceController<T : Piece>(
     }
 
     override fun softDrop(deltaTime: Double, gravitySpeed: Double) {
-        Logger.debug { "SOFT_DROP: Configured factor: ${playerSettings.handling.softDropFactor}" }
-        Logger.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Factor: ${playerSettings.handling.softDropFactor}x" }
-        val softDropSpeed = gravitySpeed / playerSettings.handling.softDropFactor
         var dropLines = 0
-        if (softDropSpeed == Double.MAX_VALUE) {
-            while (movePiece(1, 0, MoveSource.SOFT_DROP)) {
-                dropLines++
+        when (playerSettings.handling.softDropFactor) {
+            Double.MAX_VALUE -> {
+                Logger.debug { "SOFT_DROP: Factor: ∞x" }
+                while (movePiece(1, 0, MoveSource.SOFT_DROP)) {
+                    dropLines++
+                }
             }
-        }
 
-        if (gameTimers.softDropTimer == 0.0) gameTimers.softDropTimer = softDropSpeed
-
-        gameTimers.softDropTimer += deltaTime
-        while (gameTimers.softDropTimer >= softDropSpeed) {
-            if (!movePiece(1, 0, MoveSource.SOFT_DROP)) {
-                gameTimers.softDropTimer = 0.0
-                break
+            else -> {
+                Logger.debug { "SOFT_DROP: State - Timer: ${gameTimers.softDropTimer}, Delta: $deltaTime, Factor: ${playerSettings.handling.softDropFactor}x" }
+                val softDropSpeed = gravitySpeed / playerSettings.handling.softDropFactor
+                if (gameTimers.softDropTimer == 0.0) gameTimers.softDropTimer = softDropSpeed
+                gameTimers.softDropTimer += deltaTime
+                while (gameTimers.softDropTimer >= softDropSpeed) {
+                    if (!movePiece(1, 0, MoveSource.SOFT_DROP)) {
+                        gameTimers.softDropTimer = 0.0
+                        break
+                    }
+                    dropLines++
+                    gameTimers.dropTimer = 0.0
+                    gameTimers.softDropTimer -= softDropSpeed
+                }
             }
-            dropLines++
-            gameTimers.dropTimer = 0.0
-            gameTimers.softDropTimer -= softDropSpeed
         }
 
         if (dropLines > 0) {
