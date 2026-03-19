@@ -221,7 +221,7 @@ abstract class DefaultGameEngine(
             timeStateProgress = timeManager.stateProgress,
             hudInfo = HUDInfo(
                 combo = stats.combo,
-                b2bCount = stats.combo,
+                b2bCount = stats.b2bCount,
                 lockResetsRemaining = pieceController.getLockResetsRemainingIfSupported(),
                 sessionTimeSeconds = sessionTimeSeconds,
                 totalLinesCleared = stats.totalLinesCleared,
