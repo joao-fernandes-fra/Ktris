@@ -3,6 +3,7 @@ package engine.model
 import engine.controller.PieceRandomizer
 import engine.controller.BoardController
 import engine.controller.PieceController
+import engine.controller.ScoreEngine
 import engine.controller.defaults.scoring.ScoreTracker
 import engine.controller.defaults.scoring.DefaultScoreEngine
 
@@ -13,7 +14,7 @@ class KtrisContext(
     val bagManager: PieceRandomizer,
     val boardManager: BoardController,
     val pieceController: PieceController,
-    val scoringEngine: DefaultScoreEngine,
+    val scoringEngine: ScoreEngine,
     val scoreTracker: ScoreTracker?
 )
 
@@ -25,7 +26,7 @@ class KtrisContextBuilder(
     private var bagManager: PieceRandomizer? = null
     private var boardManager: BoardController? = null
     private var pieceController: PieceController? = null
-    private var scoringEngine: DefaultScoreEngine? = null
+    private var scoringEngine: ScoreEngine? = null
     private var scoreTracker: ScoreTracker? = null
 
     fun playerSettings(settings: PlayerConfig) = apply { this.playerSettings = settings }
