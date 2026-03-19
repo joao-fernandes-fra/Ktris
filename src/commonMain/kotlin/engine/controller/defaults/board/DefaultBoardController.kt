@@ -53,7 +53,7 @@ open class DefaultBoardController(
         }
     }
 
-    override fun placePiece(piece: MovingPiece<*>) {
+    override fun placePiece(piece: MovingPiece) {
         val shape = piece.shape
         for (r in 0 until shape.rows) {
             for (c in 0 until shape.cols) {

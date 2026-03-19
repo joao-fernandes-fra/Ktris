@@ -56,13 +56,13 @@ import engine.util.updateGhostIfSupported
 import kotlin.math.absoluteValue
 
 
-abstract class DefaultGameEngine<T : Piece>(
-    protected val playerSettings: PlayerConfig,
-    protected val gameSettings: MatchConfig,
-    protected val boardManager: BoardController,
-    protected val pieceController: PieceController<T>,
-    protected val scoringEngine: ScoringEngine,
-) : GameEngine<T> {
+abstract class DefaultGameEngine(
+    protected var playerSettings: PlayerConfig,
+    protected var gameSettings: MatchConfig,
+    protected var boardManager: BoardController,
+    protected var pieceController: PieceController,
+    protected var scoringEngine: ScoringEngine,
+) : GameEngine {
     protected val gameTimers: EngineTimers = EngineTimers()
     protected val timeManager: TimeManager = TimeManager()
     protected val stats = GameStats()
@@ -80,6 +80,19 @@ abstract class DefaultGameEngine<T : Piece>(
     protected val pendingClearLines = mutableSetOf<Int>()
     protected val gravitySpeed get() = gameSettings.gravity.levelHandler.gravitySpeed(stats.level)
     protected var blockedHardDropFrame = 0
+
+    fun updatePlayerSettings(playerConfig: PlayerConfig) {
+        this.playerSettings = playerConfig
+    }
+
+    fun updateGameSettings(gameSettings: MatchConfig) {
+        this.gameSettings = gameSettings
+    }
+
+    fun updatePieceController(pieceController: PieceController) {
+        this.pieceController = pieceController
+    }
+
 
     companion object {
         private const val HARD_DROP_FRAME_GUARD_LIMIT = 2
@@ -186,7 +199,7 @@ abstract class DefaultGameEngine<T : Piece>(
         pieceController.holdIfSupported()
     }
 
-    override fun gameStateSnapshot(): GameSnapshot<T> {
+    override fun gameStateSnapshot(): GameSnapshot {
         val currentPiece = pieceController.currentPiece
         return GameSnapshot(
             boardManager.board,
@@ -213,7 +226,7 @@ abstract class DefaultGameEngine<T : Piece>(
         )
     }
 
-    private fun snapShotGhost(currentPiece: MovingPiece<T>?): PieceState<T>? =
+    private fun snapShotGhost(currentPiece: MovingPiece?): PieceState? =
         if (gameSettings.gameplay.isGhostEnabled) pieceController.getGhostRowIfSupported()?.let { ghostRow ->
             currentPiece?.let {
                 PieceState(
@@ -347,7 +360,7 @@ abstract class DefaultGameEngine<T : Piece>(
         pieceController.clearPiece()
     }
 
-    private fun getSpinType(pieceState: MovingPiece<T>): SpinType {
+    private fun getSpinType(pieceState: MovingPiece): SpinType {
         val mode = gameSettings.gameplay.spinDetection
         if (mode == SpinMode.NONE) return SpinType.NONE
         if (mode != SpinMode.STUPID && pieceController.lastAction != LastPieceAction.ROTATE) return SpinType.NONE

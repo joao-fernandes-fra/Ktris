@@ -9,7 +9,7 @@ import engine.model.Resetable
 import engine.model.Rotation
 import engine.model.TimeState
 
-interface GameEngine<T : Piece> : Resetable {
+interface GameEngine : Resetable {
     val gameId: String
     val isGameOver: Boolean
     val isGoalMet: Boolean
@@ -19,7 +19,7 @@ interface GameEngine<T : Piece> : Resetable {
     fun onRotation(rotation: Rotation, isFreshPress: Boolean = true): Boolean
     fun onMovement(movement: Movement): Boolean
     fun onDrop(drop: Drop)
-    fun gameStateSnapshot(): GameSnapshot<T>?
+    fun gameStateSnapshot(): GameSnapshot?
     fun onRotationRelease(rotation: Rotation)
     fun onMovementRelease(movement: Movement)
     fun forceBoardState(newState: Board)

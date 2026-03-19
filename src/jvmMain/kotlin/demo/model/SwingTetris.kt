@@ -22,9 +22,9 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class SwingTetris(
-    context: KtrisContext<ProceduralPiece>,
+    context: KtrisContext,
     override val gameId: String = context.gameId
-) : DefaultGameEngine<ProceduralPiece>(
+) : DefaultGameEngine(
     context.playerSettings,
     context.gameSettings,
     context.boardManager,
@@ -72,7 +72,7 @@ class SwingTetris(
         }
     }
 
-    fun start(renderer: GameRenderer<ProceduralPiece>) {
+    fun start(renderer: GameRenderer) {
         val targetFrameTime = 16.67
         var lastTime = Clock.System.now()
         var accumulator = 0.0

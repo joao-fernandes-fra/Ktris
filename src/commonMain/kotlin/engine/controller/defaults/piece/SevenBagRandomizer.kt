@@ -1,27 +1,27 @@
 package engine.controller.defaults.piece
 
-import engine.controller.BagRandomizer
+import engine.controller.PieceRandomizer
 import engine.model.Piece
 
-class SevenBagRandomizer<T : Piece>(
-    private val availablePieces: Collection<T>
-) : BagRandomizer<T> {
+class SevenBagRandomizer(
+    private val availablePieces: Collection<Piece>
+) : PieceRandomizer {
 
-    private val queue: MutableList<T> = mutableListOf()
-    private val currentBag: MutableList<T> = mutableListOf()
+    private val queue: MutableList<Piece> = mutableListOf()
+    private val currentBag: MutableList<Piece> = mutableListOf()
 
     init {
         refill()
     }
 
-    override fun getNextPiece(): T {
+    override fun getNextPiece(): Piece {
         if (queue.isEmpty()) refill()
         val piece = queue.removeAt(0)
         refill()
         return piece
     }
 
-    override fun getPreview(count: Int): List<T> {
+    override fun getPreview(count: Int): List<Piece> {
         while (queue.size < count) refill()
         return queue.toList().take(count)
     }

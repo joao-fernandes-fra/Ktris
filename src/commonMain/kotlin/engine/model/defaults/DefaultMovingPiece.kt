@@ -6,13 +6,13 @@ import engine.model.Piece
 import engine.model.Rotation
 
 
-data class DefaultMovingPiece<T : Piece>(
-    override var piece: T,
+data class DefaultMovingPiece(
+    override var piece: Piece,
     override var pieceRow: Int = 0,
     override var pieceCol: Int = 0,
     override var rotationState: Int = 0,
     override var shape: Matrix = piece.shape.copy(),
-) : MovingPiece<T> {
+) : MovingPiece {
     override fun move(tagetRow: Int, tagetCol: Int) {
         pieceRow = tagetRow
         pieceCol = tagetCol

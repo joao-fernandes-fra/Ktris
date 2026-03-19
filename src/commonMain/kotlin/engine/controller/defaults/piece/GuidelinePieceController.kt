@@ -1,6 +1,6 @@
 package engine.controller.defaults.piece
 
-import engine.controller.BagRandomizer
+import engine.controller.PieceRandomizer
 import engine.controller.ClipCapable
 import engine.controller.DasCapable
 import engine.controller.GhostCapable
@@ -36,13 +36,13 @@ import engine.model.events.EventOrchestrator
 import engine.model.MoveSource
 import engine.util.CollisionUtils.checkCollisionWithBoard
 
-class GuidelinePieceController<T : Piece>(
+class GuidelinePieceController(
     private val board: Board,
-    private val bagRandomizer: BagRandomizer<T>,
+    private val pieceRandomizer: PieceRandomizer,
     private val playerSettings: PlayerConfig,
     private val gameSettings: MatchConfig,
     private val gameId: String
-) : PieceController<T>, DasCapable, GravityCapable, SoftDropCapable, HardDropCapable, HoldCapable<T>,
+) : PieceController, DasCapable, GravityCapable, SoftDropCapable, HardDropCapable, HoldCapable,
     InitialActionsCapable, InputBufferCapable, ClipCapable, LockDelayCapable, GhostCapable, SpinTrackingCapable {
     companion object {
         private const val ROTATION_BUFFER_WINDOW = 133.0
@@ -55,8 +55,8 @@ class GuidelinePieceController<T : Piece>(
     private var canHold = true
     private var bufferedRotation: Rotation? = null
     private var rotationBufferTimer: Double = 0.0
-    override var heldPiece: T? = null
-    override var currentPiece: MovingPiece<T>? = null
+    override var heldPiece: Piece? = null
+    override var currentPiece: MovingPiece? = null
     override var ghostRow: Int = 0
     override var lastAction: LastPieceAction = LastPieceAction.NONE
     override val rotationBufferWindow: Double = ROTATION_BUFFER_WINDOW
@@ -64,8 +64,8 @@ class GuidelinePieceController<T : Piece>(
     override var lastKickIndex = 0
     override val lockResetsRemaining: Int get() = gameSettings.gravity.maxLockResets - lockResets
 
-    override fun getNextPieces(previewSize: Int): List<T> {
-        return bagRandomizer.getPreview(previewSize)
+    override fun getNextPieces(previewSize: Int): List<Piece> {
+        return pieceRandomizer.getPreview(previewSize)
     }
 
     override fun handleDAS(delta: Double, currentDirection: Int?) {
@@ -140,8 +140,8 @@ class GuidelinePieceController<T : Piece>(
     }
 
 
-    override fun spawn(piece: T?): MovingPiece<T>? {
-        val nextPiece = piece ?: bagRandomizer.getNextPiece()
+    override fun spawn(piece: Piece?): MovingPiece? {
+        val nextPiece = piece ?: pieceRandomizer.getNextPiece()
         Logger.debug { "Spawning piece: ${nextPiece.name}" }
         val newPiece = DefaultMovingPiece(
             piece = nextPiece,
@@ -351,11 +351,11 @@ class GuidelinePieceController<T : Piece>(
         return false
     }
 
-    private fun canMove(piece: MovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
+    private fun canMove(piece: MovingPiece, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
         return !checkCollisionWithBoard(board, piece.shape, row + dRow, piece.pieceCol + dCol)
     }
 
-    private fun canPlace(piece: MovingPiece<T>, row: Int, col: Int): Boolean {
+    private fun canPlace(piece: MovingPiece, row: Int, col: Int): Boolean {
         return !checkCollisionWithBoard(board, piece.shape, row, col)
     }
 
@@ -371,7 +371,7 @@ class GuidelinePieceController<T : Piece>(
 
     override fun reset() {
         currentPiece = null
-        bagRandomizer.reset()
+        pieceRandomizer.reset()
         heldPiece = null
         ghostRow = 0
         lowestRow = Int.MIN_VALUE
@@ -414,7 +414,7 @@ class GuidelinePieceController<T : Piece>(
         }
     }
 
-    private fun checkLowestRow(piece: MovingPiece<T>) {
+    private fun checkLowestRow(piece: MovingPiece) {
         val currentBottom = piece.pieceRow + piece.shape.rows - 1
         if (currentBottom > lowestRow) {
             lowestRow = currentBottom

@@ -18,19 +18,19 @@ import engine.controller.SpinTrackingCapable
 import engine.model.Piece
 import engine.model.Rotation
 
-fun <T : Piece> PieceController<T>?.handleDASIfSupported(delta: Double, currentDirection: Int?) {
+fun PieceController?.handleDASIfSupported(delta: Double, currentDirection: Int?) {
     (this as? DasCapable)?.handleDAS(delta, currentDirection)
 }
 
-fun <T : Piece> PieceController<T>?.applyGravityIfSupported(delta: Double, gravitySpeed: Double) {
+fun PieceController?.applyGravityIfSupported(delta: Double, gravitySpeed: Double) {
     (this as? GravityCapable)?.handleGravity(delta, gravitySpeed)
 }
 
-fun <T : Piece> PieceController<T>?.clipIfSupported() {
+fun PieceController?.clipIfSupported() {
     (this as? ClipCapable)?.clip()
 }
 
-fun <T : Piece> PieceController<T>?.advanceLockIfSupported(delta: Double, onLock: () -> Unit): Boolean {
+fun PieceController?.advanceLockIfSupported(delta: Double, onLock: () -> Unit): Boolean {
     val lockCap = this as? LockDelayCapable
     if (lockCap != null) {
         return lockCap.handleLockDelay(delta, onLock)
@@ -38,34 +38,34 @@ fun <T : Piece> PieceController<T>?.advanceLockIfSupported(delta: Double, onLock
     return false
 }
 
-fun <T : Piece> PieceController<T>?.getLockResetsRemainingIfSupported(): Int =
+fun PieceController?.getLockResetsRemainingIfSupported(): Int =
     (this as? LockDelayCapable)?.lockResetsRemaining ?: 0
 
-fun <T : Piece> PieceController<T>?.updateGhostIfSupported() {
+fun PieceController?.updateGhostIfSupported() {
     (this as? GhostCapable)?.updateGhost()
 }
 
-fun <T : Piece> PieceController<T>?.getGhostRowIfSupported(): Int? {
+fun PieceController?.getGhostRowIfSupported(): Int? {
     return (this as? GhostCapable)?.ghostRow
 }
 
-fun <T : Piece> PieceController<T>?.holdIfSupported() {
-    (this as? HoldCapable<T>)?.hold()
+fun PieceController?.holdIfSupported() {
+    (this as? HoldCapable)?.hold()
 }
 
-fun <T : Piece> PieceController<T>?.getHeldPieceIfSupported(): T? {
-    return (this as? HoldCapable<T>)?.heldPiece
+fun PieceController?.getHeldPieceIfSupported(): Piece? {
+    return (this as? HoldCapable)?.heldPiece
 }
 
-fun <T : Piece> PieceController<T>?.hardDropIfSupported() {
+fun PieceController?.hardDropIfSupported() {
     (this as? HardDropCapable)?.hardDrop()
 }
 
-fun <T : Piece> PieceController<T>?.softDropIfSupported(deltaTime: Double, gravitySpeed: Double) {
+fun PieceController?.softDropIfSupported(deltaTime: Double, gravitySpeed: Double) {
     (this as? SoftDropCapable)?.softDrop(deltaTime, gravitySpeed)
 }
 
-fun <T : Piece> PieceController<T>?.resetDASifSupported() {
+fun PieceController?.resetDASifSupported() {
     (this as? DasCapable)?.resetDas()
 }
 
@@ -77,21 +77,21 @@ fun BoardController.collapseIfSupported() {
     (this as? CollapseCapable)?.collapseFullLines()
 }
 
-fun <T : Piece> PieceController<T>?.bufferRotationIfSupported(rotation: Rotation, isFreshPress: Boolean = true) {
+fun PieceController?.bufferRotationIfSupported(rotation: Rotation, isFreshPress: Boolean = true) {
     (this as? InitialActionsCapable)?.bufferRotation(rotation, isFreshPress)
 }
 
-fun <T : Piece> PieceController<T>?.bufferHoldIfSupported(isFreshPress: Boolean = true) {
+fun PieceController?.bufferHoldIfSupported(isFreshPress: Boolean = true) {
     (this as? InitialActionsCapable)?.bufferHold(isFreshPress)
 }
 
-fun <T : Piece> PieceController<T>?.tickInputBufferIfSupported(delta: Double) {
+fun PieceController?.tickInputBufferIfSupported(delta: Double) {
     (this as? InputBufferCapable)?.tickInputBuffer(delta)
 }
 
-fun <T : Piece> PieceController<T>?.getLastKickIndexIfSupported(): Int =
+fun PieceController?.getLastKickIndexIfSupported(): Int =
     (this as? SpinTrackingCapable)?.lastKickIndex ?: 0
 
-fun <T : Piece> PieceController<T>?.clearActionBufferIfSupported() {
+fun PieceController?.clearActionBufferIfSupported() {
     (this as? InitialActionsCapable)?.clearActionBuffer()
 }

@@ -1,6 +1,6 @@
 package engine.controller.defaults.piece
 
-import engine.controller.BagRandomizer
+import engine.controller.PieceRandomizer
 import engine.controller.GravityCapable
 import engine.controller.LockDelayCapable
 import engine.controller.PieceController
@@ -20,14 +20,14 @@ import engine.model.events.DefaultGameEvents.PieceRotated
 import engine.model.events.EventOrchestrator
 import engine.util.CollisionUtils.checkCollisionWithBoard
 
-open class ClassicPieceController<T : Piece>(
+open class ClassicPieceController(
     protected val board: Board,
-    protected val bagRandomizer: BagRandomizer<T>,
+    protected val pieceRandomizer: PieceRandomizer,
     protected val gameSettings: MatchConfig,
     protected val gameId: String
-) : PieceController<T>, GravityCapable, LockDelayCapable, SoftDropCapable {
+) : PieceController, GravityCapable, LockDelayCapable, SoftDropCapable {
     protected val gameTimers: PieceTimers = PieceTimers()
-    override var currentPiece: MovingPiece<T>? = null
+    override var currentPiece: MovingPiece? = null
     override var lastAction: LastPieceAction = LastPieceAction.NONE
 
     private var lockResets: Int = 0
@@ -35,12 +35,12 @@ open class ClassicPieceController<T : Piece>(
     override val lockResetsRemaining: Int
         get() = gameSettings.gravity.maxLockResets - lockResets
 
-    override fun getNextPieces(previewSize: Int): List<T> {
-        return bagRandomizer.getPreview(previewSize)
+    override fun getNextPieces(previewSize: Int): List<Piece> {
+        return pieceRandomizer.getPreview(previewSize)
     }
 
-    override fun spawn(piece: T?): MovingPiece<T>? {
-        val next = piece ?: bagRandomizer.getNextPiece()
+    override fun spawn(piece: Piece?): MovingPiece? {
+        val next = piece ?: pieceRandomizer.getNextPiece()
         Logger.debug { "Spawning piece: ${next.name}" }
         val mp = DefaultMovingPiece(piece = next, pieceCol = (board.cols / 2) - (next.shape.cols / 2))
 
@@ -109,7 +109,7 @@ open class ClassicPieceController<T : Piece>(
         return true
     }
 
-    fun canMove(piece: MovingPiece<T>, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
+    fun canMove(piece: MovingPiece, dRow: Int, dCol: Int, row: Int = piece.pieceRow): Boolean {
         return !checkCollisionWithBoard(board, piece.shape, row + dRow, piece.pieceCol + dCol)
     }
 
@@ -132,7 +132,7 @@ open class ClassicPieceController<T : Piece>(
         currentPiece = null
         lastAction = LastPieceAction.NONE
         lockResets = 0
-        bagRandomizer.reset()
+        pieceRandomizer.reset()
     }
 
     override fun softDrop(deltaTime: Double, gravitySpeed: Double) {

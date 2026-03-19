@@ -27,7 +27,7 @@ import javax.swing.JPanel
 import kotlin.math.min
 import kotlin.math.sin
 
-class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPanel(), GameRenderer<T> {
+class SwingRenderer(private val gameContext: KtrisContext) : JPanel(), GameRenderer {
     private val gameId = gameContext.gameId
 
     companion object {
@@ -64,7 +64,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
 
     }
 
-    private var lastSnapshot: GameSnapshot<T>? = null
+    private var lastSnapshot: GameSnapshot? = null
     private var blockSize = HUD_LINE_PADDING
 
     private var flashAlpha = 0f
@@ -77,7 +77,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
     private var finishMessage: String? = null
 
     private var spinEffectStartTime = 0L
-    private var lastSpinPieceState: PieceState<T>? = null
+    private var lastSpinPieceState: PieceState? = null
     private var lastSpinType: SpinType? = null
     private var playerAPM: Float = 0f
     private var pendingLines: Int = 0
@@ -142,7 +142,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
         }
     }
 
-    override fun render(state: GameSnapshot<T>?) {
+    override fun render(state: GameSnapshot?) {
         lastSnapshot = state
         repaint()
     }
@@ -200,7 +200,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
         graphics.drawString(text, x, y)
     }
 
-    private fun calculateBlockSize(snapshot: GameSnapshot<T>) {
+    private fun calculateBlockSize(snapshot: GameSnapshot) {
         val padding = 12
         val maxWidth = width / (snapshot.board.cols + padding)
         val maxHeight = height / snapshot.board.rows
@@ -265,7 +265,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
         }
     }
 
-    private fun drawGameBoard(graphics: Graphics2D, snapshot: GameSnapshot<T>) {
+    private fun drawGameBoard(graphics: Graphics2D, snapshot: GameSnapshot) {
         val boardPixelWidth = snapshot.board.cols * blockSize
         val boardPixelHeight = snapshot.board.rows * blockSize
 
@@ -294,7 +294,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
 
     private fun drawPendingGarbageIndicator(
         graphics: Graphics2D,
-        snapshot: GameSnapshot<T>,
+        snapshot: GameSnapshot,
         offsetX: Int,
         offsetY: Int
     ) {
@@ -313,7 +313,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
 
     private fun drawBoardBorder(
         graphics: Graphics2D,
-        snapshot: GameSnapshot<T>,
+        snapshot: GameSnapshot,
         offsetX: Int,
         offsetY: Int
     ) {
@@ -332,7 +332,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
 
     private fun drawBoardBlocks(
         graphics: Graphics2D,
-        snapshot: GameSnapshot<T>,
+        snapshot: GameSnapshot,
         offsetX: Int,
         offsetY: Int
     ) {
@@ -356,7 +356,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
 
     private fun drawCurrentPiece(
         graphics: Graphics2D,
-        snapshot: GameSnapshot<T>,
+        snapshot: GameSnapshot,
         offsetX: Int,
         offsetY: Int
     ) {
@@ -367,7 +367,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
 
     private fun drawGhostPiece(
         graphics: Graphics2D,
-        snapshot: GameSnapshot<T>,
+        snapshot: GameSnapshot,
         offsetX: Int,
         offsetY: Int
     ) {
@@ -376,14 +376,14 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
         }
     }
 
-    private fun drawHoldPiece(graphics: Graphics2D, snapshot: GameSnapshot<T>, boardOffsetX: Int, boardOffsetY: Int) {
+    private fun drawHoldPiece(graphics: Graphics2D, snapshot: GameSnapshot, boardOffsetX: Int, boardOffsetY: Int) {
         snapshot.holdPiece?.let { piece ->
             val holdX = boardOffsetX - (5 * blockSize)
             drawPiece(graphics, piece.toPieceState(), holdX, boardOffsetY, FULL_OPACITY)
         }
     }
 
-    private fun drawNextPieces(graphics: Graphics2D, snapshot: GameSnapshot<T>, boardOffsetX: Int, boardOffsetY: Int) {
+    private fun drawNextPieces(graphics: Graphics2D, snapshot: GameSnapshot, boardOffsetX: Int, boardOffsetY: Int) {
         val nextX = boardOffsetX + (snapshot.board.cols * blockSize) + blockSize
 
         snapshot.nextPieces.forEachIndexed { index, piece ->
@@ -396,7 +396,7 @@ class SwingRenderer<T : Piece>(private val gameContext: KtrisContext<T>) : JPane
 
     private fun drawPiece(
         graphics: Graphics2D,
-        piece: PieceState<T>,
+        piece: PieceState,
         offsetX: Int,
         offsetY: Int,
         opacity: Int

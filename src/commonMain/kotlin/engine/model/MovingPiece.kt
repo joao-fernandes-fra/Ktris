@@ -1,7 +1,7 @@
 package engine.model
 
-interface MovingPiece<T : Piece> {
-    var piece: T
+interface MovingPiece {
+    var piece: Piece
     var pieceRow: Int
     var pieceCol: Int
     var rotationState: Int

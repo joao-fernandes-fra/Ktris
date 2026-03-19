@@ -8,7 +8,7 @@ import engine.model.TimeState
 import java.awt.event.KeyAdapter
 import java.awt.event.KeyEvent
 
-class SwingInputHandler(private val engine: DefaultGameEngine<*>) : KeyAdapter() {
+class SwingInputHandler(private val engine: DefaultGameEngine) : KeyAdapter() {
     private var isFrozen = false
 
     override fun keyPressed(e: KeyEvent?) {

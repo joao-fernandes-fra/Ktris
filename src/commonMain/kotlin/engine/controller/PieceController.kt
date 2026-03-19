@@ -6,11 +6,11 @@ import engine.model.Piece
 import engine.model.Resetable
 import engine.model.Rotation
 
-interface PieceController<T : Piece> : Resetable {
-    var currentPiece: MovingPiece<T>?
+interface PieceController : Resetable {
+    var currentPiece: MovingPiece?
     var lastAction: LastPieceAction
-    fun getNextPieces(previewSize: Int = 1): List<T>
-    fun spawn(piece: T? = null): MovingPiece<T>?
+    fun getNextPieces(previewSize: Int = 1): List<Piece>
+    fun spawn(piece: Piece? = null): MovingPiece?
     fun move(targetRow: Int, targetCol: Int): Boolean
     fun rotate(rotation: Rotation): Boolean
     fun clearPiece()
@@ -35,8 +35,8 @@ interface LockDelayCapable {
     fun handleLockDelay(deltaTime: Double, onLock: () -> Unit): Boolean
 }
 
-interface HoldCapable<T : Piece> {
-    var heldPiece: T?
+interface HoldCapable {
+    var heldPiece: Piece?
     var holdBuffered: Boolean
     fun hold()
 }

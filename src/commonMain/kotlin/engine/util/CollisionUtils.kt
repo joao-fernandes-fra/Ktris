@@ -34,7 +34,7 @@ object CollisionUtils {
         return false
     }
 
-    fun isImmobile(board: Board, piece: MovingPiece<*>): Boolean {
+    fun isImmobile(board: Board, piece: MovingPiece): Boolean {
         val shape = piece.shape
         val row = piece.pieceRow
         val col = piece.pieceCol

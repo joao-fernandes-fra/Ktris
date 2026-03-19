@@ -11,7 +11,7 @@ interface BoardController : Resetable {
     fun isOccupied(row: Int, col: Int): Boolean
     fun clearFullLines(): Set<Int>
     fun getFullLines(): Set<Int>
-    fun placePiece(piece: MovingPiece<*>)
+    fun placePiece(piece: MovingPiece)
     fun updateBoard(board: Board)
 }
 

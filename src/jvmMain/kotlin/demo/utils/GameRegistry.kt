@@ -1,7 +1,6 @@
 package demo.utils
 
 import engine.controller.defaults.board.ExtendedBoardController
-import engine.controller.defaults.gravity.GuidelineLevelHandler
 import engine.controller.defaults.piece.GuidelinePieceController
 import engine.controller.defaults.piece.SevenBagRandomizer
 import engine.controller.defaults.scoring.DefaultRulebook
@@ -14,19 +13,19 @@ import engine.model.Piece
 import engine.model.PlayerConfig
 
 object GameRegistry {
-    private val games = mutableMapOf<String, KtrisContext<*>>()
+    private val games = mutableMapOf<String, KtrisContext>()
 
-    fun <T : Piece> registerContext(context: KtrisContext<T>): KtrisContext<T> {
+    fun registerContext(context: KtrisContext): KtrisContext {
         games[context.gameId] = context
         return context
     }
 
-    fun <T : Piece> getDefaultContext(
+    fun getDefaultContext(
         global: MatchConfig,
         player: PlayerConfig,
-        availablePieces: Collection<T>,
+        availablePieces: Collection<Piece>,
         gameId: String
-    ): KtrisContext<T> {
+    ): KtrisContext {
         val bagRandomizer = SevenBagRandomizer(availablePieces)
         val boardController =
             ExtendedBoardController(global.board.rows, global.board.cols, global.board.bufferZone, global.garbage)
@@ -39,7 +38,7 @@ object GameRegistry {
         )
         val scoringEngine = ScoringEngine(DefaultRulebook())
 
-        return KtrisContextBuilder<T>(gameId)
+        return KtrisContextBuilder(gameId)
             .playerSettings(player)
             .gameSettings(global)
             .bagManager(bagRandomizer)
@@ -50,6 +49,6 @@ object GameRegistry {
             .build()
     }
 
-    fun <T : Piece> get(gameId: String) =
+    fun get(gameId: String) =
         games[gameId] ?: error("Game not found: $gameId")
 }

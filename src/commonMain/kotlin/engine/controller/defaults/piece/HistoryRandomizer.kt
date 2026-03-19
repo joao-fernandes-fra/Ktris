@@ -1,21 +1,21 @@
 package engine.controller.defaults.piece
 
-import engine.controller.BagRandomizer
+import engine.controller.PieceRandomizer
 import engine.model.Piece
 
-class HistoryRandomizer<T : Piece>(
-    private val availablePieces: Collection<T>,
+class HistoryRandomizer(
+    private val availablePieces: Collection<Piece>,
     private val historySize: Int = 4
-) : BagRandomizer<T> {
+) : PieceRandomizer {
 
-    private val history: ArrayDeque<T> = ArrayDeque()
-    private val preview: MutableList<T> = mutableListOf()
+    private val history: ArrayDeque<Piece> = ArrayDeque()
+    private val preview: MutableList<Piece> = mutableListOf()
 
     init {
         refillPreview(1)
     }
 
-    override fun getNextPiece(): T {
+    override fun getNextPiece(): Piece {
         if (preview.isEmpty()) refillPreview(1)
         val piece = preview.removeAt(0)
         history.addLast(piece)
@@ -24,7 +24,7 @@ class HistoryRandomizer<T : Piece>(
         return piece
     }
 
-    override fun getPreview(count: Int): List<T> {
+    override fun getPreview(count: Int): List<Piece> {
         refillPreview(count)
         return preview.toList().take(count)
     }

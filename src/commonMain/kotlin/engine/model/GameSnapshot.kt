@@ -1,11 +1,11 @@
 package engine.model
 
-data class GameSnapshot<T : Piece>(
+data class GameSnapshot(
     val board: Board,
-    val currentPiece: PieceState<T>?,
-    val ghostPiece: PieceState<T>?,
-    val nextPieces: List<T?>,
-    val holdPiece: T?,
+    val currentPiece: PieceState?,
+    val ghostPiece: PieceState?,
+    val nextPieces: List<Piece?>,
+    val holdPiece: Piece?,
     val hudInfo: HUDInfo,
     val timeState: TimeState,
     val timeStateProgress: Double?,
@@ -22,14 +22,14 @@ data class HUDInfo(
     val sessionTimeSeconds: Double?,
 )
 
-data class PieceState<T : Piece>(
+data class PieceState(
     val shape: Matrix,
     val row: Int,
     val col: Int,
-    val type: T
+    val type: Piece
 )
 
-fun <T : Piece> T.toPieceState(): PieceState<T> {
+fun Piece.toPieceState(): PieceState {
     return PieceState(
         shape,
         0,
