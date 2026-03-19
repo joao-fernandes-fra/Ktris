@@ -21,7 +21,7 @@ class ScoringEngine(private val ruleBook: ScoringRuleBook) {
 
         val newB2b = when {
             isDifficult -> stats.b2bCount + 1
-            lines > 0 -> -1
+            lines >= 1 -> -1
             else -> stats.b2bCount
         }
 
