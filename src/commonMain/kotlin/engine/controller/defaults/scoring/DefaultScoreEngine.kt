@@ -1,15 +1,14 @@
 package engine.controller.defaults.scoring
 
+import engine.controller.ScoreEngine
 import engine.model.GameStats
 import engine.model.MoveType
 import engine.model.ScoringRuleBook
 import engine.model.SpinType
-import engine.model.events.DefaultGameEvents
-import engine.model.events.EventOrchestrator
 
-class ScoringEngine(private val ruleBook: ScoringRuleBook) {
+class DefaultScoreEngine(private val ruleBook: ScoringRuleBook) : ScoreEngine {
 
-    fun calculate(
+    override fun calculate(
         spinType: SpinType,
         lines: Int,
         stats: GameStats,

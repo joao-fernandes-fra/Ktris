@@ -5,7 +5,7 @@ import engine.controller.defaults.piece.GuidelinePieceController
 import engine.controller.defaults.piece.SevenBagRandomizer
 import engine.controller.defaults.scoring.DefaultRulebook
 import engine.controller.defaults.scoring.ScoreTracker
-import engine.controller.defaults.scoring.ScoringEngine
+import engine.controller.defaults.scoring.DefaultScoreEngine
 import engine.model.KtrisContext
 import engine.model.KtrisContextBuilder
 import engine.model.MatchConfig
@@ -36,7 +36,7 @@ object GameRegistry {
             global,
             gameId
         )
-        val scoringEngine = ScoringEngine(DefaultRulebook())
+        val scoringEngine = DefaultScoreEngine(DefaultRulebook())
 
         return KtrisContextBuilder(gameId)
             .playerSettings(player)

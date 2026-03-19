@@ -3,7 +3,8 @@ package engine.controller.defaults
 import engine.controller.BoardController
 import engine.controller.GameEngine
 import engine.controller.PieceController
-import engine.controller.defaults.scoring.ScoringEngine
+import engine.controller.ScoreEngine
+import engine.controller.defaults.scoring.DefaultScoreEngine
 import engine.controller.defaults.scoring.ScoringResult
 import engine.model.Board
 import engine.model.Drop
@@ -18,7 +19,6 @@ import engine.model.LastPieceAction
 import engine.model.MatchConfig
 import engine.model.Movement
 import engine.model.MovingPiece
-import engine.model.Piece
 import engine.model.PieceState
 import engine.model.PlayerConfig
 import engine.model.Rotation
@@ -61,7 +61,7 @@ abstract class DefaultGameEngine(
     protected var gameSettings: MatchConfig,
     protected var boardManager: BoardController,
     protected var pieceController: PieceController,
-    protected var scoringEngine: ScoringEngine,
+    protected var scoringEngine: ScoreEngine,
 ) : GameEngine {
     protected val gameTimers: EngineTimers = EngineTimers()
     protected val timeManager: TimeManager = TimeManager()
@@ -91,6 +91,10 @@ abstract class DefaultGameEngine(
 
     fun updatePieceController(pieceController: PieceController) {
         this.pieceController = pieceController
+    }
+
+    fun updateScoreEngine(scoreEngine: ScoreEngine) {
+        this.scoringEngine = scoringEngine
     }
 
 
